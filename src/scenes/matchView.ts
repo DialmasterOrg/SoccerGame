@@ -4,6 +4,7 @@ import { MASTER, type MasterColor } from '../art/colors';
 import { PARALLAX } from '../art/venues/backyard';
 import { JOGGERS, PATH_Y } from '../art/venues/park';
 import { hudSize, offscreenArrow, project, viewOf, type Camera, type View } from '../game/camera';
+import { stageFor } from '../game/stage';
 import { SWEET_SPOT } from '../game/kick';
 import { clockText, type Team } from '../game/match';
 import { DECEL, type Player } from '../game/player';
@@ -120,23 +121,26 @@ const JOGGER_FPS = 8;
 
 /** A venue's scenery, far to near, with its joggers on the mid layer at time `nowS`. A venue with no art of its own shows the Backyard. */
 export function drawLayers(g: CanvasRenderingContext2D, cam: Camera, art: GameArt, venue: VenueId = 'backyard', nowS = 0): void {
-  const v = art.venues[venue] ?? art.venues.backyard!;
+  const drawn: VenueId = art.venues[venue] ? venue : 'backyard';
+  const v = art.venues[drawn]!;
+  // A venue drawn on a camera of another size shifts so its near touchline meets the camera's: the 300-row School sits 120 rows up on a 320×180 screen.
+  const dy = viewOf(cam).nearSY - stageFor(drawn).view.nearSY;
   // The far sky is narrower than its scroll range, so it tiles.
   const far = v.layers.far;
   const farX = -(Math.round(cam.x * PARALLAX.far) % far.width);
-  g.drawImage(far, farX, 0);
-  g.drawImage(far, farX + far.width, 0);
+  g.drawImage(far, farX, dy);
+  g.drawImage(far, farX + far.width, dy);
   const midX = -Math.round(cam.x * PARALLAX.mid);
-  g.drawImage(v.layers.mid, midX, 0);
+  g.drawImage(v.layers.mid, midX, dy);
   const midW = v.layers.mid.width;
   const step = Math.floor(nowS * JOGGER_FPS) % 2;
   v.joggers.forEach((frames, i) => {
     const j = JOGGERS[i]!;
     const x = (((j.startX + j.dir * j.speed * nowS) % midW) + midW) % midW;
     const frame = frames[step]!;
-    g.drawImage(frame, Math.round(midX + x), PATH_Y - frame.height + 1);
+    g.drawImage(frame, Math.round(midX + x), PATH_Y - frame.height + 1 + dy);
   });
-  for (const name of ['near', 'ground'] as const) g.drawImage(v.layers[name], -Math.round(cam.x * PARALLAX[name]), 0);
+  for (const name of ['near', 'ground'] as const) g.drawImage(v.layers[name], -Math.round(cam.x * PARALLAX[name]), dy);
 }
 
 /** Where a goal's sprites go: they all share one origin from its goal line. */

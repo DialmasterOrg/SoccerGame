@@ -11,8 +11,9 @@ import { depthSorted } from './depthSort';
 import { arrowX, banner, calloutLine, drawLayers, drawMatch, homeClip, pitchDrawables, takeFlash, type MatchHud } from './matchView';
 import { fakeArt, recordingContext } from './testDraw';
 import { powerMeterX0 } from './powerView';
-import { BIG_VIEW } from '../game/camera';
+import { BIG_VIEW, type Camera } from '../game/camera';
 import { SCHOOL_STAGE } from '../game/stage';
+import type { VenueId } from '../meta/career';
 
 /** Building the list never touches the art; only drawing does. */
 const NO_ART = {} as GameArt;
@@ -28,7 +29,7 @@ function recorder() {
   const g = { drawImage: (img: { name: string }, x: number, y: number) => void drawn.push({ name: img.name, x, y }) } as unknown as CanvasRenderingContext2D;
   return { g, drawn };
 }
-const VENUE_ART = { venues: { backyard: venueArt('backyard'), park: venueArt('park') } } as unknown as GameArt;
+const VENUE_ART = { venues: { backyard: venueArt('backyard'), park: venueArt('park'), school: venueArt('school') } } as unknown as GameArt;
 
 describe('drawLayers', () => {
   it("draws the venue's own layers, far to ground", () => {
@@ -43,8 +44,30 @@ describe('drawLayers', () => {
 
   it('a venue with no art falls back to the Backyard', () => {
     const { g, drawn } = recorder();
-    drawLayers(g, { x: 0 }, VENUE_ART, 'school');
+    drawLayers(g, { x: 0 }, VENUE_ART, 'stadium');
     expect(drawn.map(d => d.name)).toContain('backyard/far');
+  });
+
+  it('a venue drawn on a camera of another size shifts so the near touchlines meet', () => {
+    const layerYs = (cam: Camera, venue: VenueId) => {
+      const { g, drawn } = recorder();
+      drawLayers(g, cam, VENUE_ART, venue);
+      return new Set(drawn.filter(d => /\/(far|mid|near|ground)$/.test(d.name)).map(d => d.y));
+    };
+    expect(layerYs({ x: 0 }, 'school')).toEqual(new Set([-120]));
+    expect(layerYs({ x: 0, view: BIG_VIEW }, 'school')).toEqual(new Set([0]));
+    expect(layerYs({ x: 0 }, 'park')).toEqual(new Set([0]));
+    expect(layerYs({ x: 0 }, 'stadium')).toEqual(new Set([0])); // no art: the Backyard, unshifted
+  });
+
+  it('the joggers shift with their venue', () => {
+    const { g, drawn } = recorder();
+    drawLayers(g, { x: 0, view: BIG_VIEW }, VENUE_ART, 'park');
+    const jogger = drawn.find(d => d.name.startsWith('park/jogger0'))!;
+    const { g: g2, drawn: drawn2 } = recorder();
+    drawLayers(g2, { x: 0 }, VENUE_ART, 'park');
+    const small = drawn2.find(d => d.name.startsWith('park/jogger0'))!;
+    expect(jogger.y - small.y).toBe(120);
   });
 
   it('joggers run on the mid layer, between it and the near layer, and move with time', () => {
