@@ -1,4 +1,6 @@
+import { KEEPER_HANDS } from '../art/keepers/poses';
 import type { CareerMatch } from '../meta/career';
+import { BALL_REST_Y } from './ball';
 import type { Difficulty } from './ai';
 import type { ContactEvents } from './contact';
 import { penaltyArea, type Field, type Goal } from './field';
@@ -141,6 +143,10 @@ export interface KeeperIntent {
 
 /** px in front of the goal line, beyond his radius, when set. */
 export const SET_OFF = 3;
+/** A ball caught in a dive lies this far along it from his centre, by his gloves. */
+const DIVE_BALL_PX = 10;
+/** A standing catch or push shows this long. */
+const POSE_S = 0.25;
 
 export function keeperGoal(field: Field, side: KeeperSide): Goal {
   return field.goals[side === 'home' ? 0 : 1];
@@ -207,6 +213,7 @@ function slideDive(k: Keeper, dt: number): void {
  */
 export function stepKeeper(w: World, k: Keeper, intent: KeeperIntent, live: boolean, dt: number, ev: KeeperEvents): void {
   k.actT += dt;
+  if (k.pose && (k.pose.leftS -= dt) <= 0) k.pose = null;
   if (live && intent.dive && onFeet(k) && k.body.state === 'ground') startDive(k, intent.dive, ev);
   const { profile, body } = k;
   switch (k.act) {
@@ -222,13 +229,51 @@ export function stepKeeper(w: World, k: Keeper, intent: KeeperIntent, live: bool
       return;
     case 'getUp':
       if (k.actT >= profile.getUpS) {
-        enterAct(k, 'set');
+        enterAct(k, k.holding ? 'hold' : 'set');
         k.dive = null;
       }
+      return;
+    case 'hold':
+      [body.vx, body.vz] = [0, 0];
       return;
     default: {
       const move: PlayerIntent = live ? { ...intent.move, pace: profile.speed / runSpeed(BASE_STATS), faceX: pitchward(w.field, k.side) } : NO_INTENT;
       stepPlayer(body, move, dt, w.field, false);
     }
   }
+}
+
+/** Where the ball he holds sits: at his gloves on his feet, on the grass by them after a dive. */
+function heldSpot(k: Keeper): { x: number; y: number; z: number } {
+  const { body } = k;
+  if (k.act === 'dive' || k.act === 'down' || k.act === 'getUp') {
+    const { dirX, dirZ } = k.dive ?? { dirX: 0, dirZ: 0 };
+    const len = Math.hypot(dirX, dirZ) || 1;
+    return { x: body.x + (dirX / len) * DIVE_BALL_PX, y: BALL_REST_Y, z: body.z + (dirZ / len) * DIVE_BALL_PX };
+  }
+  return { x: body.x + body.facing * KEEPER_HANDS.x, y: KEEPER_HANDS.y, z: body.z };
+}
+
+/** A caught ball, still, where he holds it. */
+export function parkHeldBall(w: World): void {
+  const ks = w.keepers;
+  const k = ks?.home.holding ? ks.home : ks?.away.holding ? ks.away : null;
+  if (!k) return;
+  Object.assign(w.ball, heldSpot(k), { vx: 0, vy: 0, vz: 0, spin: 0 });
+  w.ball.touchedBy = k.side;
+}
+
+/**
+ * He has it: holding, the ball parked where he holds it. Standing, he holds
+ * it at once and shows the catch; caught in a dive, it lies on the grass by
+ * his gloves while he's down and getting up, and he holds it once he's up.
+ */
+export function startHold(w: World, k: Keeper, ev: KeeperEvents, standing: boolean): void {
+  k.holding = true;
+  if (standing) {
+    enterAct(k, 'hold');
+    k.pose = { name: 'catch', leftS: POSE_S };
+  }
+  ev.caught = k.side;
+  parkHeldBall(w);
 }

@@ -217,23 +217,23 @@ function pop(ball: Ball, field: Field): void {
 /**
  * His body is solid: a ball running into him bounces back off the side it
  * came from. A ball wedged between his body and a wall, a net or a post
- * pops up so it can't stay stuck.
+ * pops up so it can't stay stuck. Returns whether the ball bounced off him.
  */
-function block(p: Player, ball: Ball, field: Field, ev: ContactEvents): void {
-  if (!ballInBody(p, ball, BALL_R)) return;
+export function blockBall(p: Player, ball: Ball, field: Field): boolean {
+  if (!ballInBody(p, ball, BALL_R)) return false;
   const { nx, nz } = bodyNormal(p, ball);
   const reach = PLAYER_R + BALL_R;
   const [x, z] = [p.x + nx * reach, p.z + nz * reach];
   if (!canPlace(ball, x, z, field)) {
     if (!onRoof(ball, field) && ball.vy <= 0) pop(ball, field);
-    return;
+    return false;
   }
   const closing = (ball.vx - p.vx) * nx + (ball.vz - p.vz) * nz;
-  if (closing >= 0) return;
+  if (closing >= 0) return false;
   [ball.x, ball.z] = [x, z];
   ball.vx -= (1 + BODY_RESTITUTION) * closing * nx;
   ball.vz -= (1 + BODY_RESTITUTION) * closing * nz;
-  ev.blocked = true;
+  return true;
 }
 
 /**
@@ -299,7 +299,7 @@ export function resolveContacts(
   if (ev.kicked || ev.tackledBall || onRoof(ball, field)) return ev;
   if (!squeeze || !squeezed(p, opponent, ball)) {
     dribble(p, ball, ev, keepOut, field);
-    block(p, ball, field, ev);
+    if (blockBall(p, ball, field)) ev.blocked = true;
   }
   // Also catches a block that pushed the ball out into the other player.
   if (squeeze && squeezed(p, opponent, ball)) squirt(p, opponent, ball, rng, field);

@@ -7,7 +7,8 @@ import { canPlace, resolveContacts, type ContactEvents } from './contact';
 import { checkPinned, createDog, dropBall, parkBall, quietDog, resetDog, stepDog, vulnerable, type DogEvents, type DogProfile, type DogState } from './dog';
 import { goalScored, type Field } from './field';
 import { startDragBack, stepDragBack } from './dragBack';
-import { createKeepers, placeKeepers, quietKeepers, stepKeeper, type KeeperEvents, type KeeperLineup, type Keepers } from './keeper';
+import { createKeepers, parkHeldBall, placeKeepers, quietKeepers, stepKeeper, type KeeperEvents, type KeeperLineup, type Keepers } from './keeper';
+import { keeperSaves } from './keeperSaves';
 import { thinkKeeper } from './keeperAi';
 import { createMatch, stepMatch, type MatchState, type Team } from './match';
 import { DECEL, NO_INTENT, NORMAL_HANDLING, createPlayer, stepPlayer, type Handling, type Player, type PlayerIntent } from './player';
@@ -307,8 +308,12 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
     w.power.activeS = 0;
     power.fired = true;
   }
-  if (keepers) resolveAll([home, w.away, keepers.home.body, keepers.away.body], w.field);
-  else resolveBodies(home, w.away, w.field);
+  if (keepers) {
+    resolveAll([home, w.away, keepers.home.body, keepers.away.body], w.field);
+    parkHeldBall(w);
+  } else resolveBodies(home, w.away, w.field);
+  // A ball a keeper holds is out of play: nobody else touches it, and it isn't simulated.
+  const held = keepers !== null && (keepers.home.holding || keepers.away.holding);
   if (dogBody && live && checkPinned(w, awayIntent, Math.hypot(w.away.x - dogFrom.x, w.away.z - dogFrom.z), dt)) dog.dropped = true;
   if (carryFromZ !== null && windingUp(home)) carryInDepth(w, home.z - carryFromZ);
   const steal = resolveSteal(w, homeIntent);
@@ -321,7 +326,8 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   const { braced, blown } = stepWave(w, dt);
   [power.braced, power.blown] = [braced, blown];
   // A carried ball isn't simulated: it rides in the dog's mouth.
-  const ball = w.dog?.carrying ? quietBall() : stepBall(w.ball, dt, w.field);
+  const from = { x: w.ball.x, y: w.ball.y, z: w.ball.z };
+  const ball = w.dog?.carrying || held ? quietBall() : stepBall(w.ball, dt, w.field);
   // The second player to act on the ball has the last word, so take turns going first.
   // A ball just trapped at his feet isn't a 50/50 this tick, so the squirt can't undo the trap at once.
   const squeeze = steal !== 'stole' && steal !== 'trapped';
@@ -338,7 +344,8 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   };
   const homeFirst = w.tick % 2 === 0;
   let kicks: ContactEvents[];
-  if (w.dog) kicks = dogContacts(w, w.dog, dog, live && homeIntent.steal);
+  if (held) kicks = [quietContact(), quietContact()];
+  else if (w.dog) kicks = dogContacts(w, w.dog, dog, live && homeIntent.steal);
   else {
     const first = homeFirst ? contact(home, w.away) : contact(w.away, home);
     const second = homeFirst ? contact(w.away, home) : contact(home, w.away);
@@ -347,6 +354,12 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   // A ball Harrison blocks, or that comes to rest at his feet, is his: the other side's long touch no longer claims it.
   const resting = Math.hypot(w.ball.vx, w.ball.vz) < BALL_RESTING;
   if (kicks[0]?.blocked || (resting && ballAtFeet(home, w.ball))) w.ball.touchedBy = 'home';
+  if (keepers) {
+    kicks.forEach((k, i) => {
+      if (k.kicked) keepers.strike = { team: i === 0 ? 'home' : 'away', kind: k.kicked, perfect: k.perfect, x: w.ball.x };
+    });
+    if (!held) keeperSaves(w, from, keeper);
+  }
   w.tick++;
   if (w.power && !power.fired && (wasActive || power.started)) {
     if (w.power.activeS > 0 && powerEnds(w, live, kicks)) w.power.activeS = 0;
@@ -355,6 +368,8 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   if (w.power) {
     creditMeter(w.power, kicks[0]!, w);
     noteLastKind(w.power, kicks);
+    // Their keeper saving it ends Harrison's kick, as Max playing it does.
+    if (keeper.caught === 'away' || keeper.pushed === 'away') w.power.lastKind = null;
   }
 
   // Written after everything has moved, so the goal sees the carried ball where he is.
