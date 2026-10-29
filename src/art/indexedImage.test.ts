@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { IndexedImage, blit, flipX, parseGrid } from './indexedImage';
+import { IndexedImage, blit, flipX, parseGrid, shearUp, turnLeft } from './indexedImage';
 
 describe('parseGrid', () => {
   const legend = { a: 3, b: 7 };
@@ -48,5 +48,19 @@ describe('flipX', () => {
   it('mirrors an odd-width image around its centre column', () => {
     const f = flipX(parseGrid(['a.b.c'], { a: 1, b: 2, c: 3 }));
     expect([f.get(0, 0), f.get(2, 0), f.get(4, 0)]).toEqual([3, 2, 1]);
+  });
+});
+
+describe('turning and shearing', () => {
+  it('turnLeft gives a quarter turn anticlockwise', () => {
+    const t = turnLeft(parseGrid(['ab', 'cd', 'ef'], { a: 1, b: 2, c: 3, d: 4, e: 5, f: 6 }));
+    expect([t.width, t.height]).toEqual([3, 2]);
+    expect([t.get(0, 0), t.get(1, 0), t.get(2, 0), t.get(0, 1), t.get(2, 1)]).toEqual([2, 4, 6, 1, 5]);
+  });
+
+  it('shearUp shifts each row right by the slope per row above the bottom', () => {
+    const s = shearUp(parseGrid(['a', 'a', 'a', 'a'], { a: 1 }), 0.5);
+    expect(s.width).toBe(3);
+    expect([s.get(2, 0), s.get(1, 1), s.get(1, 2), s.get(0, 3)]).toEqual([1, 1, 1, 1]);
   });
 });

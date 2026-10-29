@@ -13,7 +13,7 @@ export interface BakedClip {
 }
 
 /** Evenly samples a clip's keys into one pose per frame (see the plan's sampling rules). */
-export function samplePoses(clip: AnimationClip): Pose[] {
+export function samplePoses(clip: Pick<AnimationClip, 'keys' | 'frameCount' | 'loop' | 'mirrorHalf'> & { name: string }): Pose[] {
   const { keys, loop, mirrorHalf } = clip;
   if (mirrorHalf && clip.frameCount % 2 !== 0) throw new Error(`${clip.name}: mirrorHalf needs an even frameCount, got ${clip.frameCount}`);
   const n = mirrorHalf ? clip.frameCount / 2 : clip.frameCount;

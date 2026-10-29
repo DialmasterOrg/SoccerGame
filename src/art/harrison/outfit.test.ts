@@ -57,8 +57,8 @@ describe('outfitHeads, outfitBody and outfitPortrait', () => {
   });
 
   it('outfitBody: wristbands and the armband', () => {
-    expect(outfitBody(DEFAULT_OUTFIT)).toEqual({ wristbands: false, armband: false });
-    expect(outfitBody(dressed({ extras: ['armband', 'glasses'] }))).toEqual({ wristbands: false, armband: true });
+    expect(outfitBody(DEFAULT_OUTFIT)).toEqual({ wristbands: false, armband: false, gloves: false });
+    expect(outfitBody(dressed({ extras: ['armband', 'glasses'] }))).toEqual({ wristbands: false, armband: true, gloves: false });
   });
 
   it('outfitPortrait wears the glasses and headband, not the rest', () => {

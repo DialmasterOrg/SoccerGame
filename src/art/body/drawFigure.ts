@@ -12,6 +12,8 @@ const SLEEVE_LENGTH = 0.5;
 const KNEE_SKIN = 1;
 const WAISTBAND = 3;
 const HAND = 2;
+/** A gloved hand is a pixel bigger. */
+const GLOVE = 3;
 /** The captain's armband covers this stretch of the upper arm, inside the sleeve; wristbands the forearm from WRISTBAND_FROM. */
 const ARMBAND = [0.22, 0.48] as const;
 const WRISTBAND_FROM = 0.6;
@@ -20,9 +22,11 @@ const WRISTBAND_FROM = 0.6;
 export interface BodyExtras {
   wristbands: boolean;
   armband: boolean;
+  /** A keeper's gloves. */
+  gloves: boolean;
 }
 
-export const NO_BODY_EXTRAS: BodyExtras = { wristbands: false, armband: false };
+export const NO_BODY_EXTRAS: BodyExtras = { wristbands: false, armband: false, gloves: false };
 
 /** Colours for one side of the body: near limbs use base tones, far limbs shadow tones. */
 interface SideColors {
@@ -32,10 +36,11 @@ interface SideColors {
   socks: number;
   boot: number;
   trim: number;
+  glove: number;
 }
 
 // The near sleeve is a lighter red so the arm reads against the jersey behind it.
-const NEAR: SideColors = { skin: C.Skin, sleeve: C.JerseyLight, shorts: C.Shorts, socks: C.Socks, boot: C.Boot, trim: C.Trim };
+const NEAR: SideColors = { skin: C.Skin, sleeve: C.JerseyLight, shorts: C.Shorts, socks: C.Socks, boot: C.Boot, trim: C.Trim, glove: C.Glove };
 const FAR: SideColors = {
   skin: C.SkinShadow,
   sleeve: C.JerseyShadow,
@@ -43,6 +48,7 @@ const FAR: SideColors = {
   socks: C.SocksShadow,
   boot: C.BootShadow,
   trim: C.TrimShadow,
+  glove: C.GloveShadow,
 };
 
 const round = (p: Point): Point => ({ x: Math.round(p.x), y: Math.round(p.y) });
@@ -57,7 +63,8 @@ function drawArm(img: IndexedImage, shoulder: Point, elbow: Point, hand: Point, 
   drawSegment(img, shoulder, elbow, body.upperArmWidth, t => (t < SLEEVE_LENGTH ? (armband && onArmband(t) ? C.Armband : c.sleeve) : c.skin));
   if (near) drawSegment(img, shoulder, round(lerpPt(shoulder, elbow, SLEEVE_LENGTH)), 1, t => (armband && onArmband(t * SLEEVE_LENGTH) ? C.Armband : C.Trim));
   drawSegment(img, elbow, hand, body.forearmWidth, t => (extras.wristbands && t >= WRISTBAND_FROM ? c.trim : c.skin));
-  drawSegment(img, hand, hand, HAND, () => c.skin);
+  if (extras.gloves) drawSegment(img, hand, hand, GLOVE, () => c.glove);
+  else drawSegment(img, hand, hand, HAND, () => c.skin);
 }
 
 function drawLeg(img: IndexedImage, hip: Point, knee: Point, ankle: Point, toe: Point, body: BodyProportions, c: SideColors, stripe: boolean): void {

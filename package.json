@@ -10,7 +10,8 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "sheet": "tsx tools/render-sheet.ts"
+    "sheet": "tsx tools/render-sheet.ts",
+    "keepers": "tsx tools/render-keepers.ts"
   },
   "repository": {
     "type": "git",

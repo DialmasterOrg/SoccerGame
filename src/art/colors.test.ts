@@ -34,10 +34,12 @@ describe('MASTER', () => {
     for (const hex of Object.values(MASTER)) expect(hex).toMatch(/^#[0-9a-f]{6}$/);
   });
 
-  // Around 40 was the main spec's guide, not a limit: the Park crew's skin tones and kits need more.
-  it('has at most 64 colours, and the Park crew\'s are there', () => {
+  // Around 40 was the main spec's guide, not a limit: the Park crew's skin tones and kits need more,
+  // and the keepers' three tops (Steady Eddie's emerald, the backups' berry and lemon) nine more.
+  it('has at most 70 colours, and the Park crew\'s and the keepers\' are there', () => {
     expect(Object.keys(MASTER).length).toBeGreaterThanOrEqual(56);
-    expect(Object.keys(MASTER).length).toBeLessThanOrEqual(64);
+    expect(Object.keys(MASTER).length).toBeLessThanOrEqual(70);
+    expect(Object.keys(MASTER)).toEqual(expect.arrayContaining(['emerald', 'berry', 'lemon']));
   });
 });
 

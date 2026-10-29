@@ -50,7 +50,7 @@ export const outfitLook = (o: Outfit, form: PowerForm = 'base'): LookColors => l
 export const outfitHeads = (o: Outfit, power: boolean): Record<HeadFacing, HeadSprite> =>
   headsWith(power ? HARRISON_POWER_HEADS : HARRISON_HEADS, power, o.extras.includes('glasses'), o.extras.includes('headband'));
 
-export const outfitBody = (o: Outfit): BodyExtras => ({ wristbands: o.extras.includes('wristbands'), armband: o.extras.includes('armband') });
+export const outfitBody = (o: Outfit): BodyExtras => ({ wristbands: o.extras.includes('wristbands'), armband: o.extras.includes('armband'), gloves: false });
 
 /** His portrait in `o`: kit colours come from outfitLook; it shows the glasses and headband, still. */
 export const outfitPortrait = (o: Outfit, expression: Expression): IndexedImage =>

@@ -73,7 +73,7 @@ describe('drawFigure extras', () => {
   });
 
   it('wristbands only turn forearm skin into trim', () => {
-    const c = changes({ wristbands: true, armband: false });
+    const c = changes({ wristbands: true, armband: false, gloves: false });
     expect(c.length).toBeGreaterThan(0);
     for (const [was, now] of c) {
       expect([C.Skin, C.SkinShadow]).toContain(was);
@@ -82,7 +82,7 @@ describe('drawFigure extras', () => {
   });
 
   it('the armband only recolours the near sleeve, in Armband', () => {
-    const c = changes({ wristbands: false, armband: true });
+    const c = changes({ wristbands: false, armband: true, gloves: false });
     expect(c.length).toBeGreaterThan(0);
     for (const [was, now] of c) {
       expect([C.JerseyLight, C.Trim]).toContain(was);

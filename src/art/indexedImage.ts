@@ -54,6 +54,25 @@ export function blit(dst: IndexedImage, src: IndexedImage, dx: number, dy: numbe
   }
 }
 
+/** A quarter turn anticlockwise: width and height swap, and the right-hand column becomes the top row. */
+export function turnLeft(img: IndexedImage): IndexedImage {
+  const out = new IndexedImage(img.height, img.width);
+  for (let y = 0; y < out.height; y++) {
+    for (let x = 0; x < out.width; x++) out.set(x, y, img.get(img.width - 1 - y, x));
+  }
+  return out;
+}
+
+/** Shifts row `y` right by `slope` px per row above the bottom one, widening the image to fit. */
+export function shearUp(img: IndexedImage, slope: number): IndexedImage {
+  const shift = (y: number) => Math.round(slope * (img.height - 1 - y));
+  const out = new IndexedImage(img.width + shift(0), img.height);
+  for (let y = 0; y < img.height; y++) {
+    for (let x = 0; x < img.width; x++) out.set(x + shift(y), y, img.get(x, y));
+  }
+  return out;
+}
+
 export function flipX(img: IndexedImage): IndexedImage {
   const out = new IndexedImage(img.width, img.height);
   for (let y = 0; y < img.height; y++) {

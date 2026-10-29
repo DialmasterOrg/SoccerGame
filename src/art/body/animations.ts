@@ -26,7 +26,7 @@ export interface AnimationClip {
 
 type Leg = LegPose | { plant: number; ankle?: number };
 
-interface KeySpec {
+export interface KeySpec {
   x?: number;
   /** Hip height relative to standing (negative crouches); keeps clips valid for any leg length. */
   hip: number;
@@ -39,7 +39,7 @@ interface KeySpec {
 }
 
 /** Builds a pose; legs given as `{ plant: footX }` are solved so the foot rests on the ground there. */
-function key(body: BodyProportions, s: KeySpec): Pose {
+export function poseKey(body: BodyProportions, s: KeySpec): Pose {
   const x = s.x ?? 0;
   const hipHeight = standingHipHeight(body) + s.hip;
   const leg = (l: Leg): LegPose => ('plant' in l ? plantLeg(body, x, hipHeight, l.plant, l.ankle) : { ...l });
@@ -65,7 +65,7 @@ const AIR_HIP = 3;
 
 /** Every clip, with planted feet solved for `body`. Hip offsets are relative to standing height. */
 export function clipsFor(body: BodyProportions): Record<AnimName, AnimationClip> {
-  const k = (s: KeySpec) => key(body, s);
+  const k = (s: KeySpec) => poseKey(body, s);
   const idleKey = (hip: number, torso: number, sway: number) =>
     k({ hip, torso, near: { plant: 3 }, far: { plant: -2 }, nearArm: [5 + sway, 15], farArm: [-5 + sway, 15] });
   const powerKey = (x: number, hip: number) =>

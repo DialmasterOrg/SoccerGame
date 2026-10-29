@@ -38,6 +38,9 @@ export const C = {
   GlassesRim: 28,
   GlassesGlint: 29,
   Armband: 30,
+  // A keeper's gloves: the near hand's and the far hand's.
+  Glove: 31,
+  GloveShadow: 32,
 } as const;
 
 export type Slot = Exclude<keyof typeof C, 'None'>;
@@ -106,12 +109,22 @@ export const MASTER = {
   pinkDark: '#a8185e',
   pink: '#e8388a',
   pinkLight: '#ff86be',
+  // The keepers' tops: Steady Eddie's emerald, brighter and bluer than the grass, and the backups' berry and lemon.
+  emeraldDark: '#0f6e50',
+  emerald: '#1eb47a',
+  emeraldLight: '#6ae0aa',
+  berryDark: '#5c1848',
+  berry: '#962c78',
+  berryLight: '#cc64ac',
+  lemonDark: '#b0a218',
+  lemon: '#f6ee4a',
+  lemonLight: '#fffab4',
 } as const;
 
 export type MasterColor = keyof typeof MASTER;
 
 /** The extras' fixed colours, spread into every look. */
-export const EXTRA_COLORS = { GlassesRim: 'silver', GlassesGlint: 'white', Armband: 'energyGold' } as const satisfies Partial<Record<Slot, MasterColor>>;
+export const EXTRA_COLORS = { GlassesRim: 'silver', GlassesGlint: 'white', Armband: 'energyGold', Glove: 'white', GloveShadow: 'silver' } as const satisfies Partial<Record<Slot, MasterColor>>;
 
 /**
  * Master colour ids for art drawn straight in master colours (scenery, ball,
