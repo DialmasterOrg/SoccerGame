@@ -31,6 +31,10 @@ export type Cue =
   | 'skid'
   | 'stepover'
   | 'flick'
+  | 'glove'
+  | 'dive'
+  | 'parry'
+  | 'punt'
   | 'star'
   | 'bark'
   | 'pant'
@@ -221,6 +225,14 @@ export const CUES: Readonly<Record<Cue, CueRecipe>> = {
   stepover: { voices: [{ wave: 'noise', dur: 0.14, gain: 0.16, attack: 0.03, freq: 1800, toFreq: 900, filter: { type: 'bandpass', q: 2 } }], minGapS: 0.2 },
   /** The rainbow flick leaving his heel: a soft rising pop. By design, not by ear. */
   flick: { voices: [{ wave: 'square', dur: 0.07, gain: 0.08, freq: 330, toFreq: 660 }], minGapS: 0.2 },
+  /** A keeper's catch: a dull thump of the ball into his gloves. By design, not by ear. */
+  glove: { voices: [{ wave: 'triangle', dur: 0.09, gain: 0.22, freq: 150, toFreq: 80 }, { wave: 'noise', dur: 0.05, gain: 0.08, freq: 900, filter: { type: 'lowpass' } }], minGapS: 0.15 },
+  /** A keeper diving: a short rush of air. By design, not by ear. */
+  dive: { voices: [{ wave: 'noise', dur: 0.22, gain: 0.16, attack: 0.04, freq: 900, toFreq: 1800, filter: { type: 'bandpass', q: 1.2 } }], minGapS: 0.2 },
+  /** A keeper pushing the ball away: a sharp slap of glove on ball. By design, not by ear. */
+  parry: { voices: [{ wave: 'noise', dur: 0.06, gain: 0.24, freq: 2400, toFreq: 1200, filter: { type: 'bandpass', q: 1 } }, { wave: 'triangle', dur: 0.05, gain: 0.12, freq: 200, toFreq: 110 }], minGapS: 0.15 },
+  /** A keeper's drop kick: a deep thud off his boot. By design, not by ear. */
+  punt: { voices: [{ wave: 'triangle', dur: 0.12, gain: 0.3, freq: 110, toFreq: 55 }, { wave: 'noise', dur: 0.06, gain: 0.1, freq: 600, filter: { type: 'lowpass' } }], minGapS: 0.2 },
   /** A star earned, or a bonus done: a short rising two-note chime, G then D above. By design, not by ear. */
   star: {
     voices: [

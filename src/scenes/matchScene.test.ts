@@ -8,7 +8,8 @@ import { CREW_PROFILES, CREW_STATS } from '../game/crew';
 import { seeded } from '../engine/random';
 import { DOG_DIFFICULTY } from '../game/dog';
 import { GOAL_PAUSE_S } from '../game/match';
-import { NORMAL_HANDLING } from '../game/player';
+import { NORMAL_HANDLING, NO_INTENT } from '../game/player';
+import { keeperProfile, quietKeepers, stepKeeper } from '../game/keeper';
 import { SAM_HANDLING, SAM_PROFILES, SAM_STATS } from '../game/sam';
 import { BASE_STATS } from '../game/stats';
 import { WAVE_READY_S } from '../game/power';
@@ -313,8 +314,8 @@ describe('match scene: pause menu screens', () => {
     return s.update(frame(['confirm']), STEP);
   }
 
-  function liveWith(ctx: GameContext): MatchScene {
-    const s = createMatchScene(ctx, 1);
+  function liveWith(ctx: GameContext, match?: CareerMatch): MatchScene {
+    const s = createMatchScene(ctx, 1, match);
     s.world.match.phase = 'playing';
     return s;
   }
@@ -336,6 +337,20 @@ describe('match scene: pause menu screens', () => {
     expect(options?.kind).toBe('options');
     expect(options!.update(frame(['back']), STEP)).toBe(s);
     expect(s.paused).toBe(true);
+  });
+
+  // Review focus 5
+  it('a difficulty change mid-match changes only their keeper, and his dive plays out', () => {
+    const ctx = testContext();
+    const s = liveWith(ctx, { ...matchById('backyard-1')!, venue: 'school' });
+    const k = s.world.keepers!.away;
+    stepKeeper(s.world, k, { move: NO_INTENT, dive: { dirX: 0, dirZ: 1 } }, true, 1 / 60, quietKeepers());
+    const options = pick(s, 'OPTIONS')!;
+    options.update(frame(['right']), STEP);
+    options.update(frame(['back']), STEP);
+    expect(s.world.keepers!.away.profile).toEqual(keeperProfile(1, 'hard'));
+    expect(s.world.keepers!.home.profile).toEqual(keeperProfile(1, 'normal'));
+    expect([k.act, k.dive]).toEqual(['dive', { dirX: 0, dirZ: 1 }]);
   });
 
   it('a difficulty change from pause applies to the current match', () => {
@@ -1152,6 +1167,18 @@ describe('stages', () => {
     expect(s.size).toEqual(expect.objectContaining({ w: 534, h: 300 }));
     expect(s.world.field).toBe(SCHOOL_FIELD);
     expect(s.world.match.lengthS).toBe(120);
+  });
+
+  it("a School match has a keeper in each goal: Harrison's at Normal, theirs at the difficulty", () => {
+    const ctx = testContext();
+    ctx.profile = { ...ctx.profile, difficulty: 'easy' };
+    const s = createMatchScene(ctx, 3, SCHOOL_TEST);
+    expect(s.world.keepers!.home.profile).toEqual(keeperProfile(1, 'normal'));
+    expect(s.world.keepers!.away.profile).toEqual(keeperProfile(1, 'easy'));
+  });
+
+  it('a Backyard match has no keepers', () => {
+    expect(createMatchScene(testContext(), 3).world.keepers).toBeNull();
   });
 
   it('a Backyard match keeps the 320×180 canvas and its 90 seconds', () => {

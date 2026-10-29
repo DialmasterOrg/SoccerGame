@@ -6,6 +6,7 @@ import { NO_INTENT, NORMAL_HANDLING, stepPlayer } from '../game/player';
 import { SAM_HANDLING } from '../game/sam';
 import { HARD_KICK_SPEED, WHOOSH, matchFeedback, speedMemo } from './matchFeedback';
 import { quietTricks } from '../game/tricks';
+import { keeperWorld } from '../game/testKeepers';
 
 const quiet = (): ContactEvents => ({ touched: false, blocked: false, kicked: null, perfect: false, tackledBall: false, trippedOpponent: false });
 
@@ -222,5 +223,13 @@ describe('trick feedback', () => {
   it('a trick that fools nobody gets no ooh', () => {
     expect(tricked({ started: 'stepover' })).not.toContain('ooh');
     expect(tricked({ released: true })).not.toContain('ooh');
+  });
+});
+
+describe('keepers', () => {
+  it("a keeper's catch thumps, a dive rushes, a push slaps and a drop kick thuds", () => {
+    const w = keeperWorld();
+    w.events.keeper = { caught: 'away', dived: 'home', pushed: 'home', punted: 'away' };
+    expect(matchFeedback(w, 'playing').cues).toEqual(expect.arrayContaining(['glove', 'dive', 'parry', 'punt']));
   });
 });

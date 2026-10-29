@@ -40,7 +40,11 @@ export interface MatchFeedback {
 export function matchFeedback(w: World, prevPhase: Phase, speed?: SpeedMemo): MatchFeedback {
   const cues = new Set<Cue>();
   const rumble = new Set<RumbleKind>();
-  const { ball, kicks, goal, power, dog, trick } = w.events;
+  const { ball, kicks, goal, power, dog, trick, keeper } = w.events;
+  if (keeper.caught) cues.add('glove');
+  if (keeper.dived) cues.add('dive');
+  if (keeper.pushed) cues.add('parry');
+  if (keeper.punted) cues.add('punt');
   if (dog.grabbed) cues.add('bark');
   if (dog.panted) cues.add('pant');
   if (power.started) {
