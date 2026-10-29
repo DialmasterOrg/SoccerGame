@@ -21,6 +21,7 @@ import { backyardLayers, type VenueLayers } from '../art/venues/backyard';
 import { JOGGERS, joggerFrames, parkLayers } from '../art/venues/park';
 import { goalSprites, type GoalArt } from '../art/venues/pitch';
 import { schoolLayers } from '../art/venues/school';
+import { LEAVES, crowdFrames, flagFrames, leafFrames } from '../art/venues/schoolLife';
 import type { OpponentId, VenueId } from '../meta/career';
 import { DEFAULT_OUTFIT, outfitKey, type ChangeKit, type Outfit } from '../meta/locker';
 import { changeLook } from '../art/kits';
@@ -65,6 +66,14 @@ export interface VenueCanvases {
   joggers: readonly (readonly [HTMLCanvasElement, HTMLCanvasElement])[];
 }
 
+/** The School Field's life: the crowd's bob and cheer frames, the flag's frames, and each leaf's two tumble frames. */
+export interface SchoolLifeCanvases {
+  crowd: { bob: readonly [HTMLCanvasElement, HTMLCanvasElement]; cheer: readonly [HTMLCanvasElement, HTMLCanvasElement] };
+  flag: readonly HTMLCanvasElement[];
+  /** One pair per LEAVES entry. */
+  leaves: readonly (readonly [HTMLCanvasElement, HTMLCanvasElement])[];
+}
+
 export interface OpponentArt {
   sprites: SpriteSet;
   face: HTMLCanvasElement;
@@ -73,6 +82,8 @@ export interface OpponentArt {
 export interface GameArt {
   /** Every venue with its own art; drawLayers falls back to the Backyard for the rest. */
   venues: Partial<Record<VenueId, VenueCanvases>>;
+  /** The School Field's crowd, flag and leaves. */
+  schoolLife: SchoolLifeCanvases;
   /** A field's two goals, made the first time it's asked for. */
   goalsFor(field: Field): Readonly<Record<'left' | 'right', GoalCanvases>>;
   ball: HTMLCanvasElement[];
@@ -182,6 +193,12 @@ function venueCanvases(L: VenueLayers, joggers: readonly (readonly [IndexedImage
   };
 }
 
+function schoolLifeCanvases(palette: ResolvedPalette): SchoolLifeCanvases {
+  const { bob, cheer } = crowdFrames();
+  const pair = ([a, b]: readonly [IndexedImage, IndexedImage]) => [toCanvas(a, palette), toCanvas(b, palette)] as const;
+  return { crowd: { bob: pair(bob), cheer: pair(cheer) }, flag: flagFrames().map(f => toCanvas(f, palette)), leaves: LEAVES.map(l => pair(leafFrames(l.color))) };
+}
+
 const BUTTONS: readonly ButtonName[] = ['A', 'B', 'X', 'Y', 'LB', 'RS', 'RT', 'START'];
 /** The backdrop's juggler gives off his effects on these random numbers. */
 const BACKDROP_FX_SEED = 12;
@@ -219,6 +236,7 @@ export function loadGameArt(): GameArt {
       park: venueCanvases(parkLayers(), parkJoggers, master),
       school: venueCanvases(schoolLayers(), [], master),
     },
+    schoolLife: schoolLifeCanvases(master),
     goalsFor(field) {
       let made = goals.get(field);
       if (!made) {

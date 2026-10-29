@@ -32,6 +32,14 @@ describe('cue recipes', () => {
     }
   });
 
+  it("the bleachers' cheer is shorter and quieter than the roar, with a few claps", () => {
+    expect(loudest('cheer')).toBeLessThan(loudest('roar'));
+    const cheerEnd = Math.max(...CUES.cheer.voices.map(v => (v.at ?? 0) + v.dur));
+    const roarEnd = Math.max(...CUES.roar.voices.map(v => (v.at ?? 0) + v.dur));
+    expect(cheerEnd).toBeLessThan(roarEnd);
+    expect(CUES.cheer.voices.length).toBeGreaterThanOrEqual(3);
+  });
+
   it('dribble taps and bounces are rate-limited', () => {
     expect(CUES.tap.minGapS).toBeGreaterThanOrEqual(0.06);
     expect(CUES.bounce.minGapS).toBeGreaterThanOrEqual(0.06);

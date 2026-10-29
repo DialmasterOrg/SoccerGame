@@ -41,9 +41,10 @@ const DOOR = { w: 22, top: 26, canopyTop: 22, signTop: 14 } as const;
 /** The flagpole on the mid layer: its x and the row of its top. Task 6's flag flies from it. */
 export const FLAGPOLE = { x: SCHOOL.x1 + 10, top: SCHOOL_FAR_SY - FENCE_H - SCHOOL.h - 30 } as const;
 const BUS = { x: 318, w: 70, h: 24 } as const;
-/** The bleachers on the near layer: their x span and top seat row. Task 6's crowd sits on them. */
+/** The bleachers on the near layer: their x span and top seat row. The life's crowd sits on them, a tier every BLEACHER_TIER_H rows down from the top. */
 const TIERS = 5;
-const TIER_H = 5;
+export const BLEACHER_TIER_H = 5;
+const TIER_H = BLEACHER_TIER_H;
 export const BLEACHERS = { x0: 960, x1: 1094, top: SCHOOL_FAR_SY - TIER_H - (TIERS - 1) * TIER_H } as const;
 /** Fallen leaves: on the far part of the pitch from this depth, this share of the grass pixels; and piled this many rows deep at the fence foot. */
 const LEAVES = { fromZ: 96, share: 0.012, pile: 3, pileShare: 0.3 } as const;

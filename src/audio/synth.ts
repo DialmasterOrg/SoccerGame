@@ -2,7 +2,7 @@ import { VOLUME_MAX } from '../meta/settings';
 import { CUES, type Cue, type Voice } from './cues';
 import { SONGS, parseNotes, type Song, type Track } from './music';
 
-export type CrowdLevel = 'off' | 'low' | 'match' | 'roar';
+export type CrowdLevel = 'off' | 'low' | 'match' | 'cheer' | 'roar';
 
 /** The game's sound: Web Audio behind a surface that never throws and does nothing until unlocked. */
 export interface GameAudio {
@@ -27,7 +27,8 @@ export interface GameAudio {
 /** Even 10/10 stays well short of harsh. */
 const MASTER_GAIN = 0.7;
 /** The crowd sits well under everything else, except while it roars for Harrison's goal; scaled by the SFX bus. */
-export const CROWD_GAIN: Readonly<Record<CrowdLevel, number>> = { off: 0, low: 0.04, match: 0.12, roar: 0.4 };
+/** `cheer` is a bleacher crowd on its feet at the School Field: quieter than a stadium's roar. */
+export const CROWD_GAIN: Readonly<Record<CrowdLevel, number>> = { off: 0, low: 0.04, match: 0.12, cheer: 0.25, roar: 0.4 };
 const CROWD_FILTER_HZ = 500;
 /** How quickly the crowd level glides to a new value, seconds. */
 const CROWD_GLIDE_S = 0.25;

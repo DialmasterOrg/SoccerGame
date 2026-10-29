@@ -6,6 +6,7 @@ import { NORMAL_HANDLING, NO_INTENT, stepPlayer } from '../game/player';
 import { DIFFICULTY } from '../game/ai';
 import type { MatchState } from '../game/match';
 import { SAM_HANDLING } from '../game/sam';
+import { FLAG_FRAMES, LEAVES } from '../art/venues/schoolLife';
 import type { GameArt, SpriteSet } from './art';
 import { depthSorted } from './depthSort';
 import { arrowX, banner, calloutLine, drawLayers, drawMatch, homeClip, pitchDrawables, takeFlash, type MatchHud } from './matchView';
@@ -29,7 +30,12 @@ function recorder() {
   const g = { drawImage: (img: { name: string }, x: number, y: number) => void drawn.push({ name: img.name, x, y }) } as unknown as CanvasRenderingContext2D;
   return { g, drawn };
 }
-const VENUE_ART = { venues: { backyard: venueArt('backyard'), park: venueArt('park'), school: venueArt('school') } } as unknown as GameArt;
+const schoolLife = {
+  crowd: { bob: [named('schoolLife/crowd.bob0'), named('schoolLife/crowd.bob1')], cheer: [named('schoolLife/crowd.cheer0'), named('schoolLife/crowd.cheer1')] },
+  flag: Array.from({ length: FLAG_FRAMES }, (_, i) => named(`schoolLife/flag${i}`)),
+  leaves: LEAVES.map((_, i) => [named(`schoolLife/leaf${i}a`), named(`schoolLife/leaf${i}b`)] as const),
+};
+const VENUE_ART = { venues: { backyard: venueArt('backyard'), park: venueArt('park'), school: venueArt('school') }, schoolLife } as unknown as GameArt;
 
 describe('drawLayers', () => {
   it("draws the venue's own layers, far to ground", () => {
@@ -58,6 +64,27 @@ describe('drawLayers', () => {
     expect(layerYs({ x: 0, view: BIG_VIEW }, 'school')).toEqual(new Set([0]));
     expect(layerYs({ x: 0 }, 'park')).toEqual(new Set([0]));
     expect(layerYs({ x: 0 }, 'stadium')).toEqual(new Set([0])); // no art: the Backyard, unshifted
+  });
+
+  it("at the School the life draws in order: far, mid, the flag, near, the crowd, the ground, the leaves", () => {
+    const { g, drawn } = recorder();
+    drawLayers(g, { x: 0, view: BIG_VIEW }, VENUE_ART, 'school');
+    const names = drawn.map(d => d.name);
+    const order = ['school/far', 'school/mid', 'schoolLife/flag0', 'school/near', 'schoolLife/crowd.bob0', 'school/ground', 'schoolLife/leaf0a'];
+    const at = order.map(n => names.indexOf(n));
+    expect(at.every(i => i >= 0)).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
+    expect(names.filter(n => n.startsWith('schoolLife/leaf'))).toHaveLength(LEAVES.length);
+  });
+
+  it('the School cheers when asked, and the Park has no life to draw', () => {
+    const { g, drawn } = recorder();
+    drawLayers(g, { x: 0, view: BIG_VIEW }, VENUE_ART, 'school', 0, true);
+    expect(drawn.map(d => d.name)).toContain('schoolLife/crowd.cheer0');
+    expect(drawn.map(d => d.name)).not.toContain('schoolLife/crowd.bob0');
+    const park = recorder();
+    drawLayers(park.g, { x: 0 }, VENUE_ART, 'park', 0, true);
+    expect(park.drawn.some(d => d.name.startsWith('schoolLife'))).toBe(false);
   });
 
   it('the joggers shift with their venue', () => {
@@ -289,6 +316,17 @@ describe('the big view', () => {
     expect(main.drawn).toContain('art.text(PERFECT,1,energyGold,outline)');
     expect(main.drawn).not.toContain('art.text(HARRISON 0-0 MAX,1,white,outline)');
     expect(overlay.drawn.some(n => n.startsWith('art.goalsFor('))).toBe(false);
+  });
+
+  it("the bleachers cheer through Harrison's goal moment, and bob otherwise", () => {
+    const cheering = recordingContext();
+    drawMatch(cheering.g, schoolWorld(), { x: 900, view: BIG_VIEW }, fakeArt(), 0, { ...quietHud(), moment: { t: 0.5, done: false, skipped: false } as MatchHud['moment'] }, recordingContext().g);
+    expect(cheering.drawn.some(n => n.startsWith('art.schoolLife.crowd.cheer.'))).toBe(true);
+    expect(cheering.drawn.some(n => n.startsWith('art.schoolLife.crowd.bob.'))).toBe(false);
+    const quiet = recordingContext();
+    drawMatch(quiet.g, schoolWorld(), { x: 900, view: BIG_VIEW }, fakeArt(), 0, quietHud(), recordingContext().g);
+    expect(quiet.drawn.some(n => n.startsWith('art.schoolLife.crowd.bob.'))).toBe(true);
+    expect(quiet.drawn.some(n => n.startsWith('art.schoolLife.crowd.cheer.'))).toBe(false);
   });
 
   it('the off-screen arrow is placed in HUD-layer pixels at the big view', () => {

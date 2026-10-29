@@ -1329,3 +1329,42 @@ describe('the School Field bonuses', () => {
     expect(untilBonus(s)).toBe(BONUS_CALLOUT);
   });
 });
+
+describe("the School's crowd", () => {
+  const SCHOOL_OPEN = { ...newProfile(), ladderWins: 10, career: { stars: { 'backyard-boss': 1, 'park-1': 1, 'park-2': 1, 'park-3': 1, 'park-4': 1, 'park-boss': 1 }, milestonesPaid: 0, lossStreaks: {} } };
+  /** A tryout with their keeper lying out of the way, and the ball about to cross their line. */
+  function schoolGoal() {
+    const audio = recordingAudio();
+    const s = createMatchScene(testContext({ audio, profile: SCHOOL_OPEN }), 1, matchById('school-1')!);
+    s.world.match.phase = 'playing';
+    const k = s.world.keepers!.away;
+    k.profile = { ...k.profile, downS: 10 };
+    Object.assign(k, { act: 'down', actT: 0, dive: null });
+    Object.assign(k.body, { z: 118, vx: 0, vz: 0 });
+    Object.assign(s.world.ball, { x: 1239, y: 3, z: 64, vx: 300, vy: 0, vz: 0 });
+    for (let i = 0; i < 5 && s.world.events.goal !== 'home'; i++) s.update(frame(), STEP);
+    expect(s.world.events.goal).toBe('home');
+    return { s, audio };
+  }
+
+  it("Harrison's goal at the School plays the bleachers' cheer, never the roar", () => {
+    const { s, audio } = schoolGoal();
+    expect(audio.played).toContain('cheer');
+    expect(audio.played).not.toContain('roar');
+    run(s, 4.5);
+    expect(audio.played).not.toContain('roar');
+  });
+
+  it('the crowd holds its cheer through the moment, through a pause, and settles to the match after', () => {
+    const { s, audio } = schoolGoal();
+    expect(audio.crowd).toBe('cheer');
+    run(s, 1);
+    s.update(frame(['pause']), STEP);
+    expect(audio.crowd).toBe('low');
+    s.update(frame(['confirm']), STEP);
+    expect(audio.crowd).toBe('cheer');
+    run(s, 4);
+    expect(s.moment).toBeNull();
+    expect(audio.crowd).toBe('match');
+  });
+});

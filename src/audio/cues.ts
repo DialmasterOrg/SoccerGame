@@ -12,6 +12,7 @@ export type Cue =
   | 'whistleShort'
   | 'whistleFull'
   | 'roar'
+  | 'cheer'
   | 'groan'
   | 'ooh'
   | 'menuMove'
@@ -132,6 +133,16 @@ export const CUES: Readonly<Record<Cue, CueRecipe>> = {
   whistleFull: { voices: [whistle(0, 0.25), whistle(0.35, 0.25), whistle(0.7, 0.9)], minGapS: 1 },
   roar: { voices: [{ wave: 'noise', dur: 2.5, gain: 0.45, attack: 0.8, freq: 500, toFreq: 900, filter: { type: 'bandpass', q: 0.7 } }], minGapS: 1 },
   groan: { voices: [{ wave: 'noise', dur: 1.4, gain: 0.35, attack: 0.15, freq: 700, toFreq: 250, filter: { type: 'bandpass', q: 1 } }], minGapS: 1 },
+  /** The School Field's bleachers greeting Harrison's goal: a shorter, brighter swell than the roar, with a few claps, under the roar's gain. By design, not by ear. */
+  cheer: {
+    voices: [
+      { wave: 'noise', dur: 1.6, gain: 0.3, attack: 0.4, freq: 800, toFreq: 1400, filter: { type: 'bandpass', q: 0.8 } },
+      { wave: 'noise', at: 0.35, dur: 0.05, gain: 0.12, freq: 2400, filter: { type: 'bandpass', q: 2 } },
+      { wave: 'noise', at: 0.55, dur: 0.05, gain: 0.12, freq: 2400, filter: { type: 'bandpass', q: 2 } },
+      { wave: 'noise', at: 0.8, dur: 0.05, gain: 0.1, freq: 2400, filter: { type: 'bandpass', q: 2 } },
+    ],
+    minGapS: 1,
+  },
   ooh: {
     voices: [
       { wave: 'noise', dur: 0.45, gain: 0.3, attack: 0.15, freq: 400, toFreq: 900, filter: { type: 'bandpass', q: 1.5 } },

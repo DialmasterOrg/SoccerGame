@@ -5,6 +5,7 @@ import { PARALLAX } from '../art/venues/backyard';
 import { JOGGERS, PATH_Y } from '../art/venues/park';
 import { hudSize, offscreenArrow, project, viewOf, type Camera, type View } from '../game/camera';
 import { stageFor } from '../game/stage';
+import { drawCrowd, drawFlag, drawLeaves, type LayerAt } from './schoolView';
 import { SWEET_SPOT } from '../game/kick';
 import { clockText, type Team } from '../game/match';
 import { DECEL, type Player } from '../game/player';
@@ -119,8 +120,12 @@ function screen(cam: Camera, x: number, y: number, z: number): { x: number; y: n
 /** The joggers' two-frame run, frames per second. */
 const JOGGER_FPS = 8;
 
-/** A venue's scenery, far to near, with its joggers on the mid layer at time `nowS`. A venue with no art of its own shows the Backyard. */
-export function drawLayers(g: CanvasRenderingContext2D, cam: Camera, art: GameArt, venue: VenueId = 'backyard', nowS = 0): void {
+/**
+ * A venue's scenery, far to near, with its joggers on the mid layer at time
+ * `nowS`, and at the School its flag, crowd (cheering while `cheer`) and
+ * leaves between the layers. A venue with no art of its own shows the Backyard.
+ */
+export function drawLayers(g: CanvasRenderingContext2D, cam: Camera, art: GameArt, venue: VenueId = 'backyard', nowS = 0, cheer = false): void {
   const drawn: VenueId = art.venues[venue] ? venue : 'backyard';
   const v = art.venues[drawn]!;
   // A venue drawn on a camera of another size shifts so its near touchline meets the camera's: the 300-row School sits 120 rows up on a 320×180 screen.
@@ -130,17 +135,22 @@ export function drawLayers(g: CanvasRenderingContext2D, cam: Camera, art: GameAr
   const farX = -(Math.round(cam.x * PARALLAX.far) % far.width);
   g.drawImage(far, farX, dy);
   g.drawImage(far, farX + far.width, dy);
-  const midX = -Math.round(cam.x * PARALLAX.mid);
-  g.drawImage(v.layers.mid, midX, dy);
+  const at: LayerAt = { midX: -Math.round(cam.x * PARALLAX.mid), nearX: -Math.round(cam.x * PARALLAX.near), dy, viewW: viewOf(cam).w };
+  const life = drawn === 'school' ? art.schoolLife : null;
+  g.drawImage(v.layers.mid, at.midX, dy);
+  if (life) drawFlag(g, life, at, nowS);
   const midW = v.layers.mid.width;
   const step = Math.floor(nowS * JOGGER_FPS) % 2;
   v.joggers.forEach((frames, i) => {
     const j = JOGGERS[i]!;
     const x = (((j.startX + j.dir * j.speed * nowS) % midW) + midW) % midW;
     const frame = frames[step]!;
-    g.drawImage(frame, Math.round(midX + x), PATH_Y - frame.height + 1 + dy);
+    g.drawImage(frame, Math.round(at.midX + x), PATH_Y - frame.height + 1 + dy);
   });
-  for (const name of ['near', 'ground'] as const) g.drawImage(v.layers[name], -Math.round(cam.x * PARALLAX[name]), dy);
+  g.drawImage(v.layers.near, at.nearX, dy);
+  if (life) drawCrowd(g, life, at, nowS, cheer);
+  g.drawImage(v.layers.ground, -Math.round(cam.x * PARALLAX.ground), dy);
+  if (life) drawLeaves(g, life, at, nowS);
 }
 
 /** Where a goal's sprites go: they all share one origin from its goal line. */
@@ -442,7 +452,8 @@ export function drawMatch(g: CanvasRenderingContext2D, w: World, cam: Camera, ar
   const look: HomeLook = { set: homeSprites(w, hud), aura: auraStrength(w, hud, nowS), nowS, fx: hud.fx };
   g.save();
   g.translate(shake.dx, shake.dy);
-  drawLayers(g, cam, art, hud.venue, nowS);
+  // The bleachers cheer through Harrison's goal moment, as the roar does.
+  drawLayers(g, cam, art, hud.venue, nowS, moment !== null);
   if (!w.dog?.carrying) drawShadow(g, cam, w.ball.x, w.ball.z);
   drawShadow(g, cam, w.away.x, w.away.z, w.dog ? DOG_SHADOW_W : SHADOW_W);
   drawShadow(g, cam, w.home.x, w.home.z);

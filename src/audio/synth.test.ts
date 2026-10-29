@@ -71,6 +71,13 @@ function fakeContext(opts: { rejectResume?: boolean } = {}) {
 
 const settle = () => new Promise(r => setTimeout(r, 0));
 
+describe('crowd levels', () => {
+  it('a bleacher cheer sits between the match murmur and a stadium roar', () => {
+    expect(CROWD_GAIN.match).toBeLessThan(CROWD_GAIN.cheer);
+    expect(CROWD_GAIN.cheer).toBeLessThan(CROWD_GAIN.roar);
+  });
+});
+
 describe('createAudio', () => {
   it('createAudio(null) is unavailable and every call is a no-op', () => {
     const a = createAudio(null);

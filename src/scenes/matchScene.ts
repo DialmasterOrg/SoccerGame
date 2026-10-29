@@ -1,5 +1,6 @@
 import { keeperLevel, keeperLineup, keeperProfile } from '../game/keeper';
 import { keeperLooks } from './keeperView';
+import { goalCrowd } from '../audio/goalCrowd';
 import { matchFeedback, speedMemo } from '../audio/matchFeedback';
 import type { InputFrame } from '../engine/input';
 import { createBrain, think, type Difficulty } from '../game/ai';
@@ -189,6 +190,8 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
   /** Their keeper's pushes and his kicks, for the School Field's bonuses. */
   const watch = createKeeperWatch();
   const bonus = BONUSES[match.bonus];
+  /** How this venue's crowd greets his goal: the School's bleachers cheer, everywhere else roars. */
+  const crowd = goalCrowd(match.venue);
   /** His clean steals with the steal button. */
   let steals = 0;
   /** The in-play bonus has been done: the callout is owed, shown as soon as no goal moment is running. */
@@ -312,7 +315,7 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
         if (r.chosen === 'QUIT TO HUB') return createHubScene(ctx);
         if (r.chosen === 'RESUME' || r.back || (!r.chosen && input.pressed.has('pause'))) {
           pause = null;
-          ctx.audio.setCrowd(hud.moment ? 'roar' : 'match');
+          ctx.audio.setCrowd(hud.moment ? crowd.level : 'match');
           // Buttons held while the menu closes (B is also "back") need a fresh press to act in play.
           world.home.held = { shoot: input.held.has('shoot'), chip: input.held.has('chip'), power: input.held.has('power') };
         }
@@ -334,7 +337,7 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
         stepWorld(world, harrisonIntent(input), awayIntent(simDt), simDt);
         stepKeeperWatch(watch, world, simDt);
         const feedback = matchFeedback(world, prevPhase, whoosh);
-        for (const cue of feedback.cues) ctx.audio.play(cue);
+        for (const cue of feedback.cues) ctx.audio.play(cue === 'roar' ? crowd.cue : cue);
         for (const kind of feedback.rumble) ctx.rumble.pulse(kind);
         world.events.kicks.forEach((k, i) => {
           if (k.perfect) hud.perfect = { team: i === 0 ? 'home' : 'away', untilS: t + PERFECT_SHOW_S };
@@ -372,8 +375,8 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
           recordGoal(trick !== null);
           // Forms show while powered up and celebrating: an Energy Wave goal in Golden Form keeps the gold.
           hud.goldenCelebration = lastKick?.kind === 'wave' && world.power?.golden === true;
-          // The roar cue swells; the crowd holds it through the celebration.
-          ctx.audio.setCrowd('roar');
+          // The roar (or the bleachers' cheer) swells; the crowd holds it through the celebration.
+          ctx.audio.setCrowd(crowd.level);
         }
         if (world.events.goal) {
           lastKick = null;
@@ -385,7 +388,7 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
         // A fresh press skips it; the held shot that scored doesn't, since presses are edges.
         stepGoalMoment(moment, dt, input.pressed.has('confirm') || input.pressed.has('shoot'));
         if (world.match.score.home === HAT_TRICK_GOALS && hud.callout && before < HAT_TRICK_ROAR_S && moment.t >= HAT_TRICK_ROAR_S) {
-          ctx.audio.play('roar');
+          ctx.audio.play(crowd.cue);
         }
         if (moment.done) {
           endGoalPause(world.match);
