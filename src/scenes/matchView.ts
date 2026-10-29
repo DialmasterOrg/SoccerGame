@@ -3,7 +3,7 @@ import { ANCHOR } from '../art/body/pose';
 import { MASTER, type MasterColor } from '../art/colors';
 import { PARALLAX } from '../art/venues/backyard';
 import { JOGGERS, PATH_Y } from '../art/venues/park';
-import { offscreenArrow, project, viewOf, type Camera } from '../game/camera';
+import { hudSize, offscreenArrow, project, viewOf, type Camera, type View } from '../game/camera';
 import { SWEET_SPOT } from '../game/kick';
 import { clockText, type Team } from '../game/match';
 import { DECEL, type Player } from '../game/player';
@@ -17,7 +17,6 @@ import { drawDog } from './dogView';
 import { drawSpeed, skidFacing } from './samView';
 import { drawTrickMarks } from './trickView';
 import {
-  POWER_METER_X0,
   auraStrength,
   drawAura,
   drawBeam,
@@ -25,6 +24,7 @@ import {
   drawPowerMeter,
   drawSkid,
   homeSprites,
+  powerMeterX0,
   powerPrompt,
   shakeFor,
   silhouette,
@@ -318,9 +318,10 @@ function drawText(g: CanvasRenderingContext2D, art: GameArt, s: string, cx: numb
   g.drawImage(t, Math.round(cx - t.width / 2), y);
 }
 
-function drawHud(g: CanvasRenderingContext2D, w: World, cam: Camera, art: GameArt, nowS: number, awayName: string): void {
+/** The score, clock, stamina bar and POWER meter, laid out in a hudW-wide HUD. */
+function drawHud(g: CanvasRenderingContext2D, w: World, hudW: number, art: GameArt, nowS: number, awayName: string): void {
   const { match, home } = w;
-  const cx = viewOf(cam).w / 2;
+  const cx = hudW / 2;
   drawText(g, art, `${HOME_NAME} ${match.score.home}-${match.score.away} ${awayName}`, cx, 0);
   const clock = clockText(match);
   drawText(g, art, clock.text, cx, 7, 1, clock.golden ? 'energyGold' : 'white');
@@ -329,7 +330,7 @@ function drawHud(g: CanvasRenderingContext2D, w: World, cam: Camera, art: GameAr
   g.fillRect(STAMINA_BAR.x - 1, STAMINA_BAR.y - 1, STAMINA_BAR.w + 2, STAMINA_BAR.h + 2);
   ink(g, home.exhausted ? 'red' : 'volt');
   g.fillRect(STAMINA_BAR.x, STAMINA_BAR.y, Math.round(home.stamina * STAMINA_BAR.w), STAMINA_BAR.h);
-  if (w.power) drawPowerMeter(g, art, w.power.meter, powerHint(w), nowS);
+  if (w.power) drawPowerMeter(g, art, w.power.meter, powerHint(w), nowS, hudW);
 }
 
 /** The banner over the pitch, if any: GOAL!!! for Harrison's goal moment, a smaller MAX SCORES (or BISCUIT SCORES) for the other side's. */
@@ -350,21 +351,23 @@ export function calloutLine(hud: MatchHud): string | null {
 }
 
 /** GOAL!!! slams in at a bigger scale, then drops in and bounces to rest. */
-function drawGoalBanner(g: CanvasRenderingContext2D, cam: Camera, art: GameArt, moment: GoalMoment, scale: number): void {
+function drawGoalBanner(g: CanvasRenderingContext2D, hudW: number, art: GameArt, moment: GoalMoment, scale: number): void {
   const s = moment.t - BANNER_FROM_S;
-  const cx = viewOf(cam).w / 2;
+  const cx = hudW / 2;
   if (s < GOAL_SLAM.forS) return drawText(g, art, 'GOAL!!!', cx, BANNER_Y - 4, GOAL_SLAM.scale, 'energyGold');
   const settle = Math.min(1, (s - GOAL_SLAM.forS) / GOAL_SLAM.settleS);
   const bounce = Math.round(GOAL_SLAM.bouncePx * Math.sin(settle * Math.PI) * (1 - settle));
   drawText(g, art, 'GOAL!!!', cx, BANNER_Y + bounce, scale, 'energyGold');
 }
 
-/** Where the off-screen ball arrow goes, if the ball is over the top: under the ball, kept clear of the POWER meter when it's shown. */
+/** Where the off-screen ball arrow goes in the HUD, if the ball is over the top: under the ball, kept clear of the POWER meter when it's shown. */
 export function arrowX(w: World, cam: Camera): number | null {
   const arrow = offscreenArrow(w.ball, cam);
   if (!arrow) return null;
-  const right = w.power ? POWER_METER_X0 - ARROW_CLEARANCE : viewOf(cam).w - 4;
-  return Math.round(Math.min(Math.max(arrow.x, 3), right));
+  const view = viewOf(cam);
+  const hudW = hudSize(view).w;
+  const right = w.power ? powerMeterX0(hudW) - ARROW_CLEARANCE : hudW - 4;
+  return Math.round(Math.min(Math.max(arrow.x / view.hudScale, 3), right));
 }
 
 function drawArrow(g: CanvasRenderingContext2D, w: World, cam: Camera): void {
@@ -396,16 +399,32 @@ function drawImpact(g: CanvasRenderingContext2D, w: World, cam: Camera, art: Gam
   if (!w.dog?.carrying) drawBall(g, w, cam, art, true);
 }
 
+/** The layer a doubled HUD is drawn into before it's scaled onto the match canvas; null when the HUD draws at 1×. */
+export function createHudLayer(view: View): CanvasRenderingContext2D | null {
+  if (view.hudScale === 1) return null;
+  const { w, h } = hudSize(view);
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const g = canvas.getContext('2d');
+  if (!g) throw new Error('2D canvas unavailable');
+  g.imageSmoothingEnabled = false;
+  return g;
+}
+
 /**
  * Draws one frame of the match: scenery, shadows, then everything on the
  * pitch far to near, the wave, bars, HUD and banners. During Harrison's
  * goal moment the pitch shakes (the HUD doesn't), and the first frame
  * flashes white; a power-up and a wave shake it too, and a fired wave
- * shows a couple of impact frames.
+ * shows a couple of impact frames. The pitch, its effects and the callouts
+ * over a player go on `g` at native size; the HUD goes on `overlay`, laid
+ * out in hudSize(view) (the same canvas, at 1×, unless the HUD is doubled).
  */
-export function drawMatch(g: CanvasRenderingContext2D, w: World, cam: Camera, art: GameArt, nowS: number, hud: MatchHud): void {
+export function drawMatch(g: CanvasRenderingContext2D, w: World, cam: Camera, art: GameArt, nowS: number, hud: MatchHud, overlay: CanvasRenderingContext2D = g): void {
   const { moment } = hud;
   const view = viewOf(cam);
+  const hudW = hudSize(view).w;
   const shake = pitchShake(w, hud, nowS);
   // Decided before this frame uses up an impact frame, so the flash comes on the frame after the last one.
   const flash = takeFlash(hud);
@@ -441,7 +460,7 @@ export function drawMatch(g: CanvasRenderingContext2D, w: World, cam: Camera, ar
     g.fillRect(0, 0, view.w, view.h);
     g.restore();
   }
-  drawHud(g, w, cam, art, nowS, hud.awayName);
+  drawHud(overlay, w, hudW, art, nowS, hud.awayName);
   if (hud.perfect && nowS < hud.perfect.untilS) {
     const kicker = hud.perfect.team === 'home' ? w.home : w.away;
     const at = screen(cam, kicker.x, kicker.y, kicker.z);
@@ -457,11 +476,11 @@ export function drawMatch(g: CanvasRenderingContext2D, w: World, cam: Camera, ar
     drawText(g, art, prompt, at.x, at.y + PROMPT_Y, 1, Math.floor(nowS * PROMPT_BLINK_HZ) % 2 === 0 ? 'energyGold' : 'white');
   }
   const b = banner(w, moment, hud.awayName);
-  if (b && moment) drawGoalBanner(g, cam, art, moment, b.scale);
-  else if (b) drawText(g, art, b.text, view.w / 2, BANNER_Y, b.scale);
+  if (b && moment) drawGoalBanner(overlay, hudW, art, moment, b.scale);
+  else if (b) drawText(overlay, art, b.text, hudW / 2, BANNER_Y, b.scale);
   const callout = calloutLine(hud);
-  if (callout) drawText(g, art, callout, view.w / 2, BANNER_Y + CALLOUT.gapPx, 2);
+  if (callout) drawText(overlay, art, callout, hudW / 2, BANNER_Y + CALLOUT.gapPx, 2);
   // Under the banner line, so it sits clear of FULL TIME or KICK OFF.
-  else if (hud.bonusCallout) drawText(g, art, hud.bonusCallout, view.w / 2, BANNER_Y + CALLOUT.gapPx, 2, 'energyGold');
-  drawArrow(g, w, cam);
+  else if (hud.bonusCallout) drawText(overlay, art, hud.bonusCallout, hudW / 2, BANNER_Y + CALLOUT.gapPx, 2, 'energyGold');
+  drawArrow(overlay, w, cam);
 }

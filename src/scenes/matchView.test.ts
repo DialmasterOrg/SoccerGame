@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DOG_DIFFICULTY } from '../game/dog';
 import { BASE_STATS } from '../game/stats';
 import { createWorld } from '../game/world';
-import { NO_INTENT, stepPlayer } from '../game/player';
+import { NORMAL_HANDLING, NO_INTENT, stepPlayer } from '../game/player';
 import { DIFFICULTY } from '../game/ai';
 import type { MatchState } from '../game/match';
 import { SAM_HANDLING } from '../game/sam';
@@ -10,7 +10,9 @@ import type { GameArt, SpriteSet } from './art';
 import { depthSorted } from './depthSort';
 import { arrowX, banner, calloutLine, drawLayers, drawMatch, homeClip, pitchDrawables, takeFlash, type MatchHud } from './matchView';
 import { fakeArt, recordingContext } from './testDraw';
-import { POWER_METER_X0 } from './powerView';
+import { powerMeterX0 } from './powerView';
+import { BIG_VIEW } from '../game/camera';
+import { SCHOOL_STAGE } from '../game/stage';
 
 /** Building the list never touches the art; only drawing does. */
 const NO_ART = {} as GameArt;
@@ -216,7 +218,7 @@ describe('the off-screen ball arrow', () => {
       w.ball.x = x;
       const at = arrowX(w, { x: 300 });
       expect(at, `ball x ${x}`).not.toBeNull();
-      expect(at! + 3, `ball x ${x}`).toBeLessThan(POWER_METER_X0);
+      expect(at! + 3, `ball x ${x}`).toBeLessThan(powerMeterX0(320));
     }
   });
 
@@ -245,5 +247,33 @@ describe('the HUD clock', () => {
   it('the HUD clock counts down, in gold during golden goal', () => {
     expect(drawnAt({ clockS: 30 })).toContain('art.text(1:00,1,white,outline)');
     expect(drawnAt({ clockS: 90, goldenGoal: true, goldenS: 15 })).toContain('art.text(0:30,1,energyGold,outline)');
+  });
+});
+
+describe('the big view', () => {
+  const schoolWorld = (kit: { golden: boolean } | null = null) =>
+    createWorld(BASE_STATS, BASE_STATS, 1, { home: 4, away: 6 }, kit, null, null, NORMAL_HANDLING, null, SCHOOL_STAGE);
+  const quietHud = (): MatchHud => ({ perfect: null, moment: null, callout: null, trail: [], flash: false, shake: null, impactFrames: 0, goldenCelebration: false, bonusCallout: null, trickCallout: null, awayName: 'MAX', venue: 'school', awaySprites: fakeArt('away') as unknown as SpriteSet, fx: null });
+
+  it('at the big view the score and clock go on the overlay, the goals and callouts on the canvas', () => {
+    const [main, overlay] = [recordingContext(), recordingContext()];
+    const w = schoolWorld();
+    const hud = { ...quietHud(), perfect: { team: 'home' as const, untilS: 1 } };
+    drawMatch(main.g, w, { x: 900, view: BIG_VIEW }, fakeArt(), 0, hud, overlay.g);
+    expect(overlay.drawn).toContain('art.text(HARRISON 0-0 MAX,1,white,outline)');
+    expect(overlay.drawn).toContain('art.text(2:00,1,white,outline)');
+    expect(main.drawn.some(n => n.startsWith('art.goalsFor('))).toBe(true);
+    expect(main.drawn).toContain('art.text(PERFECT,1,energyGold,outline)');
+    expect(main.drawn).not.toContain('art.text(HARRISON 0-0 MAX,1,white,outline)');
+    expect(overlay.drawn.some(n => n.startsWith('art.goalsFor('))).toBe(false);
+  });
+
+  it('the off-screen arrow is placed in HUD-layer pixels at the big view', () => {
+    const w = schoolWorld();
+    Object.assign(w.ball, { x: 400, y: 400, z: 0 });
+    expect(arrowX(w, { x: 0, view: BIG_VIEW })).toBe(200);
+    const powered = schoolWorld({ golden: false });
+    Object.assign(powered.ball, { x: 530, y: 400, z: 0 });
+    expect(arrowX(powered, { x: 0, view: BIG_VIEW })).toBe(powerMeterX0(267) - 5);
   });
 });

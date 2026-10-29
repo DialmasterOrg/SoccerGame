@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { recordingAudio } from '../audio/testAudio';
 import { recordingRumble } from '../engine/testRumble';
 import type { GameContext } from './context';
@@ -12,7 +12,8 @@ import { NORMAL_HANDLING } from '../game/player';
 import { SAM_HANDLING, SAM_PROFILES, SAM_STATS } from '../game/sam';
 import { BASE_STATS } from '../game/stats';
 import { WAVE_READY_S } from '../game/power';
-import { matchById } from '../meta/career';
+import { matchById, type CareerMatch } from '../meta/career';
+import { SCHOOL_FIELD } from '../game/field';
 import { maxStats } from '../meta/ladder';
 import { EXTRA_IDS, GIFTS, LOCKER_ITEMS, itemPrice } from '../meta/locker';
 import { newProfile } from '../meta/profile';
@@ -1139,5 +1140,77 @@ describe('match scene: his art', () => {
     s.draw(g, 0);
     s.draw(g, 0.1);
     expect(warmed).toBe(1);
+  });
+});
+
+describe('stages', () => {
+  const SCHOOL_TEST: CareerMatch = { ...matchById('backyard-1')!, venue: 'school' };
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('a School match plays on the big stage and asks for a 534×300 canvas', () => {
+    const s = createMatchScene(testContext(), 3, SCHOOL_TEST);
+    expect(s.size).toEqual(expect.objectContaining({ w: 534, h: 300 }));
+    expect(s.world.field).toBe(SCHOOL_FIELD);
+    expect(s.world.match.lengthS).toBe(120);
+  });
+
+  it('a Backyard match keeps the 320×180 canvas and its 90 seconds', () => {
+    const s = createMatchScene(testContext(), 3);
+    expect(s.size).toEqual(expect.objectContaining({ w: 320, h: 180 }));
+    expect(s.world.match.lengthS).toBe(90);
+  });
+
+  /** The HUD layer document makes: it records what it was asked to do, and its context points back at it. */
+  function hudLayer() {
+    const ops: string[] = [];
+    const canvas = { name: 'hudLayer', width: 0, height: 0, getContext: () => g };
+    const g = new Proxy({} as CanvasRenderingContext2D, {
+      get(_, prop) {
+        if (prop === 'canvas') return canvas;
+        if (prop === 'drawImage') return (img: Named) => void ops.push(img.name);
+        return (...args: unknown[]) => void ops.push(`${String(prop)}(${args.join(',')})`);
+      },
+      set: () => true,
+    });
+    return { canvas, ops };
+  }
+  /** A context that records every drawImage with its arguments. */
+  function argRecorder() {
+    const calls: unknown[][] = [];
+    const g = new Proxy({} as CanvasRenderingContext2D, {
+      get(_, prop) {
+        if (prop === 'drawImage') return (img: Named, ...rest: number[]) => void calls.push([img.name, ...rest]);
+        return () => undefined;
+      },
+      set: () => true,
+    });
+    return { g, calls };
+  }
+
+  it('a paused School match draws the menu into the HUD layer, then doubles the layer onto the canvas', () => {
+    const layer = hudLayer();
+    vi.stubGlobal('document', { createElement: () => layer.canvas });
+    const s = createMatchScene(testContext({ art: fakeArt() }), 3, SCHOOL_TEST);
+    s.update(frame(['pause']), STEP);
+    const main = argRecorder();
+    s.draw(main.g, 0);
+    expect([layer.canvas.width, layer.canvas.height]).toEqual([267, 150]);
+    expect(layer.ops[0]).toBe('clearRect(0,0,267,150)');
+    expect(layer.ops).toContain('art.text(RESUME,1,energyGold,outline)');
+    expect(layer.ops).toContain('art.text(HARRISON 0-0 MAX,1,white,outline)');
+    const names = main.calls.map(c => c[0]);
+    expect(names).not.toContain('art.text(RESUME,1,energyGold,outline)');
+    expect(names).not.toContain('art.text(HARRISON 0-0 MAX,1,white,outline)');
+    expect(main.calls.at(-1)).toEqual(['hudLayer', 0, 0, 534, 300]);
+  });
+
+  it('a Backyard match draws its HUD straight onto the canvas, with no layer', () => {
+    const createElement = vi.fn();
+    vi.stubGlobal('document', { createElement });
+    const s = createMatchScene(testContext({ art: fakeArt() }), 3);
+    const main = argRecorder();
+    s.draw(main.g, 0);
+    expect(createElement).not.toHaveBeenCalled();
+    expect(main.calls.map(c => c[0])).toContain('art.text(HARRISON 0-0 MAX,1,white,outline)');
   });
 });

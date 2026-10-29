@@ -4,7 +4,8 @@ import { createWorld, type World } from '../game/world';
 import { POWERED_S } from '../game/power';
 import type { SpriteSet } from './art';
 import type { MatchHud } from './matchView';
-import { auraStrength, homeSprites, powerPrompt, shakeFor } from './powerView';
+import { auraStrength, drawPowerMeter, homeSprites, powerMeterX0, powerPrompt, shakeFor } from './powerView';
+import { fakeArt, type Named } from './testDraw';
 
 const hudWith = (h: Partial<MatchHud> = {}): MatchHud => ({
   perfect: null,
@@ -92,5 +93,22 @@ describe('auraStrength', () => {
     const flicker = [0, 0.05, 0.1, 0.15].map(t => auraStrength(w, hudWith(), t));
     expect(Math.min(...flicker)).toBeLessThan(1);
     expect(Math.max(...flicker)).toBe(1);
+  });
+});
+
+describe('the POWER meter', () => {
+  it('the POWER meter keeps to the right edge of a 267-wide HUD layer', () => {
+    expect(powerMeterX0(267)).toBe(powerMeterX0(320) - 53);
+    const drawn: { name: string; x: number; width: number }[] = [];
+    const g = new Proxy({} as CanvasRenderingContext2D, {
+      get(_, prop) {
+        if (prop === 'drawImage') return (img: Named & { width: number }, x: number) => void drawn.push({ name: img.name, x, width: img.width });
+        return () => undefined;
+      },
+      set: () => true,
+    });
+    drawPowerMeter(g, fakeArt(), 1, 'none', 0, 267);
+    const label = drawn.find(d => d.name === 'art.text(POWER,1,energyGold,outline)')!;
+    expect(label.x + label.width).toBe(263);
   });
 });

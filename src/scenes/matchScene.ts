@@ -1,14 +1,14 @@
 import { matchFeedback, speedMemo } from '../audio/matchFeedback';
 import type { InputFrame } from '../engine/input';
-import { BASE_W } from '../engine/viewport';
 import { createBrain, think, type Difficulty } from '../game/ai';
-import { updateCamera, type Camera } from '../game/camera';
+import { hudSize, updateCamera, type Camera } from '../game/camera';
 import { DOG_DIFFICULTY, type DogState } from '../game/dog';
 import { createDogBrain, dogThink } from '../game/dogAi';
 import { HUMAN_AIM_ERROR_DEG, type Aim } from '../game/kick';
 import { cancelCharge, type PlayerIntent } from '../game/player';
 import { endPower } from '../game/power';
 import { opponentHandling, opponentProfile, opponentStats, type HumanOpponentId } from '../game/opponents';
+import { stageFor } from '../game/stage';
 import { createWorld, stepWorld, type World } from '../game/world';
 import { addMeter } from '../game/power';
 import { trickSetup } from '../game/opponents';
@@ -26,7 +26,7 @@ import { drawMenu, menuCue, stepMenu, type MenuState } from './menu';
 import { HAT_TRICK_GOALS, TRICK_CALLOUT, goalCallout, noteKick, noteTrick, trickGoal, type LastKick, type TrickChance } from './goalCallout';
 import { createGoalMoment, simScale, stepGoalMoment, type GoalMoment } from './goalMoment';
 import { stepTrail, type TrailPoint } from './shotTrail';
-import { drawMatch, type MatchHud } from './matchView';
+import { createHudLayer, drawMatch, type MatchHud } from './matchView';
 import { OutfitFx } from './outfitView';
 import { BRACE_SHAKE, WAVE_SHAKE } from './powerView';
 import type { Scene } from './scene';
@@ -67,6 +67,8 @@ export interface MatchScene extends Scene {
 }
 
 export const PAUSE_ITEMS = ['RESUME', 'RESTART', 'HELP', 'OPTIONS', 'QUIT TO HUB'] as const;
+/** The pause menu's top row, in HUD pixels. */
+const PAUSE_MENU_TOP = 70;
 export const BONUS_CALLOUT = 'BONUS DONE!';
 /** The bonus callout shows this long, once the goal moment that earned it has ended. */
 export const BONUS_SHOW_S = 1.5;
@@ -111,11 +113,12 @@ function harrisonIntent(input: InputFrame): PlayerIntent {
 }
 
 /**
- * A 90-second career match, by default the next one: Harrison with his
- * bought stats against the match's opponent (Max at the rung's stats, a
- * Park kid at their own), or against Biscuit the Dog, who has his own body
- * and brain and no stats of a player's. It pays out on the tick it reaches
- * full time, then hands over to Results after the FULL TIME banner.
+ * A career match, by default the next one, on its venue's stage (pitch,
+ * canvas and length): Harrison with his bought stats against the match's
+ * opponent (Max at the rung's stats, a Park kid at their own), or against
+ * Biscuit the Dog, who has his own body and brain and no stats of a
+ * player's. It pays out on the tick it reaches full time, then hands over
+ * to Results after the FULL TIME banner.
  */
 export function createMatchScene(ctx: GameContext, seed: number, match: CareerMatch = nextCareerMatch(ctx.profile)): MatchScene {
   const { art } = ctx;
@@ -123,6 +126,7 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
   const dog = match.opponent === 'biscuit';
   const human: HumanOpponentId = match.opponent === 'biscuit' ? 'max' : match.opponent;
   const thinking = opponentProfile(human, difficulty);
+  const stage = stageFor(match.venue);
   const world = createWorld(
     { ...ctx.profile.stats },
     dog ? { ...BASE_STATS } : opponentStats(human, match.rung),
@@ -133,13 +137,16 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
     dog ? null : thinking,
     opponentHandling(human),
     hasSkillMoves(ctx.profile) ? trickSetup(difficulty, match.opponent) : null,
+    stage,
   );
   const brain = createBrain(thinking);
   // Speedy Sam's whoosh past Harrison remembers when it last sounded.
   const whoosh = speedMemo();
   const dogBrain = dog ? createDogBrain(DOG_DIFFICULTY[difficulty]) : null;
   const awayIntent = (dt: number): PlayerIntent => (dogBrain ? dogThink(dogBrain, world, dt) : think(brain, world, world.away, world.home, dt));
-  const cam: Camera = { x: world.ball.x - BASE_W / 2 };
+  const cam: Camera = { x: world.ball.x - stage.view.w / 2, view: stage.view };
+  /** The doubled HUD's layer, made on the first frame drawn; null when the HUD draws at 1×. */
+  let overlay: CanvasRenderingContext2D | null | undefined;
   // Decided once: when his kit clashes with theirs, they change.
   const change = dog ? null : changeKitFor(outfitOf(ctx.profile).kit, human);
   const hud: MatchHud = {
@@ -240,6 +247,7 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
 
   const scene: MatchScene = {
     kind: 'match',
+    size: stage.view,
     world,
     get paused() {
       return pause !== null;
@@ -387,8 +395,12 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
         art.warm();
         warmed = true;
       }
-      drawMatch(g, world, cam, art, t, hud);
-      if (pause) drawMenu(g, art, pause, BASE_W / 2, 70);
+      if (overlay === undefined) overlay = createHudLayer(stage.view);
+      const { w: hudW, h: hudH } = hudSize(stage.view);
+      overlay?.clearRect(0, 0, hudW, hudH);
+      drawMatch(g, world, cam, art, t, hud, overlay ?? g);
+      if (pause) drawMenu(overlay ?? g, art, pause, hudW / 2, PAUSE_MENU_TOP);
+      if (overlay) g.drawImage(overlay.canvas, 0, 0, stage.view.w, stage.view.h);
     },
   };
   return scene;

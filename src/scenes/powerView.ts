@@ -16,9 +16,11 @@ import type { MatchHud } from './matchView';
  */
 
 /** Top right, mirroring the stamina bar: the label, the bar under it, the Y button beside it. */
+/** Laid out for a 320-wide HUD; a narrower one shifts every x left by the difference, keeping the meter on its right edge. */
 const METER = { right: 316, labelY: 1, barX: 272, barY: 10, barW: 44, barH: 5, glyphX: 259, glyphY: 6 };
-/** The meter's left edge: anything else in the top right keeps left of it. */
-export const POWER_METER_X0 = METER.glyphX - 1;
+const METER_HUD_W = 320;
+/** The meter's left edge in a hudW-wide HUD: anything else in the top right keeps left of it. */
+export const powerMeterX0 = (hudW: number): number => METER.glyphX - 1 + hudW - METER_HUD_W;
 const DIM_ALPHA = 0.35;
 /** The bright pulse running along a full bar: px/s, and how long it is. */
 const PULSE = { speed: 40, len: 3 };
@@ -46,7 +48,8 @@ const READYING_FROM = 0.3;
 const BEAM = { centreY: 14, edge: 8, light: 4, core: 1, wobbleHz: 5 };
 const ORB_R = { origin: 5, head: 7 };
 const SHOCKWAVE = { s: 0.2, fromR: 4, toR: 26, squash: 0.5 };
-const SPEED_LINES = { count: 9, speedPx: 900, len: 28, alpha: 0.5 };
+/** Streaks run in rows top .. view height - bottom, clear of the HUD's top rows. */
+const SPEED_LINES = { count: 9, speedPx: 900, len: 28, alpha: 0.5, top: 24, bottom: 26 };
 const SPLASH = { rays: 7, spreadRad: 1.3, minLen: 6, maxLen: 13, hz: 20 };
 const DUST = { count: 6, risePx: 6 };
 
@@ -107,10 +110,12 @@ export function shakeFor(power: PowerState | null, hud: MatchHud, nowS: number):
   return { dx: x * px, dy: y * Math.round(px / 2) };
 }
 
-export function drawPowerMeter(g: CanvasRenderingContext2D, art: GameArt, meter: number, hint: 'none' | 'lit' | 'dim', nowS: number): void {
+export function drawPowerMeter(g: CanvasRenderingContext2D, art: GameArt, meter: number, hint: 'none' | 'lit' | 'dim', nowS: number, hudW = METER_HUD_W): void {
+  const dx = hudW - METER_HUD_W;
   const label = art.text('POWER', 1, 'energyGold', 'outline');
-  g.drawImage(label, METER.right - label.width, METER.labelY);
-  const { barX: x, barY: y, barW: w, barH: h } = METER;
+  g.drawImage(label, METER.right + dx - label.width, METER.labelY);
+  const { barY: y, barW: w, barH: h } = METER;
+  const x = METER.barX + dx;
   ink(g, 'outline');
   g.fillRect(x - 1, y - 1, w + 2, h + 2);
   const fill = Math.round(clamp01(meter) * w);
@@ -126,7 +131,7 @@ export function drawPowerMeter(g: CanvasRenderingContext2D, art: GameArt, meter:
   }
   if (hint === 'none') return;
   g.globalAlpha = hint === 'dim' ? DIM_ALPHA : 1;
-  g.drawImage(art.buttons.Y, METER.glyphX, METER.glyphY);
+  g.drawImage(art.buttons.Y, METER.glyphX + dx, METER.glyphY);
   g.globalAlpha = 1;
 }
 
@@ -311,11 +316,12 @@ export function drawBeam(g: CanvasRenderingContext2D, cam: Camera, wave: Wave, n
 
 /** White streaks racing across the screen while the wave is live. */
 function drawSpeedLines(g: CanvasRenderingContext2D, cam: Camera, nowS: number): void {
+  const view = viewOf(cam);
   g.globalAlpha = SPEED_LINES.alpha;
   ink(g, 'white');
   for (let i = 0; i < SPEED_LINES.count; i++) {
-    const y = 24 + Math.floor(scatter(i, 5) * 130);
-    const span = viewOf(cam).w + SPEED_LINES.len;
+    const y = SPEED_LINES.top + Math.floor(scatter(i, 5) * (view.h - SPEED_LINES.top - SPEED_LINES.bottom));
+    const span = view.w + SPEED_LINES.len;
     const x = Math.floor((nowS * SPEED_LINES.speedPx * (0.7 + scatter(i, 6) * 0.6) + scatter(i, 7) * span) % span) - SPEED_LINES.len;
     g.fillRect(x, y, SPEED_LINES.len, 1);
   }
