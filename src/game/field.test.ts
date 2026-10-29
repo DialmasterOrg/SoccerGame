@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BACKYARD, goalScored, inGoalBox, playerSpan } from './field';
+import { BACKYARD, SCHOOL_FIELD, goalScored, inGoalBox, playerSpan } from './field';
 
 describe('goalScored', () => {
   it('scores only between the posts', () => {
@@ -40,5 +40,21 @@ describe('inGoalBox', () => {
 describe('playerSpan', () => {
   it('runs fence to fence, so players can walk round the goals', () => {
     expect(playerSpan(BACKYARD)).toEqual([BACKYARD.fenceL, BACKYARD.fenceR]);
+  });
+});
+
+describe('the School Field', () => {
+  it('the School Field: goals 56 wide and 48 high, mirrored, inside the fences', () => {
+    const [l, r] = SCHOOL_FIELD.goals;
+    for (const g of [l, r]) expect([g.z1 - g.z0, g.barY]).toEqual([56, 48]);
+    expect(l.lineX).toBe(SCHOOL_FIELD.width - r.lineX);
+    expect(l.backX).toBe(SCHOOL_FIELD.width - r.backX);
+    expect(l.backX).toBeGreaterThan(SCHOOL_FIELD.fenceL);
+    expect((l.z0 + l.z1) / 2).toBe(SCHOOL_FIELD.depth / 2);
+  });
+
+  it('a ball in the School goal mouth under the bar scores', () => {
+    expect(goalScored(SCHOOL_FIELD, { x: 1250, y: 10, z: 64 })).toBe('right');
+    expect(goalScored(SCHOOL_FIELD, { x: 1250, y: 10, z: 95 })).toBeNull();
   });
 });

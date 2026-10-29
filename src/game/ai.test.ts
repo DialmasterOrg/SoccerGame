@@ -3,6 +3,7 @@ import { seeded } from '../engine/random';
 import { DIFFICULTY, KICKOFF_HOLD_S, createBrain, think, type AiBrain, type AiProfile } from './ai';
 import { BALL_REST_Y } from './ball';
 import { inGoalBox } from './field';
+import { SCHOOL_STAGE, type Stage } from './stage';
 import { NO_INTENT, NORMAL_HANDLING, PLAYER_R, type Player, type PlayerIntent } from './player';
 import { LADDER_MATCHES, maxStats } from '../meta/ladder';
 import { SAM_HANDLING, SAM_PROFILES, SAM_STATS } from './sam';
@@ -376,25 +377,29 @@ describe('think', () => {
     awayStats: Stats,
     seeds: readonly number[],
     bothScore: boolean,
-    opts: { power?: boolean } = {},
+    opts: { power?: boolean; stage?: Stage } = {},
   ): { braced: number; blown: number; waveGoals: number } {
     const goals = { home: 0, away: 0 };
     const waves = { braced: 0, blown: 0, waveGoals: 0 };
     for (const seed of seeds) {
       const kit = opts.power ? { golden: false } : null;
-      const w = createWorld({ ...homeStats }, { ...awayStats }, seed, { home: DIFFICULTY[difficulty].aimErrorDeg, away: DIFFICULTY[difficulty].aimErrorDeg }, kit);
+      const aim = { home: DIFFICULTY[difficulty].aimErrorDeg, away: DIFFICULTY[difficulty].aimErrorDeg };
+      const w = createWorld({ ...homeStats }, { ...awayStats }, seed, aim, kit, null, null, NORMAL_HANDLING, null, opts.stage);
       const home = createBrain(DIFFICULTY[difficulty]);
       const away = createBrain(DIFFICULTY[difficulty]);
       const bot = powerBot(home, seed);
       const still = new Map<Player, { x: number; z: number; s: number }>();
       let unreachedS = 0;
-      for (let t = 0; w.match.phase !== 'fullTime' && t < 60 * 200; t++) {
+      const capS = opts.stage ? 300 : 200;
+      for (let t = 0; w.match.phase !== 'fullTime' && t < 60 * capS; t++) {
         const homeIntent = opts.power ? bot(w) : think(home, w, w.home, w.away, STEP);
         stepWorld(w, homeIntent, think(away, w, w.away, w.home, STEP), STEP);
         for (const v of [w.ball.x, w.ball.y, w.ball.z, w.home.x, w.home.z, w.away.x, w.away.z]) expect(Number.isFinite(v)).toBe(true);
-        if (opts.power) {
+        if (opts.power || opts.stage) {
           for (const g of w.field.goals)
             for (const p of [w.home, w.away]) expect(inGoalBox(g, p.x, p.z, 0), `seed ${seed}: ${p.team} in a goal`).toBe(false);
+        }
+        if (opts.power) {
           if (w.events.power.braced) waves.braced++;
           if (w.events.power.blown) waves.blown++;
           if (w.events.goal === 'home' && w.wave && w.wave.outcome !== 'braced') waves.waveGoals++;
@@ -475,6 +480,10 @@ describe('think', () => {
     [1, 10],
   ] as const)('a whole AI-vs-AI match at stats %s vs %s on normal keeps every guarantee', (home, away) => {
     wholeMatches('normal', allAt(home), allAt(away), [31, 32, 33], home === 10 && away === 10);
+  });
+
+  it('whole AI-vs-AI matches on the School stage: result, nothing stuck, nobody in a goal', () => {
+    wholeMatches('normal', BASE_STATS, BASE_STATS, [1, 2, 3, 4, 5, 6, 7, 8], false, { stage: SCHOOL_STAGE });
   });
 
   it.each(['easy', 'normal', 'hard'] as const)('with Energy Waves in play on %s, every guarantee holds, and Max both braces and is blown away', difficulty => {

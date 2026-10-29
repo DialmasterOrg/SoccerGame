@@ -15,6 +15,16 @@ export interface Goal {
   z1: number;
 }
 
+/** A pitch's painted white lines; distances are out from each goal line toward the middle. No rule reads them yet. */
+export interface Markings {
+  /** The near and far touchlines' depths. */
+  touchZ: readonly [near: number, far: number];
+  box: { out: number; z0: number; z1: number };
+  goalArea: { out: number; z0: number; z1: number };
+  spotOut: number;
+  circleR: number;
+}
+
 /** World: x along the pitch, z away from the camera, y up. */
 export interface Field {
   width: number;
@@ -24,6 +34,8 @@ export interface Field {
   fenceL: number;
   fenceR: number;
   goals: readonly [Goal, Goal];
+  /** Painted lines; the Backyard's grass has none. */
+  markings?: Markings;
 }
 
 export const BACKYARD: Field = {
@@ -35,6 +47,19 @@ export const BACKYARD: Field = {
     { side: 'left', lineX: 28, backX: 12, barY: 28, barThick: 2, z0: 18, z1: 46 },
     { side: 'right', lineX: 612, backX: 628, barY: 28, barThick: 2, z0: 18, z1: 46 },
   ],
+};
+
+/** The School Field and every later venue's pitch: twice the Backyard's length and depth, with bigger goals a keeper has room to move in. */
+export const SCHOOL_FIELD: Field = {
+  width: 1280,
+  depth: 128,
+  fenceL: 4,
+  fenceR: 1276,
+  goals: [
+    { side: 'left', lineX: 40, backX: 20, barY: 48, barThick: 2, z0: 36, z1: 92 },
+    { side: 'right', lineX: 1240, backX: 1260, barY: 48, barThick: 2, z0: 36, z1: 92 },
+  ],
+  markings: { touchZ: [3, 125], box: { out: 110, z0: 10, z1: 118 }, goalArea: { out: 36, z0: 26, z1: 102 }, spotOut: 76, circleR: 36 },
 };
 
 /**

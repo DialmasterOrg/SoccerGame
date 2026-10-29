@@ -5,7 +5,7 @@ import { BALL_REST_Y, stepBall, type Ball, type BallEvents } from './ball';
 import { resolveBodies } from './bodies';
 import { canPlace, resolveContacts, type ContactEvents } from './contact';
 import { checkPinned, createDog, dropBall, parkBall, quietDog, resetDog, stepDog, vulnerable, type DogEvents, type DogProfile, type DogState } from './dog';
-import { BACKYARD, goalScored, type Field } from './field';
+import { goalScored, type Field } from './field';
 import { startDragBack, stepDragBack } from './dragBack';
 import { createMatch, stepMatch, type MatchState, type Team } from './match';
 import { DECEL, NO_INTENT, NORMAL_HANDLING, createPlayer, stepPlayer, type Handling, type Player, type PlayerIntent } from './player';
@@ -24,6 +24,7 @@ import {
   type PowerKit,
   type PowerState,
 } from './power';
+import { SMALL_STAGE, type Stage } from './stage';
 import type { Stats } from './stats';
 import { maxHasBall, resolveSteal, stealZone, type StealOutcome } from './steal';
 import { quietTricks, startTrick, stepTrick, type TrickEvents, type TrickSetup } from './tricks';
@@ -107,7 +108,8 @@ const STYLE_KINDS: ReadonlySet<PowerState['lastKind']> = new Set(['header', 'vol
  * as it always has. `dog` makes the away body Biscuit, with that profile.
  * `awayHandling` is the away player's brakes, touch and shot (Speedy Sam's
  * are his own; everyone else's are normal). `tricks` gives Harrison his
- * stepover and flick against this opponent.
+ * stepover and flick against this opponent. `stage` is the pitch and the
+ * match's length.
  */
 export function createWorld(
   homeStats: Stats,
@@ -119,14 +121,16 @@ export function createWorld(
   maxProfile: AiProfile | null = null,
   awayHandling: Handling = NORMAL_HANDLING,
   tricks: TrickSetup | null = null,
+  stage: Stage = SMALL_STAGE,
 ): World {
-  const centre = BACKYARD.width / 2;
+  const { field } = stage;
+  const centre = field.width / 2;
   const w: World = {
-    field: BACKYARD,
-    ball: { x: centre, y: BALL_REST_Y, z: BACKYARD.depth / 2, vx: 0, vy: 0, vz: 0, spin: 0, spinAngle: 0 },
+    field,
+    ball: { x: centre, y: BALL_REST_Y, z: field.depth / 2, vx: 0, vy: 0, vz: 0, spin: 0, spinAngle: 0 },
     home: createPlayer('home', homeStats, centre, 1),
     away: createPlayer('away', awayStats, centre, -1),
-    match: createMatch(),
+    match: createMatch(stage.matchS, stage.goldenGoalS),
     rng: seeded(seed),
     aimErrorDeg,
     events: quietEvents(),

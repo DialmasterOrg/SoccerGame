@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { DIFFICULTY, KICKOFF_HOLD_S, createBrain, think } from './ai';
 import { DOG_DIFFICULTY } from './dog';
 import type { Aim } from './kick';
-import { goalScored, inGoalBox } from './field';
+import { SCHOOL_FIELD, goalScored, inGoalBox } from './field';
+import { SCHOOL_STAGE } from './stage';
 import { maxStats } from '../meta/ladder';
 import { maxHasBall } from './steal';
 import { NO_INTENT, NORMAL_HANDLING, PLAYER_R, type Handling, type PlayerIntent } from './player';
@@ -676,5 +677,15 @@ describe('a 50/50 with a fooled defender', () => {
       if (w.ball.y > BALL_REST_Y + 1 || w.ball.vy > 0) squirts++;
     }
     expect(squirts).toBe(0);
+  });
+});
+
+describe('stages', () => {
+  it('a world on the School stage kicks off from its centre spot with a 120-second clock', () => {
+    const w = createWorld(BASE_STATS, BASE_STATS, 3, { home: 4, away: 6 }, null, null, DIFFICULTY.normal, NORMAL_HANDLING, null, SCHOOL_STAGE);
+    expect(w.field).toBe(SCHOOL_FIELD);
+    expect([w.ball.x, w.ball.z]).toEqual([640, 64]);
+    expect([w.match.lengthS, w.match.goldenMaxS]).toEqual([120, 60]);
+    expect(w.home.z).toBe(64);
   });
 });
