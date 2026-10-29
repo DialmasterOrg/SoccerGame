@@ -1,6 +1,8 @@
 import { KEEPER_HANDS } from '../art/keepers/poses';
 import type { CareerMatch } from '../meta/career';
+import { BALL_R } from '../art/ball';
 import { BALL_REST_Y } from './ball';
+import { AIR_DRAG, GRAVITY } from './constants';
 import type { Difficulty } from './ai';
 import type { ContactEvents } from './contact';
 import { penaltyArea, type Field, type Goal } from './field';
@@ -148,6 +150,19 @@ const DIVE_BALL_PX = 10;
 /** A standing catch or push shows this long. */
 const POSE_S = 0.25;
 
+/** How long he holds a catch, standing still, before the drop kick. */
+export const HOLD_S = 1.5;
+/** The kick act. */
+export const PUNT_S = 0.45;
+/** The ball leaves his boot this far into it. */
+export const PUNT_STRIKE_S = 0.2;
+/** Lands at halfway + dir × (from + rng × spread), z in z, launched at elevationDeg. */
+export const PUNT = { from: -40, spread: 280, z: [24, 104] as const, elevationDeg: 40 };
+/** Nobody waits closer than this to a keeper holding the ball. */
+export const CROWD_GAP = 40;
+/** Where his boot meets the ball: this far ahead of him, this high. */
+const BOOT = { x: 8, y: 6 };
+
 export function keeperGoal(field: Field, side: KeeperSide): Goal {
   return field.goals[side === 'home' ? 0 : 1];
 }
@@ -235,6 +250,13 @@ export function stepKeeper(w: World, k: Keeper, intent: KeeperIntent, live: bool
       return;
     case 'hold':
       [body.vx, body.vz] = [0, 0];
+      body.facing = pitchward(w.field, k.side);
+      if (live && k.actT >= HOLD_S) enterAct(k, 'kick');
+      return;
+    case 'kick':
+      [body.vx, body.vz] = [0, 0];
+      if (k.holding && k.actT >= PUNT_STRIKE_S) dropKick(w, k, ev);
+      if (k.actT >= PUNT_S) enterAct(k, 'set');
       return;
     default: {
       const move: PlayerIntent = live ? { ...intent.move, pace: profile.speed / runSpeed(BASE_STATS), faceX: pitchward(w.field, k.side) } : NO_INTENT;
@@ -251,7 +273,9 @@ function heldSpot(k: Keeper): { x: number; y: number; z: number } {
     const len = Math.hypot(dirX, dirZ) || 1;
     return { x: body.x + (dirX / len) * DIVE_BALL_PX, y: BALL_REST_Y, z: body.z + (dirZ / len) * DIVE_BALL_PX };
   }
-  return { x: body.x + body.facing * KEEPER_HANDS.x, y: KEEPER_HANDS.y, z: body.z };
+  // The drop: from his gloves down to his boot.
+  const u = k.act === 'kick' ? Math.min(1, k.actT / PUNT_STRIKE_S) : 0;
+  return { x: body.x + body.facing * (KEEPER_HANDS.x + (BOOT.x - KEEPER_HANDS.x) * u), y: KEEPER_HANDS.y + (BOOT.y - KEEPER_HANDS.y) * u, z: body.z };
 }
 
 /** A caught ball, still, where he holds it. */
@@ -276,4 +300,64 @@ export function startHold(w: World, k: Keeper, ev: KeeperEvents, standing: boole
   }
   ev.caught = k.side;
   parkHeldBall(w);
+}
+
+/** The keeper holding the ball, until it leaves his boot; null when nobody is. */
+export function holdingKeeper(w: World): Keeper | null {
+  const ks = w.keepers;
+  return ks?.home.holding ? ks.home : ks?.away.holding ? ks.away : null;
+}
+
+/** Where a player waits while `k` holds: at least CROWD_GAP from him, on the pitch side. */
+export function standOffSpot(w: World, me: Player, k: Keeper): { x: number; z: number } {
+  const out = pitchward(w.field, k.side);
+  const [dx, dz] = [me.x - k.body.x, me.z - k.body.z];
+  const d = Math.hypot(dx, dz);
+  // Level with him or goal-side, he goes round to the pitch side.
+  const [ux, uz] = dx * out > 0 && d > 0 ? [dx / d, dz / d] : [out, 0];
+  const r = Math.max(CROWD_GAP, d);
+  return { x: k.body.x + ux * r, z: k.body.z + uz * r };
+}
+
+/** How far a ball launched at `speed` and the punt's elevation from height y0 carries before it first lands, under gravity and drag. */
+function puntRange(speed: number, y0: number): number {
+  const h = 1 / 240;
+  const rad = (PUNT.elevationDeg * Math.PI) / 180;
+  let [x, y, vx, vy] = [0, y0, speed * Math.cos(rad), speed * Math.sin(rad)];
+  while (!(y <= BALL_R && vy < 0)) {
+    vy -= GRAVITY * h;
+    const drag = 1 - AIR_DRAG * h;
+    vx *= drag;
+    vy *= drag;
+    x += vx * h;
+    y += vy * h;
+  }
+  return x;
+}
+
+/** The launch speed whose first bounce is `dist` away. */
+function puntSpeed(dist: number, y0: number): number {
+  let [lo, hi] = [50, 3000];
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (puntRange(mid, y0) < dist) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/** The ball leaves his boot, long upfield toward his side's attacking half: nobody plays it while it climbs. */
+function dropKick(w: World, k: Keeper, ev: KeeperEvents): void {
+  const dir = pitchward(w.field, k.side);
+  const land = { x: w.field.width / 2 + dir * (PUNT.from + w.rng() * PUNT.spread), z: PUNT.z[0] + w.rng() * (PUNT.z[1] - PUNT.z[0]) };
+  const b = w.ball;
+  const [dx, dz] = [land.x - b.x, land.z - b.z];
+  const dist = Math.hypot(dx, dz);
+  const speed = puntSpeed(dist, b.y);
+  const rad = (PUNT.elevationDeg * Math.PI) / 180;
+  const ground = speed * Math.cos(rad);
+  Object.assign(b, { vx: (dx / dist) * ground, vy: speed * Math.sin(rad), vz: (dz / dist) * ground, spin: 0 });
+  k.holding = false;
+  w.keepers!.punt = k.side;
+  ev.punted = k.side;
 }

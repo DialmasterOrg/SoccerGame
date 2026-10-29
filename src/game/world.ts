@@ -314,6 +314,8 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   } else resolveBodies(home, w.away, w.field);
   // A ball a keeper holds is out of play: nobody else touches it, and it isn't simulated.
   const held = keepers !== null && (keepers.home.holding || keepers.away.holding);
+  // A drop kick still climbing is nobody's: no contact or save until it starts to fall.
+  const punting = keepers !== null && keepers.punt !== null;
   if (dogBody && live && checkPinned(w, awayIntent, Math.hypot(w.away.x - dogFrom.x, w.away.z - dogFrom.z), dt)) dog.dropped = true;
   if (carryFromZ !== null && windingUp(home)) carryInDepth(w, home.z - carryFromZ);
   const steal = resolveSteal(w, homeIntent);
@@ -344,7 +346,7 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   };
   const homeFirst = w.tick % 2 === 0;
   let kicks: ContactEvents[];
-  if (held) kicks = [quietContact(), quietContact()];
+  if (held || punting) kicks = [quietContact(), quietContact()];
   else if (w.dog) kicks = dogContacts(w, w.dog, dog, live && homeIntent.steal);
   else {
     const first = homeFirst ? contact(home, w.away) : contact(w.away, home);
@@ -358,7 +360,8 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
     kicks.forEach((k, i) => {
       if (k.kicked) keepers.strike = { team: i === 0 ? 'home' : 'away', kind: k.kicked, perfect: k.perfect, x: w.ball.x };
     });
-    if (!held) keeperSaves(w, from, keeper);
+    if (!held && !punting) keeperSaves(w, from, keeper);
+    if (keepers.punt !== null && w.ball.vy <= 0) keepers.punt = null;
   }
   w.tick++;
   if (w.power && !power.fired && (wasActive || power.started)) {

@@ -2,6 +2,7 @@ import { BALL_R } from '../art/ball';
 import { BALL_REST_Y } from './ball';
 import { GRAVITY } from './constants';
 import { inGoalBox, type Goal } from './field';
+import { holdingKeeper, standOffSpot } from './keeper';
 import type { Aim } from './kick';
 import { LADDER_MATCHES, maxStats } from '../meta/ladder';
 import { NO_INTENT, PLAYER_R, type Player, type PlayerIntent } from './player';
@@ -57,7 +58,7 @@ export interface AiBrain {
   profile: AiProfile;
   nextDecisionS: number;
   intent: PlayerIntent;
-  plan: 'chase' | 'dribble' | 'charge' | 'defend' | 'jump' | 'faceWave' | 'backOff' | 'hesitate' | 'fooled';
+  plan: 'chase' | 'dribble' | 'charge' | 'defend' | 'jump' | 'faceWave' | 'backOff' | 'hesitate' | 'fooled' | 'wait';
   /** Time left on the current charge before it releases the shot. */
   chargeLeftS: number;
   /** Time until it may slide again. */
@@ -545,11 +546,21 @@ export function think(brain: AiBrain, w: World, me: Player, them: Player, dt: nu
   else if (brain.backOff === null) brain.backOff = rollBackOff({ reactionS: brain.profile.backOffS, braceSense: brain.profile.braceSense }, w.rng);
   const backing = brain.backOff !== null && brain.backOff !== 'stay' ? brain.backOff : null;
   if (backing) backing.inS -= dt;
+  const holder = holdingKeeper(w);
   if (wave) {
     faceWave(brain, w, me, wave);
     brain.nextDecisionS = brain.profile.reactionS;
   } else if (me.fooled) {
     fooledTick(brain, w, me);
+  } else if (holder) {
+    // A keeper has it: nobody plays it or crowds him. It waits off him, facing the ball, and decides afresh once he lets go.
+    const off = standOffSpot(w, me, holder);
+    const spot = outOfGoals(w, off.x, off.z);
+    const next = route(w, me, spot.x, spot.z);
+    const [moveX, moveZ] = steer(me, next.x, next.z);
+    brain.plan = 'wait';
+    brain.intent = { ...NO_INTENT, moveX, moveZ, pace: brain.profile.paceFactor, faceX: Math.sign(w.ball.x - me.x) >= 0 ? 1 : -1 };
+    brain.nextDecisionS = 0;
   } else if (backing && backing.inS <= 0) {
     // Committed: it re-aims every tick to keep its distance while he's powered up.
     backOff(brain, w, me, them, backing.gap);

@@ -9,6 +9,7 @@ import { BACKYARD } from './field';
 import { NEAR_MISS, STEAL_COOLDOWN_S, STEAL_ROUND_MAX, STUMBLE_S, maxHasBall, resolveSteal } from './steal';
 import { BASE_STATS } from './stats';
 import { createWorld, stepWorld, type World } from './world';
+import { keeperWorld, runFor, runUntil, shotAt } from './testKeepers';
 import { ballAtFeet, ballInBody } from './zones';
 
 const STEP = 1 / 60;
@@ -228,5 +229,20 @@ describe('maxHasBall and how far ahead his ball runs', () => {
     expect(maxHasBall(runner(LONG), ballAt(40, 'home'))).toBe(false);
     expect(maxHasBall(runner(LONG), ballAt(40))).toBe(false);
     expect(maxHasBall(runner(LONG), ballAt(12, 'home'))).toBe(true);
+  });
+});
+
+describe('against a keeper holding the ball', () => {
+  it("Harrison's steal and slide do nothing to a keeper holding the ball", () => {
+    const w = keeperWorld();
+    runFor(w, 1);
+    shotAt(w, { x: 1180, z: 64 }, 64, 200);
+    runUntil(w, 1, w => w.events.keeper.caught === 'away');
+    const k = w.keepers!.away;
+    Object.assign(w.home, { x: k.body.x - 12, z: k.body.z, facing: 1 });
+    runFor(w, 1 / 60, { ...NO_INTENT, steal: true });
+    expect([w.events.steal, k.holding]).toEqual([null, true]);
+    runFor(w, 0.5, { ...NO_INTENT, chipHeld: true });
+    expect([k.body.state, k.holding]).toEqual(['ground', true]);
   });
 });

@@ -18,6 +18,8 @@ import { BRACE_DISTANCE } from './wave';
 import { createWorld, placeForKickoff, stepWorld, type World } from './world';
 import { STEPOVER, TRICK_DIFFICULTY } from './tricks';
 import { ballAtFeet } from './zones';
+import { CROWD_GAP } from './keeper';
+import { keeperWorld, runFor, runUntil, shotAt } from './testKeepers';
 
 const STEP = 1 / 60;
 
@@ -1141,5 +1143,20 @@ describe('fooled by a trick', () => {
     for (let i = 0; i < 20; i++) tick(w, brain);
     expect(w.away.anim.name).toBe('fooled');
     expect(STEPOVER.swayPx).toBe(8);
+  });
+});
+
+describe('a keeper holding the ball', () => {
+  it('Max keeps his distance while a keeper holds', () => {
+    const w = keeperWorld();
+    const brain = createBrain(DIFFICULTY.normal);
+    runFor(w, 1);
+    shotAt(w, { x: 100, z: 64 }, 64, 200, 0, 'left');
+    runUntil(w, 1.5, w => w.keepers!.home.holding);
+    const k = w.keepers!.home;
+    Object.assign(w.away, { x: k.body.x + 20, z: k.body.z });
+    for (let i = 0; i < 60; i++) stepWorld(w, NO_INTENT, think(brain, w, w.away, w.home, 1 / 60), 1 / 60);
+    expect(Math.hypot(w.away.x - k.body.x, w.away.z - k.body.z)).toBeGreaterThanOrEqual(CROWD_GAP - 1);
+    expect(brain.plan).toBe('wait');
   });
 });

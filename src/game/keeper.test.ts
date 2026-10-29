@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { DIFFICULTIES } from './ai';
 import { resolveAll } from './bodies';
-import { KEEPER_TOP_LEVEL, SET_OFF, keeperLevel, keeperLineup, keeperProfile, type KeeperProfile } from './keeper';
+import { HOLD_S, KEEPER_TOP_LEVEL, PUNT_STRIKE_S, SET_OFF, keeperLevel, keeperLineup, keeperProfile, quietKeepers, stepKeeper, type Keeper, type KeeperProfile, type KeeperSide } from './keeper';
 import { NO_INTENT, NORMAL_HANDLING, PLAYER_R } from './player';
 import { SCHOOL_STAGE } from './stage';
 import { BASE_STATS } from './stats';
-import { keeperWorld, runFor } from './testKeepers';
-import { createWorld } from './world';
+import { keeperWorld, runFor, runUntil, shotAt } from './testKeepers';
+import { createWorld, placeForKickoff, type World } from './world';
 
 const BETTER: Partial<Record<keyof KeeperProfile, 1 | -1>> = {
   reactionS: -1, speed: 1, posErrPx: -1, reachZ: 1, reachY: 1, diveTravel: 1, diveReach: 1, diveS: -1, catchSpeed: 1, holdOdds: 1, downS: -1, getUpS: -1,
@@ -63,5 +63,95 @@ describe('keepers in the world', () => {
     Object.assign(k, { x: 1120, z: 5 });
     resolveAll([w.home, w.away, w.keepers!.home.body, k], w.field);
     expect([k.x, k.z]).toEqual([1130, 10]);
+  });
+});
+
+/** Rolls a slow ball at the away keeper (always held) and steps until he holds it. */
+function caught(w: World): Keeper {
+  runFor(w, 1);
+  shotAt(w, { x: 1180, z: 64 }, 64, 200);
+  runUntil(w, 1, w => w.events.keeper.caught === 'away');
+  return w.keepers!.away;
+}
+
+/** Where the ball first bounces after the next drop kick. */
+function firstBounce(w: World): { x: number; z: number } {
+  runUntil(w, HOLD_S + 1, w => w.events.keeper.punted !== null);
+  runUntil(w, 4, w => w.events.ball.bounced);
+  return { x: w.ball.x, z: w.ball.z };
+}
+
+/** Both outfielders parked at the far touchline near halfway; a firm ball rolled at this keeper; goals over 8 s after his punt. */
+function goalsAfterPunt(w: World, side: KeeperSide): number {
+  Object.assign(w.home, { x: 600, z: 120 });
+  Object.assign(w.away, { x: 680, z: 120 });
+  runFor(w, 0.5);
+  const goal = side === 'home' ? 'left' : 'right';
+  shotAt(w, { x: side === 'home' ? 150 : 1130, z: 64 }, 64, 210, 0, goal);
+  if (!runUntil(w, HOLD_S + 3, w => w.events.keeper.punted === side)) throw new Error(`${side} never punted`);
+  let goals = 0;
+  runUntil(w, 8, w => {
+    if (w.events.goal) goals++;
+    return false;
+  });
+  return goals;
+}
+
+describe('the hold and the drop kick', () => {
+  it('he holds a catch still for 1.5 s, then drop-kicks it upfield', () => {
+    const w = keeperWorld();
+    const k = caught(w);
+    const at = [k.body.x, k.body.z];
+    expect(runUntil(w, HOLD_S - 0.05, w => w.events.keeper.punted !== null)).toBe(false);
+    expect([k.body.x, k.body.z]).toEqual(at);
+    expect(runUntil(w, PUNT_STRIKE_S + 0.15, w => w.events.keeper.punted === 'away')).toBe(true);
+    expect(w.ball.vx).toBeLessThan(0);
+    expect(w.ball.vy).toBeGreaterThan(0);
+  });
+
+  it('the drop kick lands around halfway or beyond, toward his attacking half', () => {
+    // The away keeper attacks the left goal: halfway (640) and beyond, toward it.
+    for (let seed = 1; seed <= 64; seed++) {
+      const w = keeperWorld({ seed });
+      caught(w);
+      const at = firstBounce(w);
+      expect(at.x, `seed ${seed}`).toBeLessThanOrEqual(640 + 60);
+      expect(at.x, `seed ${seed}`).toBeGreaterThanOrEqual(640 - 300);
+    }
+  });
+
+  it('a drop kick never scores, from either keeper', () => {
+    for (let seed = 1; seed <= 64; seed++) for (const side of ['home', 'away'] as const) {
+      const w = keeperWorld({ seed });
+      expect(goalsAfterPunt(w, side), `${side} seed ${seed}`).toBe(0);
+    }
+  });
+
+  // Review focus 3
+  it('a climbing drop kick clears Harrison, pressed against the keeper or standing where it climbs', () => {
+    for (const gap of [2 * PLAYER_R, 20, 28, 36]) {
+      const w = keeperWorld();
+      const k = caught(w);
+      Object.assign(w.home, { x: k.body.x - gap, z: k.body.z, facing: 1 });
+      let blocked = false;
+      // The hold, the drop and about 1.2 s in the air.
+      runUntil(w, HOLD_S + 3, w => {
+        blocked ||= w.events.kicks[0]?.blocked || w.events.kicks[0]?.touched || w.events.kicks[0]?.kicked !== null;
+        return w.events.ball.bounced && w.keepers!.punt === null;
+      });
+      expect(blocked, `gap ${gap}`).toBe(false);
+      expect(w.ball.x, `gap ${gap}`).toBeLessThan(640 + 60);
+    }
+  });
+
+  // Review focus 2
+  it('a kickoff clears every hold, dive and drop kick', () => {
+    const w = keeperWorld();
+    caught(w);
+    stepKeeper(w, w.keepers!.home, { move: NO_INTENT, dive: { dirX: 0, dirZ: 1 } }, true, 1 / 60, quietKeepers());
+    w.keepers!.punt = 'away';
+    placeForKickoff(w);
+    for (const k of [w.keepers!.home, w.keepers!.away]) expect([k.act, k.holding, k.dive]).toEqual(['set', false, null]);
+    expect(w.keepers!.punt).toBeNull();
   });
 });
