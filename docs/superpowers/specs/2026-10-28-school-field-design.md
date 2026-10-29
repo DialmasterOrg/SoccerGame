@@ -904,3 +904,160 @@ Notes for plans 3-5:
 - The tryouts cast inherits Max's attacking AI, which rarely beats a
   keeper from range at low stats; plan 4's personalities should be
   measured against keepers.
+
+## As built: plan 3
+
+Built on 2026-10-29. Checked in the browser on frames drawn by the real
+scenes, and in the live loop: the Hub, the road map, the venue screen,
+the VS card, a tryout at 3× (crisp through pause and resume, a staged win
+at full time), Results, the next card, Gus's card and win, CAREER back to
+the map, STATE, and the save code screen. The choices this spec left to
+the builder, and what changed on the way:
+
+- **Every venue has words.** `Venue.words` (`match`, `beaten`, `boss`,
+  `done`) gives the Backyard and the Park exactly today's text (MATCH,
+  BEATEN!, BACKYARD BOSS / THE PARK BOSS, BACKYARD DONE! / THE PARK
+  DONE!) and the School TRYOUT, PASSED!, THE SCHOOL BOSS and YOU MADE THE
+  TEAM!; a venue with no matches yet reads `${name} BOSS` / `${name}
+  DONE!`. The panel, the VS card, Results and the Hub all read them. Tia's
+  and Paige's blurbs are shortened from this spec's (`SHE MOVED HERE. HER
+  FAKE IS SHARPER.`, `THE TOP SCORER. SHE PICKS A CORNER.`): the spec's
+  ran 229 and 209 px, wider than the Hub card's 200. Every School line is
+  measured against its slot in a test (the Hub card, the panel at 2×, the
+  stops' names and labels).
+- **The catalog.** `SCHOOL` is `school-1`..`school-8` then
+  `school-boss`, every one `opponent: 'max'` until plans 4 and 5; an
+  empty `STATE` venue sits between it and the Stadium, so the road has
+  six stops and `TOTAL_STARS` is the roadmap's 156 (`(10 + 1 + 5 + 4 ×
+  9) × 3`). Beating Sam now leads on: Results after Sam offers NEXT
+  MATCH to tryout 1 (it was CAREER), and the Hub reads `NEXT: MAX -
+  SCHOOL FIELD 1/8`.
+- **The road map.** Six 46×30 cards at cx 28/78/136/190/240/290, y
+  122/106/90/74/58/42, with the widest gaps round the School and the
+  State for SCHOOL FIELD and COMING SOON; names 33 and labels 42 below.
+  A postcard is cut from its venue's own layers, drawn at the venue's
+  own view size, from x 118 and 48 rows above the venue's far touchline
+  (`postcardFrom`): the Backyard and the Park keep today's 64, the
+  School's is 120, so its card shows the school's window and door.
+- **The School on 320×180 screens.** `drawLayers` shifts any venue by
+  the camera's near-touchline row less the venue's own (`viewOf(cam).nearSY
+  - stageFor(venue).view.nearSY`), so the 300-row School sits 120 rows
+  up on the venue screen, the VS card and the backdrop, its near
+  touchline on row 176 where `project` stands the juggler and the VS
+  pair. The joggers and the School's life shift with their layers.
+- **The look.** Four layers at 534×300 (`src/art/venues/school.ts`),
+  from the approved sketch in the existing 70 master colours (no new
+  colour). Far (534 wide, tiles): a pale morning sky in three bands with
+  a low sun, thin clouds and a hazy tree line of tan crowns painted
+  wrapped so the seam is invisible, over a solid band, a strip of
+  beaten earth behind the fence, and whatever the ground covers. The
+  sun sits at x 200, not the sketch's 74: a 534-wide far layer wraps
+  within the view past camera x 320, and at 74 two suns showed. Mid
+  (927 wide): the two-storey pale-brick school at x 15–300 (flat
+  charcoal roof, white-framed windows, a canopy over navy doors, a navy
+  sign panel with a gold stripe and nothing on it), the flagpole at
+  310, the yellow bus at 318–388, and big orange and gold trees to the
+  layer's end, so the school and the bus stand behind Eddie's end and
+  trees behind the far half. Near (1162 wide): the chain-link fence (a
+  slate top rail, slate posts every 40, a silver cross-hatch every 4
+  px) of 16 rows standing on the far touchline (row 168), the
+  aluminium bleachers (five tiers of silver seats and slate risers,
+  gray rails) at near x 960–1094 so they are in view when Harrison
+  attacks the right goal, and leaves piled three rows deep at the fence
+  foot. Ground: plan 1's pitch with 2×1 leaves scattered from z 96 up,
+  on grass pixels only, never on a line.
+- **The life** (`schoolLife.ts`, `schoolView.ts`): eighteen kids and
+  parents on the bleachers in a 126×40 box, varied in skin, hair and
+  tops, bobbing at 2 fps with every third lifted a pixel (never in step)
+  and on their feet with arms up at 6 fps through Harrison's goal
+  moment (`hud.moment`), as the roar is; an away goal still groans. A
+  plain navy-and-white striped flag, 15×10, three frames at 6 fps,
+  rippling from the hoist out. Five leaves (flame, gold, flameDark,
+  flameLight, goldDark) drifting in screen px at 14–26 px/s, swaying
+  2–3 px, tumbling at 4 fps, in the art rows 70–140. Drawing order at
+  the School: far, mid, the flag, near, the crowd, the ground, the
+  leaves. Scenery never touches play.
+- **Sound, by design and not by ear.** `goalCrowd(venue)` picks the
+  cue and crowd level for his goal: the School's bleachers `cheer`
+  (a 1.6 s noise swell at gain 0.3 rising 800→1400 Hz, with three short
+  claps; under the roar's 0.45 and 2.5 s) and the crowd holds a new
+  `cheer` level (`CROWD_GAIN.cheer` 0.25, between `match` 0.12 and
+  `roar` 0.4) through the moment and a pause; everywhere else roars as
+  before. The hat-trick's second roar follows the venue too.
+- **The bonuses.** `GoalRecord` gains `outsideBox` and `rebound`, both
+  false without keepers. `goalFacts.ts` reads them on the tick of his
+  goal: `outsideBox` when the strike's `(x, z)` lies outside their
+  penalty box (a point on the edge counts as inside); `rebound` when
+  his kick came within `REBOUND_S` 2 s of their keeper's push (a
+  `KeeperWatch` times the pushes; his own keeper's push never counts).
+  Both need a live kick of his that isn't the wave and a strike that is
+  his: **a wave goal counts for neither**, since the wave makes no
+  strike and the one there would be stale (the builder's reading of
+  "a kick he struck"). A strike now carries `z`, and a catch and a drop
+  kick clear it, so it can't follow the ball. The in-play bonuses are
+  SCORE FROM OUTSIDE THE BOX, SCORE A REBOUND and PUT 3 PAST GUS;
+  DON'T LET PAIGE SCORE is Sam's clean sheet under her name. Plan 2's
+  keeper, drill and match tests were unchanged by the cleared strike
+  (no stop was needed).
+- **The save.** Profile v7 adds no fields; the bump stops a v6 tab
+  writing over School stars, and a v6 save or code loads with none. The
+  save code appends the nine School star counts then Gus's loss streak
+  after every v6 field. The longest code is 167 characters (was 151),
+  `MAX_ENTRY` 169, and the small code size shows up to five lines of
+  eight groups, which end above the status line even on the entry
+  screen (checked in a still).
+- **Max standing in.** Every School slot builds Max at the slot's
+  ladder stats (Gus's rung 0 clamps to rung 1's) with keepers at the
+  slot's level, under the catalog's names (HANK on the HUD, `GUS
+  SCORES`). Measured once for information on Normal, seeds 100–131,
+  against the scripted Harrison at the drills' stats: tryout 1 W21 D6
+  L5 (0.88 goals a side to 0.25), tryout 8 W10 D19 L3 (0.47 to 0.19),
+  Gus's slot (rung-1 stats, keeper level 8) W15 D16 L1 (0.59 to 0.03);
+  Max never scored more than 2. Nothing is tuned for him.
+- **Tests.** The staged School goals in the match tests hold X 0.6 s,
+  not the plan's 0.2 s: at Power 1 a 0.2 s shot from x 1000 stops at x
+  1194, short of the line. Existing pins of the School as empty moved
+  to the new truth (`profile.test`'s unknown id is now `state-1`; the
+  v6-shape pins read v7; "a newer build" is v8).
+- **The art and the parent's verdict.** Four stills of the venue at
+  534×300 (kickoff, attacking the right goal with the bleachers,
+  his goal with the crowd on its feet, Eddie's end with the school and
+  the bus) and three of the 320×180 screens went to the parent alone on
+  2026-10-29. **The parent approved all of it the same day** ("I approve
+  of all the art. This looks good.").
+- **The final review** (a fresh reviewer on the most capable model:
+  "ready to merge") found nothing Critical or Important. Its minors are
+  deferred: `goalFacts` takes the right goal as `goals[1]` by position
+  where `noteKick` finds it by side; the keeper watch isn't reset on a
+  goal or kickoff, so a kickoff kick that scored untouched within 2 s of
+  sim time of a push before the previous goal would count as a rebound
+  (it can only over-credit, never take a star away); `noise()` is
+  duplicated in `school.ts` and `schoolLife.ts`, and `schoolLife`'s
+  `fill` is scenery's `fillRect`; `venueScene` and `vsScene` find the
+  venue by hand where `venueById` exists; Help has no vertical-fit test
+  (THE MATCH's eleven lines end at row 139, 23 above the footer, and
+  plan 5 adds Gus's line); `drawLayers` has six positional parameters;
+  and on every 320×180 screen the School's shift hides its sky (the top
+  rows show the tree band and the school's lower storeys), which the
+  parent saw in the approved stills. Its declined-to-judge list was
+  ruled on: Gus's VS title is `THE SCHOOL BOSS` over `HARRISON VS
+  GOALIE GUS` rather than this spec's `GOALIE GUS - SCHOOL BOSS` (VS
+  wording was left to the builder, and it matches the Park's card); the
+  venue screen's juggler stands just outside the School's left box, on
+  grass.
+- **1820 tests**, typecheck and build green.
+
+Notes for plans 4–5:
+
+- The School matches' `opponent` fields are the only change the cast
+  needs in the catalog: plan 4 sets tryouts 2–8's, plan 5 Gus's.
+- `opponentStats(id, rung)` takes no venue: Max at tryout 1 and Tia at
+  tryout 5 come back at the Park's and the ladder's stats until plan 4
+  gives it one.
+- Gus's slot is rung 0; `keeperLevel` already sends a boss to the top
+  level and `keeperLooks` gives him backup B until plan 5.
+- Gus's tip (`TIP: KEEP IT LOW. MAKE HIM DIVE.`), his Help line after
+  Sam's, and his boss sting are still to do; the VS card already plays
+  `bossSting` for him and keeps three lines after a loss.
+- `GoalRecord.outsideBox` and `rebound` are recorded in every match,
+  so plan 4's Priya and plan 5's Gus need no new facts.
