@@ -4,10 +4,12 @@ import { BASE_STATS } from '../game/stats';
 import { createWorld } from '../game/world';
 import { NO_INTENT, stepPlayer } from '../game/player';
 import { DIFFICULTY } from '../game/ai';
+import type { MatchState } from '../game/match';
 import { SAM_HANDLING } from '../game/sam';
 import type { GameArt, SpriteSet } from './art';
 import { depthSorted } from './depthSort';
-import { arrowX, banner, calloutLine, drawLayers, homeClip, pitchDrawables, takeFlash, type MatchHud } from './matchView';
+import { arrowX, banner, calloutLine, drawLayers, drawMatch, homeClip, pitchDrawables, takeFlash, type MatchHud } from './matchView';
+import { fakeArt, recordingContext } from './testDraw';
 import { POWER_METER_X0 } from './powerView';
 
 /** Building the list never touches the art; only drawing does. */
@@ -227,5 +229,21 @@ describe('the off-screen ball arrow', () => {
   it('there is no arrow while the ball is on screen', () => {
     const w = createWorld(BASE_STATS, BASE_STATS, 1, { home: 4, away: 6 });
     expect(arrowX(w, { x: 160 })).toBeNull();
+  });
+});
+
+describe('the HUD clock', () => {
+  const drawnAt = (m: Partial<MatchState>) => {
+    const w = createWorld(BASE_STATS, BASE_STATS, 1, { home: 4, away: 6 });
+    Object.assign(w.match, { phase: 'playing' }, m);
+    const hud: MatchHud = { perfect: null, moment: null, callout: null, trail: [], flash: false, shake: null, impactFrames: 0, goldenCelebration: false, bonusCallout: null, trickCallout: null, awayName: 'MAX', venue: 'backyard', awaySprites: fakeArt('away') as unknown as SpriteSet, fx: null };
+    const { g, drawn } = recordingContext();
+    drawMatch(g, w, { x: 0 }, fakeArt(), 0, hud);
+    return drawn;
+  };
+
+  it('the HUD clock counts down, in gold during golden goal', () => {
+    expect(drawnAt({ clockS: 30 })).toContain('art.text(1:00,1,white,outline)');
+    expect(drawnAt({ clockS: 90, goldenGoal: true, goldenS: 15 })).toContain('art.text(0:30,1,energyGold,outline)');
   });
 });

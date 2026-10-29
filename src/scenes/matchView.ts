@@ -5,7 +5,7 @@ import { PARALLAX } from '../art/venues/backyard';
 import { JOGGERS, PATH_Y } from '../art/venues/park';
 import { offscreenArrow, project, viewOf, type Camera } from '../game/camera';
 import { SWEET_SPOT } from '../game/kick';
-import { clockMinute, type Team } from '../game/match';
+import { clockText, type Team } from '../game/match';
 import { DECEL, type Player } from '../game/player';
 import { powerHint } from '../game/power';
 import type { World } from '../game/world';
@@ -322,8 +322,8 @@ function drawHud(g: CanvasRenderingContext2D, w: World, cam: Camera, art: GameAr
   const { match, home } = w;
   const cx = viewOf(cam).w / 2;
   drawText(g, art, `${HOME_NAME} ${match.score.home}-${match.score.away} ${awayName}`, cx, 0);
-  const clock = match.goldenGoal ? `90+${Math.floor(match.goldenS)}` : `${clockMinute(match)}'`;
-  drawText(g, art, clock, cx, 7);
+  const clock = clockText(match);
+  drawText(g, art, clock.text, cx, 7, 1, clock.golden ? 'energyGold' : 'white');
 
   ink(g, 'outline');
   g.fillRect(STAMINA_BAR.x - 1, STAMINA_BAR.y - 1, STAMINA_BAR.w + 2, STAMINA_BAR.h + 2);

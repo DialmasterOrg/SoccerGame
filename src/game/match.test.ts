@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GOAL_PAUSE_S, KICKOFF_S, clockMinute, createMatch, endGoalPause, stepMatch, type MatchState } from './match';
+import { GOAL_PAUSE_S, KICKOFF_S, clockMinute, clockText, createMatch, endGoalPause, stepMatch, type MatchState } from './match';
 
 const STEP = 1 / 60;
 const ticks = (s: number) => Math.round(s / STEP);
@@ -148,5 +148,42 @@ describe('endGoalPause', () => {
     const m = playing();
     endGoalPause(m);
     expect(m.phaseT).toBe(0);
+  });
+});
+
+describe('match lengths and the countdown', () => {
+  it('counts down from 1:30, showing 0:00 only at full time', () => {
+    expect(clockText(playing({ clockS: 0 }))).toEqual({ text: '1:30', golden: false });
+    expect(clockText(playing({ clockS: 0.5 })).text).toBe('1:30');
+    expect(clockText(playing({ clockS: 89.5 })).text).toBe('0:01');
+    expect(clockText(playing({ clockS: 90 })).text).toBe('0:00');
+  });
+
+  it('a 120-second match counts down from 2:00 and ends at 120 s', () => {
+    const m = { ...createMatch(120, 60), phase: 'playing' as const, score: { home: 1, away: 0 } };
+    expect(clockText(m).text).toBe('2:00');
+    run(m, 119.9);
+    expect(m.phase).toBe('playing');
+    run(m, 0.2);
+    expect(m.phase).toBe('fullTime');
+  });
+
+  it('golden goal at the School counts 1:00 down in gold, then a draw', () => {
+    const m = { ...createMatch(120, 60), phase: 'playing' as const };
+    run(m, 120);
+    expect(m.goldenGoal).toBe(true);
+    expect(clockText(m)).toEqual({ text: '1:00', golden: true });
+    run(m, 60);
+    expect(m.result).toBe('draw');
+  });
+
+  it('golden goal in a 90-second match counts 0:45 down', () => {
+    expect(clockText(playing({ clockS: 90, goldenGoal: true, goldenS: 0 }))).toEqual({ text: '0:45', golden: true });
+    expect(clockText(playing({ clockS: 90, goldenGoal: true, goldenS: 45 }))).toEqual({ text: '0:00', golden: true });
+  });
+
+  it('the game minute scales with the match length', () => {
+    expect(clockMinute({ ...createMatch(120, 60), clockS: 60 })).toBe(45);
+    expect(clockMinute(playing({ clockS: 45 }))).toBe(45);
   });
 });

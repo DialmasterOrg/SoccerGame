@@ -1,4 +1,7 @@
+/** The game minute at full time: goal records count minutes 0..90 whatever the match's length. */
 export const FULL_TIME_MIN = 90,
+  /** The Backyard's and the Park's match and golden goal, in real seconds. */
+  MATCH_S = 90,
   GOLDEN_GOAL_MAX_S = 45,
   GOAL_PAUSE_S = 2,
   KICKOFF_S = 1;
@@ -12,10 +15,14 @@ export type Team = 'home' | 'away';
 export interface MatchState {
   phase: Phase;
   phaseT: number;
-  /** Playing seconds; one game minute each. */
+  /** Playing seconds, 0..lengthS. */
   clockS: number;
+  /** Real seconds of play before full time. */
+  lengthS: number;
   goldenGoal: boolean;
   goldenS: number;
+  /** Golden goal's most real seconds before it's a draw. */
+  goldenMaxS: number;
   score: { home: number; away: number };
   lastScorer: Team | null;
   kickoffTeam: Team;
@@ -23,13 +30,15 @@ export interface MatchState {
   result: null | 'win' | 'lose' | 'draw';
 }
 
-export function createMatch(): MatchState {
+export function createMatch(lengthS = MATCH_S, goldenMaxS = GOLDEN_GOAL_MAX_S): MatchState {
   return {
     phase: 'kickoff',
     phaseT: 0,
     clockS: 0,
+    lengthS,
     goldenGoal: false,
     goldenS: 0,
+    goldenMaxS,
     score: { home: 0, away: 0 },
     lastScorer: null,
     kickoffTeam: 'home',
@@ -56,7 +65,7 @@ function finish(m: MatchState): void {
 /** One playing tick: the clock runs, a goal counts first, then full time is checked with the new score. */
 function play(m: MatchState, dt: number, goal: 'left' | 'right' | null): void {
   if (m.goldenGoal) m.goldenS += dt;
-  else m.clockS = Math.min(FULL_TIME_MIN, m.clockS + dt);
+  else m.clockS = Math.min(m.lengthS, m.clockS + dt);
 
   if (goal) {
     // A ball in the right goal is always a home goal, whoever touched it last.
@@ -70,8 +79,8 @@ function play(m: MatchState, dt: number, goal: 'left' | 'right' | null): void {
   }
 
   if (m.goldenGoal) {
-    if (m.goldenS >= GOLDEN_GOAL_MAX_S - TIME_EPS) finish(m);
-  } else if (m.clockS >= FULL_TIME_MIN - TIME_EPS) {
+    if (m.goldenS >= m.goldenMaxS - TIME_EPS) finish(m);
+  } else if (m.clockS >= m.lengthS - TIME_EPS) {
     if (m.score.home !== m.score.away) finish(m);
     else m.goldenGoal = true;
   }
@@ -106,7 +115,14 @@ export function endGoalPause(m: MatchState): void {
   if (m.phase === 'goal') m.phaseT = Math.max(m.phaseT, GOAL_PAUSE_S);
 }
 
-/** The minute on the clock: 0..90, staying at 90 through golden goal. */
+/** The game minute: 0..90 across the match's length, staying at 90 through golden goal. */
 export function clockMinute(m: MatchState): number {
-  return Math.min(FULL_TIME_MIN, Math.floor(m.clockS + TIME_EPS));
+  return Math.min(FULL_TIME_MIN, Math.floor((m.clockS * FULL_TIME_MIN) / m.lengthS + TIME_EPS));
+}
+
+/** The HUD clock: seconds left as m:ss, rounded up so 0:00 shows only at the end; golden goal counts its own time down, in gold. */
+export function clockText(m: MatchState): { text: string; golden: boolean } {
+  const left = m.goldenGoal ? m.goldenMaxS - m.goldenS : m.lengthS - m.clockS;
+  const s = Math.max(0, Math.ceil(left - TIME_EPS));
+  return { text: `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`, golden: m.goldenGoal };
 }

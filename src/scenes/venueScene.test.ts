@@ -66,7 +66,7 @@ describe('the venue screen', () => {
   });
 
   it('the panel lines', () => {
-    expect(panelLines(matchById('backyard-7')!)).toEqual(['MATCH 7 - MAX', 'MAX HAS BEEN TRAINING: JUMP UP', 'BONUS: SCORE IN THE FIRST 30 MINUTES']);
+    expect(panelLines(matchById('backyard-7')!)).toEqual(['MATCH 7 - MAX', 'MAX HAS BEEN TRAINING: JUMP UP', 'BONUS: SCORE IN THE FIRST 30 SECONDS']);
     expect(panelLines(matchById('backyard-1')!)).toEqual(['MATCH 1 - MAX', 'BONUS: SCORE 3 GOALS']);
     expect(panelLines(matchById(BOSS_ID)!)).toEqual(['BISCUIT THE DOG', "HE CAN'T SHOOT. HE JUST RUNS IT IN.", "BONUS: DON'T LET BISCUIT SCORE"]);
     for (const l of panelLines(matchById(BOSS_ID)!)) expect(l).toMatch(CHARSET);

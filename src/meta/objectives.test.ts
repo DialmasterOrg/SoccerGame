@@ -10,7 +10,7 @@ describe('bonuses', () => {
     const labels = Object.values(BONUSES).map(b => b.label);
     expect(labels).toEqual([
       'SCORE 3 GOALS', 'KEEP A CLEAN SHEET', 'SCORE A HEADER', 'SCORE FROM A CHIP', 'SCORE A VOLLEY', 'SCORE A PERFECT STRIKE',
-      'SCORE IN THE FIRST 30 MINUTES', 'WIN BY 3', 'SCORE 2 STYLE GOALS', 'WIN 3-0 OR BETTER', "DON'T LET BISCUIT SCORE",
+      'SCORE IN THE FIRST 30 SECONDS', 'WIN BY 3', 'SCORE 2 STYLE GOALS', 'WIN 3-0 OR BETTER', "DON'T LET BISCUIT SCORE",
       'WIN THE BALL WITH 3 STEALS', "DON'T LET SAM SCORE",
     ]);
     for (const l of labels) expect(l).toMatch(/^[A-Z0-9 '\-:!?.,/+<>]+$/);
@@ -28,6 +28,11 @@ describe('bonuses', () => {
     expect(inPlay('score3', [goal(), goal()])).toBe(false);
     expect(inPlay('twoStyle', [goal({ kind: 'header' }), goal({ kind: 'wave' })])).toBe(true);
     expect(inPlay('twoStyle', [goal({ kind: 'header' }), goal()])).toBe(false);
+  });
+
+  it('the early bonus reads in seconds and keeps its rule', () => {
+    expect(BONUSES.early.label).toBe('SCORE IN THE FIRST 30 SECONDS');
+    expect(EARLY_GOAL_MINUTE).toBe(30);
   });
 
   it('an early goal is before the 30th minute; a golden-goal winner at 90 is not', () => {

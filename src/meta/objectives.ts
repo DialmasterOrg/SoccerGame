@@ -20,7 +20,7 @@ export interface Bonus {
   done(s: BonusInput): boolean;
 }
 
-/** A goal in the first 30 minutes of the match clock, which runs a game minute a second. */
+/** A goal in the first 30 game minutes: the first 30 real seconds of a 90-second match. */
 export const EARLY_GOAL_MINUTE = 30;
 export const MAX_STARS = 3;
 
@@ -45,7 +45,7 @@ export const BONUSES: Readonly<Record<BonusId, Bonus>> = {
   chip: bonus('chip', 'SCORE FROM A CHIP', true, scoredA('chip')),
   volley: bonus('volley', 'SCORE A VOLLEY', true, scoredA('volley')),
   perfect: bonus('perfect', 'SCORE A PERFECT STRIKE', true, s => s.goals.some(g => g.perfect)),
-  early: bonus('early', 'SCORE IN THE FIRST 30 MINUTES', true, s => s.goals.some(g => g.minute < EARLY_GOAL_MINUTE)),
+  early: bonus('early', 'SCORE IN THE FIRST 30 SECONDS', true, s => s.goals.some(g => g.minute < EARLY_GOAL_MINUTE)),
   winBy3: bonus('winBy3', 'WIN BY 3', false, atFullTime(s => s.result === 'win' && s.goalsFor - s.goalsAgainst >= WIN_BY_3_MARGIN)),
   twoStyle: bonus('twoStyle', 'SCORE 2 STYLE GOALS', true, s => s.goals.filter(isStyle).length >= TWO_STYLE_GOALS),
   win3Nil: bonus('win3Nil', 'WIN 3-0 OR BETTER', false, atFullTime(s => s.goalsFor >= SCORE3_GOALS && s.goalsAgainst === 0)),

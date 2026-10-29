@@ -13,7 +13,7 @@ const CHARSET = /^[A-Z0-9 '\-:!?.,/+<>]+$/;
 
 describe('the VS card', () => {
   it('names the match and its bonus', () => {
-    expect(vsLines(matchById('backyard-7')!, newProfile())).toEqual(['MATCH 7', 'HARRISON VS MAX', 'BONUS: SCORE IN THE FIRST 30 MINUTES']);
+    expect(vsLines(matchById('backyard-7')!, newProfile())).toEqual(['MATCH 7', 'HARRISON VS MAX', 'BONUS: SCORE IN THE FIRST 30 SECONDS']);
     expect(vsLines(matchById(BOSS_ID)!, newProfile())).toEqual(['BACKYARD BOSS', 'HARRISON VS BISCUIT THE DOG', "BONUS: DON'T LET BISCUIT SCORE"]);
     for (const l of vsLines(matchById(BOSS_ID)!, newProfile())) expect(l).toMatch(CHARSET);
   });

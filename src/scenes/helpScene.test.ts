@@ -25,7 +25,7 @@ describe('help', () => {
   });
 
   it('explains the match format and the moves', () => {
-    for (const phrase of ['90 SECONDS', 'KICKS OFF', 'CHARGE', 'GOLD', 'CHIP', 'SLIDE', 'HEADER', 'VOLLEY', 'SPRINT', 'STAMINA']) {
+    for (const phrase of ['COUNTS DOWN FROM 1:30', '2:00 AT SCHOOL', 'LEVEL AT 0:00', 'KICKS OFF', 'CHARGE', 'GOLD', 'CHIP', 'SLIDE', 'HEADER', 'VOLLEY', 'SPRINT', 'STAMINA']) {
       expect(allText()).toContain(phrase);
     }
   });
