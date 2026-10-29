@@ -41,7 +41,7 @@ export interface KeeperProfile {
   downS: number;
   /** Getting up. */
   getUpS: number;
-  /** A dribbler's ball this close, he commits to the smother. */
+  /** A dribbler's ball this close, he commits to the smother: beyond his dive's first reach, so a smother takes a moment to arrive. */
   smotherAt: number;
 }
 
@@ -54,16 +54,16 @@ const profile = (p: KeeperProfile): KeeperProfile => p;
  */
 export const KEEPER_LEVELS: Record<Difficulty, { first: KeeperProfile; last: KeeperProfile }> = {
   easy: {
-    first: profile({ reactionS: 0.3, speed: 95, posErrPx: 9, comeOutPx: 14, reachZ: 1, reachY: 40, diveTravel: 6, diveReach: 8, diveS: 0.45, catchSpeed: 320, holdOdds: 0.8, downS: 0.6, getUpS: 0.6, smotherAt: 14 }),
-    last: profile({ reactionS: 0.22, speed: 110, posErrPx: 6, comeOutPx: 18, reachZ: 2, reachY: 42, diveTravel: 8, diveReach: 9, diveS: 0.4, catchSpeed: 380, holdOdds: 0.85, downS: 0.5, getUpS: 0.5, smotherAt: 16 }),
+    first: profile({ reactionS: 0.3, speed: 95, posErrPx: 9, comeOutPx: 14, reachZ: 1, reachY: 40, diveTravel: 6, diveReach: 8, diveS: 0.45, catchSpeed: 320, holdOdds: 0.8, downS: 0.6, getUpS: 0.6, smotherAt: 18 }),
+    last: profile({ reactionS: 0.22, speed: 110, posErrPx: 6, comeOutPx: 18, reachZ: 2, reachY: 42, diveTravel: 8, diveReach: 9, diveS: 0.4, catchSpeed: 380, holdOdds: 0.85, downS: 0.5, getUpS: 0.5, smotherAt: 20 }),
   },
   normal: {
-    first: profile({ reactionS: 0.24, speed: 105, posErrPx: 6, comeOutPx: 18, reachZ: 2, reachY: 42, diveTravel: 8, diveReach: 9, diveS: 0.4, catchSpeed: 360, holdOdds: 0.85, downS: 0.5, getUpS: 0.5, smotherAt: 16 }),
-    last: profile({ reactionS: 0.16, speed: 120, posErrPx: 3, comeOutPx: 24, reachZ: 3, reachY: 44, diveTravel: 10, diveReach: 11, diveS: 0.35, catchSpeed: 440, holdOdds: 0.92, downS: 0.4, getUpS: 0.4, smotherAt: 20 }),
+    first: profile({ reactionS: 0.24, speed: 105, posErrPx: 6, comeOutPx: 18, reachZ: 2, reachY: 42, diveTravel: 8, diveReach: 9, diveS: 0.4, catchSpeed: 360, holdOdds: 0.85, downS: 0.5, getUpS: 0.5, smotherAt: 20 }),
+    last: profile({ reactionS: 0.16, speed: 120, posErrPx: 3, comeOutPx: 24, reachZ: 3, reachY: 44, diveTravel: 10, diveReach: 11, diveS: 0.35, catchSpeed: 440, holdOdds: 0.92, downS: 0.4, getUpS: 0.4, smotherAt: 24 }),
   },
   hard: {
-    first: profile({ reactionS: 0.2, speed: 112, posErrPx: 4, comeOutPx: 22, reachZ: 3, reachY: 44, diveTravel: 9, diveReach: 10, diveS: 0.38, catchSpeed: 400, holdOdds: 0.9, downS: 0.45, getUpS: 0.45, smotherAt: 18 }),
-    last: profile({ reactionS: 0.12, speed: 128, posErrPx: 2, comeOutPx: 28, reachZ: 4, reachY: 46, diveTravel: 11, diveReach: 12, diveS: 0.32, catchSpeed: 480, holdOdds: 0.95, downS: 0.35, getUpS: 0.35, smotherAt: 22 }),
+    first: profile({ reactionS: 0.2, speed: 112, posErrPx: 4, comeOutPx: 22, reachZ: 3, reachY: 44, diveTravel: 9, diveReach: 10, diveS: 0.38, catchSpeed: 400, holdOdds: 0.9, downS: 0.45, getUpS: 0.45, smotherAt: 22 }),
+    last: profile({ reactionS: 0.12, speed: 128, posErrPx: 2, comeOutPx: 28, reachZ: 4, reachY: 46, diveTravel: 11, diveReach: 12, diveS: 0.32, catchSpeed: 480, holdOdds: 0.95, downS: 0.35, getUpS: 0.35, smotherAt: 26 }),
   },
 };
 

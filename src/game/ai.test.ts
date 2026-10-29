@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { seeded } from '../engine/random';
-import { DIFFICULTY, KICKOFF_HOLD_S, createBrain, think, type AiBrain, type AiProfile } from './ai';
+import { DIFFICULTIES, DIFFICULTY, KICKOFF_HOLD_S, createBrain, think, type AiBrain, type AiProfile } from './ai';
 import { BALL_REST_Y } from './ball';
 import { inGoalBox, roofSpan } from './field';
 import { SCHOOL_STAGE, type Stage } from './stage';
@@ -18,7 +18,8 @@ import { BRACE_DISTANCE } from './wave';
 import { createWorld, placeForKickoff, stepWorld, type World } from './world';
 import { STEPOVER, TRICK_DIFFICULTY } from './tricks';
 import { ballAtFeet } from './zones';
-import { CROWD_GAP } from './keeper';
+import { CROWD_GAP, keeperLineup, type KeeperLineup } from './keeper';
+import { harrisonStats } from './maxScripts';
 import { keeperWorld, runFor, runUntil, shotAt } from './testKeepers';
 
 const STEP = 1 / 60;
@@ -379,14 +380,15 @@ describe('think', () => {
     awayStats: Stats,
     seeds: readonly number[],
     bothScore: boolean,
-    opts: { power?: boolean; stage?: Stage } = {},
+    opts: { power?: boolean; stage?: Stage; keepers?: KeeperLineup } = {},
   ): { braced: number; blown: number; waveGoals: number } {
     const goals = { home: 0, away: 0 };
     const waves = { braced: 0, blown: 0, waveGoals: 0 };
     for (const seed of seeds) {
       const kit = opts.power ? { golden: false } : null;
       const aim = { home: DIFFICULTY[difficulty].aimErrorDeg, away: DIFFICULTY[difficulty].aimErrorDeg };
-      const w = createWorld({ ...homeStats }, { ...awayStats }, seed, aim, kit, null, null, NORMAL_HANDLING, null, opts.stage);
+      const w = createWorld({ ...homeStats }, { ...awayStats }, seed, aim, kit, null, null, NORMAL_HANDLING, null, opts.stage, opts.keepers ?? null);
+      const keepers = w.keepers ? [w.keepers.home, w.keepers.away] : [];
       const home = createBrain(DIFFICULTY[difficulty]);
       const away = createBrain(DIFFICULTY[difficulty]);
       const bot = powerBot(home, seed);
@@ -396,7 +398,12 @@ describe('think', () => {
       for (let t = 0; w.match.phase !== 'fullTime' && t < 60 * capS; t++) {
         const homeIntent = opts.power ? bot(w) : think(home, w, w.home, w.away, STEP);
         stepWorld(w, homeIntent, think(away, w, w.away, w.home, STEP), STEP);
-        for (const v of [w.ball.x, w.ball.y, w.ball.z, w.home.x, w.home.z, w.away.x, w.away.z]) expect(Number.isFinite(v)).toBe(true);
+        for (const v of [w.ball.x, w.ball.y, w.ball.z, w.home.x, w.home.z, w.away.x, w.away.z, ...keepers.flatMap(k => [k.body.x, k.body.z])]) expect(Number.isFinite(v)).toBe(true);
+        for (const k of keepers) {
+          const a = k.body.area!;
+          const free = k.body.state === 'blown' || k.body.inNet === true;
+          if (!free) expect(k.body.x >= a.x0 && k.body.x <= a.x1 && k.body.z >= a.z0 && k.body.z <= a.z1, `seed ${seed}: ${k.side} keeper out of his box`).toBe(true);
+        }
         if (opts.power || opts.stage) {
           for (const g of w.field.goals)
             for (const p of [w.home, w.away]) expect(inGoalBox(g, p.x, p.z, 0), `seed ${seed}: ${p.team} in a goal`).toBe(false);
@@ -419,7 +426,7 @@ describe('think', () => {
           continue;
         }
         const resting = Math.hypot(w.ball.vx, w.ball.vz) < 1 && w.ball.y <= BALL_REST_Y + 0.5;
-        const near = [w.home, w.away].some(p => Math.hypot(p.x - w.ball.x, p.z - w.ball.z) < 16);
+        const near = [w.home, w.away, ...keepers.map(k => k.body)].some(p => Math.hypot(p.x - w.ball.x, p.z - w.ball.z) < 16);
         unreachedS = resting && !near ? unreachedS + STEP : 0;
         expect(unreachedS, `seed ${seed}: ball resting unreached at (${w.ball.x.toFixed(1)}, ${w.ball.z.toFixed(1)})`).toBeLessThanOrEqual(5);
         for (const p of [w.home, w.away]) {
@@ -493,6 +500,12 @@ describe('think', () => {
 
   it('whole AI-vs-AI matches on the School stage: result, nothing stuck, nobody in a goal', () => {
     wholeMatches('normal', BASE_STATS, BASE_STATS, [1, 2, 3, 4, 5, 6, 7, 8], false, { stage: SCHOOL_STAGE });
+  });
+
+  // At School Field stats (the scripted Harrison's, both sides): at Base stats neither side's shots beat a keeper often enough to score in eight matches.
+  it('whole AI-vs-AI matches with keepers keep every guarantee, and both sides score', () => {
+    const school = harrisonStats(10);
+    for (const d of DIFFICULTIES) wholeMatches(d, school, school, [1, 2, 3, 4, 5, 6, 7, 8], true, { stage: SCHOOL_STAGE, keepers: keeperLineup(1, d) });
   });
 
   it.each(['easy', 'normal', 'hard'] as const)('with Energy Waves in play on %s, every guarantee holds, and Max both braces and is blown away', difficulty => {

@@ -2,8 +2,12 @@ import { BALL_R } from '../art/ball';
 import { BALL_REST_Y } from './ball';
 import { GRAVITY } from './constants';
 import { keeperGoal, pitchward, SET_OFF, type Keeper, type KeeperIntent } from './keeper';
-import { NO_INTENT, PLAYER_R, type PlayerIntent } from './player';
+import { NO_INTENT, PLAYER_R, type Player, type PlayerIntent } from './player';
 import { onTarget } from './power';
+import { SPRINT_MULTIPLIER, runSpeed, touchPush } from './stats';
+import { maxHasBall } from './steal';
+import { REACH_Z } from './zones';
+import { ZONE_AHEAD } from './keeperSaves';
 import type { World } from './world';
 
 /** When and where the ball crosses his x-plane. */
@@ -19,6 +23,10 @@ export const NEW_FLIGHT = { px: 40, share: 0.15 };
 export const NARROW = { far: 320, near: 110 };
 /** A ball going over his head he backs toward his line at this share of his speed. */
 export const BACKPEDAL_SHARE = 0.4;
+/** He comes out for a loose ball only if he'd get there first by this much. */
+export const FIRST_MARGIN_S = 0.1;
+/** Where a rolling loose ball will be, this far on. */
+const LOOSE_AHEAD_S = 0.25;
 /** He eases into a spot over about this long, so he doesn't overshoot it. */
 const ARRIVE_S = 0.08;
 /** Closer than this to his spot, he stands. */
@@ -82,6 +90,90 @@ function answer(w: World, k: Keeper, read: ShotRead): KeeperIntent {
   return { move: NO_INTENT, dive: { dirX: 0, dirZ: Math.sign(read.z - body.z) } };
 }
 
+const inArea = (k: Keeper, p: { x: number; z: number }): boolean => {
+  const a = k.body.area!;
+  return p.x >= a.x0 && p.x <= a.x1 && p.z >= a.z0 && p.z <= a.z1;
+};
+/** Within his gloves' reach from somewhere in his box: his body stays in it, his standing zone reaches a little beyond. */
+const inReach = (k: Keeper, p: { x: number; z: number }): boolean => {
+  const a = k.body.area!;
+  const [rx, rz] = [PLAYER_R + BALL_R + ZONE_AHEAD, PLAYER_R + k.profile.reachZ + BALL_R];
+  return p.x >= a.x0 - rx && p.x <= a.x1 + rx && p.z >= a.z0 - rz && p.z <= a.z1 + rz;
+};
+const intoArea = (k: Keeper, p: { x: number; z: number }): { x: number; z: number } => {
+  const a = k.body.area!;
+  return { x: clamp(p.x, a.x0, a.x1), z: clamp(p.z, a.z0, a.z1) };
+};
+
+/** Where a loose ball will be: where it lands, if it's in the air, or a moment on along the grass. */
+function looseSpot(w: World): { x: number; z: number } {
+  const b = w.ball;
+  if (b.y > BALL_REST_Y + 0.5 || b.vy > 0) {
+    const t = (b.vy + Math.sqrt(b.vy * b.vy + 2 * GRAVITY * Math.max(0, b.y - BALL_REST_Y))) / GRAVITY;
+    return { x: b.x + b.vx * t, z: b.z + b.vz * t };
+  }
+  return { x: b.x + b.vx * LOOSE_AHEAD_S, z: b.z + b.vz * LOOSE_AHEAD_S };
+}
+
+/** Seconds for an outfield player to get to (x, z) flat out. */
+const sprintS = (p: Player, at: { x: number; z: number }): number => Math.hypot(at.x - p.x, at.z - p.z) / (runSpeed(p.stats) * SPRINT_MULTIPLIER);
+
+/** His side's opponent, and his own teammate. */
+const sides = (w: World, k: Keeper): [attacker: Player, mate: Player] => (k.side === 'away' ? [w.home, w.away] : [w.away, w.home]);
+
+/** A ball this close ahead of him, on his line, is at his feet whoever touched it last. */
+const FEET_AHEAD = 10;
+/** His own dribble touch runs the ball up to this far ahead of him... */
+const DRIBBLE_AHEAD = 32;
+/** ...at no more than this over his touch's push, px/s: any faster, it's a shot. */
+const DRIBBLE_SLACK = 20;
+/** A ball slower than this isn't running with anyone. */
+const ROLLING = 40;
+
+/** The attacker has it: at his feet, or his own touch still running with him. */
+function dribbling(w: World, p: Player): boolean {
+  const b = w.ball;
+  if (p.y !== 0 || p.state === 'fallen' || p.state === 'blown' || b.y > BALL_REST_Y + 0.5 || Math.abs(b.z - p.z) > REACH_Z) return false;
+  const ahead = (b.x - p.x) * p.facing;
+  if (ahead < 0) return false;
+  if (ahead <= FEET_AHEAD) return true;
+  const speed = Math.hypot(b.vx, b.vz);
+  const gaining = b.vx * p.facing - p.vx * p.facing;
+  return b.touchedBy === p.team && ahead <= DRIBBLE_AHEAD && speed >= ROLLING && gaining <= touchPush(p.stats) + DRIBBLE_SLACK;
+}
+
+/** His side's opponent dribbling in his box, his teammate no closer to the goal line. */
+function throughOnGoal(w: World, k: Keeper): boolean {
+  const [attacker, mate] = sides(w, k);
+  const lineX = keeperGoal(w.field, k.side).lineX;
+  return dribbling(w, attacker) && inArea(k, w.ball) && Math.abs(mate.x - lineX) > Math.abs(attacker.x - lineX);
+}
+
+/** Coming out at a dribbler, he commits to the smother once the ball is this close: along the line to it. */
+function smother(w: World, k: Keeper): KeeperIntent | null {
+  const [dx, dz] = [w.ball.x - k.body.x, w.ball.z - k.body.z];
+  const d = Math.hypot(dx, dz);
+  return d > 0 && d <= k.profile.smotherAt ? { move: NO_INTENT, dive: { dirX: dx / d, dirZ: dz / d } } : null;
+}
+
+/** Why he comes out, and where to: a dribbler through on goal (smother when close), or a loose ball in his box he'll reach first. */
+function rush(w: World, k: Keeper): KeeperIntent | null {
+  const b = w.ball;
+  if (throughOnGoal(w, k)) {
+    const at = intoArea(k, b);
+    // As the attacker shapes to shoot or chip, he stops and sets himself where he is.
+    const shaping = sides(w, k)[0].state === 'charging' || sides(w, k)[0].state === 'chipping';
+    return smother(w, k) ?? { move: shaping ? NO_INTENT : toward(k, at.x, at.z), dive: null };
+  }
+  if (maxHasBall(w.home, b) || maxHasBall(w.away, b)) return null;
+  const spot = looseSpot(w);
+  if (!inReach(k, spot)) return null;
+  const mine = Math.hypot(spot.x - k.body.x, spot.z - k.body.z) / k.profile.speed;
+  if (mine + FIRST_MARGIN_S >= Math.min(sprintS(w.home, spot), sprintS(w.away, spot))) return null;
+  const at = intoArea(k, spot);
+  return { move: toward(k, at.x, at.z), dive: null };
+}
+
 /** The intent he keeps while he reacts to a new flight. */
 const lastMove = new WeakMap<Keeper, PlayerIntent>();
 
@@ -90,14 +182,23 @@ export function thinkKeeper(w: World, k: Keeper, dt: number): KeeperIntent {
   noteFlight(w, k);
   k.readS = Math.max(0, k.readS - dt);
   if (w.match.phase !== 'playing') return { move: NO_INTENT, dive: null };
-  if (k.readS > 0) return { move: lastMove.get(k) ?? NO_INTENT, dive: null };
-  const read = readShot(w, k);
+  // Coming out at a dribbler, he commits on how close the ball is, not on a fresh read: every touch is a new flight.
+  if (k.readS > 0) {
+    const committed = k.act === 'rush' && throughOnGoal(w, k) ? smother(w, k) : null;
+    return committed ?? { move: lastMove.get(k) ?? NO_INTENT, dive: null };
+  }
+  // A dribbler through on goal comes first: a ball at his feet isn't a shot. Then a shot, then a loose ball he'll get to first.
+  const dribbled = dribbling(w, sides(w, k)[0]) ? rush(w, k) : null;
+  const read = dribbled ? null : readShot(w, k);
+  const out = dribbled ?? (read ? null : rush(w, k));
   let intent: KeeperIntent;
-  if (read) intent = answer(w, k, read);
+  if (out) intent = out;
+  else if (read) intent = answer(w, k, read);
   else {
     const spot = setSpot(w, k);
     intent = { move: toward(k, spot.x, spot.z), dive: null };
   }
+  if (k.act === 'set' || k.act === 'rush') k.act = out ? 'rush' : 'set';
   lastMove.set(k, intent.move);
   return intent;
 }

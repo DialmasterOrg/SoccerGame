@@ -10,7 +10,7 @@ export const SOFT_SPEED = 220;
 /** The odds' dials: a shot's pace over his catching speed, his reach, a PERFECT strike, and a volley or header from close in. Starting values. */
 export const HOLD = { pace: 0.8, reach: 0.4, perfect: 0.25, close: 0.2, closeX: 120 };
 /** A standing keeper's zone runs this far beyond his body and the ball along the pitch. */
-const ZONE_AHEAD = 3;
+export const ZONE_AHEAD = 3;
 /** A smother only reaches a ball this low. */
 const SMOTHER_Y = 12;
 /** Path samples per px the ball moved this tick, so no shot tunnels through his zone. */
