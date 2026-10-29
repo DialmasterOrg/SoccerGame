@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { DIFFICULTY, type Difficulty } from '../game/ai';
 import { measureText } from '../art/font';
-import { careerCardLines } from '../meta/career';
+import { SCHOOL_BOSS_ID, VENUES, careerCardLines, type CareerMatch } from '../meta/career';
 import { maxStats } from '../meta/ladder';
 import type { LockerItemId } from '../meta/locker';
 import { newProfile } from '../meta/profile';
-import { CARD, HUB_ITEMS, TEXT_X, XP_BAR, createHubScene, saveLabel, statsLine } from './hubScene';
+import { CARD, CARD_RIGHT, HUB_ITEMS, TEXT_X, XP_BAR, createHubScene, saveLabel, statsLine } from './hubScene';
 import type { MatchScene } from './matchScene';
 import type { SavesScene } from './savesScene';
 import { fakeArt, recordingContext } from './testDraw';
@@ -104,6 +104,29 @@ describe('hub', () => {
 
   it('the card says what is next in the career', () => {
     expect(careerCardLines({ ...newProfile(), ladderWins: 4 })).toEqual({ first: 'NEXT: MAX - MATCH 5/10', second: 'MAX HAS BEEN TRAINING: SPEED UP' });
+  });
+
+  it('every career line the catalog can show fits the card', () => {
+    const fits = (line: string | null) => expect(measureText(line ?? '') + 2, line ?? '').toBeLessThanOrEqual(CARD_RIGHT - TEXT_X);
+    const before: CareerMatch[] = [];
+    for (const v of VENUES) {
+      for (const m of v.matches) {
+        if (m.kind !== 'rung') {
+          const stars = Object.fromEntries(before.filter(b => b.kind !== 'rung').map(b => [b.id, 1]));
+          const lines = careerCardLines({ ...newProfile(), ladderWins: 10, career: { stars, milestonesPaid: 0, lossStreaks: {} } });
+          expect(lines.first, m.id).toContain(m.name);
+          fits(lines.first);
+          fits(lines.second);
+        }
+        before.push(m);
+      }
+    }
+    const stars = Object.fromEntries(before.filter(b => b.kind !== 'rung').map(b => [b.id, 3]));
+    const done = careerCardLines({ ...newProfile(), ladderWins: 10, career: { stars, milestonesPaid: 0, lossStreaks: {} } });
+    expect(done).toEqual({ first: 'YOU MADE THE TEAM! STARS 27/27', second: 'STATE: COMING SOON' });
+    expect(stars[SCHOOL_BOSS_ID]).toBe(3);
+    fits(done.first);
+    fits(done.second);
   });
 
   it('B on the Hub goes back to SAVES, on the save being played', () => {

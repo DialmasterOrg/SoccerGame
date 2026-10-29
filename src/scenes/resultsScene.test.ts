@@ -244,10 +244,9 @@ describe('careerLine in the Park', () => {
     expect(careerLine(after(LOSS_0_2, inPark(), matchById('park-1')!).reward)).toBe('BRICK TAKES THIS ONE. GO AGAIN!');
   });
 
-  it('after beating Sam, NEXT MATCH becomes CAREER', () => {
+  it('after the first win over Sam, NEXT MATCH leads on: the School is open', () => {
     const done = after(WIN_3_0, inPark(PARK_FOUR), matchById(PARK_BOSS_ID)!);
-    expect(resultsItems(done.reward)).toEqual(['CAREER', 'SHOP', 'HUB']);
-    expect(createResultsScene(done.ctx, done.reward, true).update(frame(['confirm']), STEP)?.kind).toBe('roadMap');
+    expect(resultsItems(done.reward)).toEqual(['NEXT MATCH', 'SHOP', 'HUB']);
   });
 });
 

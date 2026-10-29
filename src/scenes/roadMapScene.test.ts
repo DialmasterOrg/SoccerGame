@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { BOSS_ID, PARK_BOSS_ID } from '../meta/career';
+import { GLYPH_H, measureText } from '../art/font';
+import { BASE_W } from '../engine/viewport';
+import { BOSS_ID, PARK_BOSS_ID, SCHOOL_BOSS_ID, TOTAL_STARS, VENUES, venueMaxStars } from '../meta/career';
 import { newProfile } from '../meta/profile';
-import { STOPS, createRoadMapScene } from './roadMapScene';
+import { STAR_W } from './panel';
+import { CARD, LABEL_BELOW, NAME_BELOW, STOPS, createRoadMapScene, postcardFrom } from './roadMapScene';
 import { fakeArt, recordingContext } from './testDraw';
 import { testContext } from './testContext';
 import { frame } from './testInput';
@@ -23,18 +26,49 @@ describe('the road map', () => {
     expect(createRoadMapScene(testContext()).update(frame(['pause']), STEP)?.kind).toBe('venue');
   });
 
-  it('left/right move among five stops without wrapping; a locked stop only blips', () => {
+  it('left/right move among six stops without wrapping; a locked stop only blips', () => {
     const ctx = testContext();
     const s = createRoadMapScene(ctx);
     s.update(frame(['left']), STEP);
     expect(s.index).toBe(0);
     expect(ctx.audio.played).not.toContain('menuMove');
-    for (let i = 0; i < 6; i++) s.update(frame(['right']), STEP);
-    expect(s.index).toBe(4);
-    expect(ctx.audio.played.filter(c => c === 'menuMove')).toHaveLength(4);
+    for (let i = 0; i < 7; i++) s.update(frame(['right']), STEP);
+    expect(s.index).toBe(5);
+    expect(ctx.audio.played.filter(c => c === 'menuMove')).toHaveLength(5);
     expect(s.update(frame(['confirm']), STEP)).toBeNull();
     expect(ctx.audio.played).toContain('nope');
-    expect(STOPS).toHaveLength(5);
+    expect(STOPS).toHaveLength(6);
+  });
+
+  it('six stops fit the screen, and no name or label runs into another card', () => {
+    expect(STOPS).toHaveLength(VENUES.length);
+    type Box = { x0: number; x1: number; y0: number; y1: number };
+    const centred = (cx: number, y: number, w: number, h: number): Box => ({ x0: cx - w / 2, x1: cx + w / 2, y0: y, y1: y + h });
+    const hits = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+    const RING = 2; // the cursor's thick frame
+    const cards = STOPS.map(s => centred(s.cx, s.y - RING, CARD.w + 2 * RING, CARD.h + 2 * RING));
+    // The widest label each stop can show in 7c: full stars after the star, COMING SOON on the first stop without matches, LOCKED after it.
+    const firstEmpty = VENUES.findIndex(v => v.matches.length === 0);
+    const labelW = (i: number) => {
+      const max = venueMaxStars(VENUES[i]!.id);
+      return 2 + (i < firstEmpty ? STAR_W + 4 + measureText(`${max}/${max}`) : measureText(i === firstEmpty ? 'COMING SOON' : 'LOCKED'));
+    };
+    VENUES.forEach((v, i) => {
+      const s = STOPS[i]!;
+      const texts = [centred(s.cx, s.y + NAME_BELOW, measureText(v.name) + 2, GLYPH_H + 2), centred(s.cx, s.y + LABEL_BELOW, labelW(i), GLYPH_H + 2)];
+      for (const b of [cards[i]!, ...texts]) expect(b.x0 >= 0 && b.x1 <= BASE_W, v.name).toBe(true);
+      for (const t of texts) cards.forEach((c, j) => j !== i && expect(hits(t, c), `${v.name} vs ${VENUES[j]!.name}`).toBe(false));
+    });
+  });
+
+  it('the total line reads out of 156, and a postcard is cut 48 rows above its far touchline', () => {
+    const { g, drawn } = recordingContext();
+    createRoadMapScene(testContext({ art: fakeArt() })).draw(g, 0);
+    expect(TOTAL_STARS).toBe(156);
+    expect(drawn.some(n => n.startsWith('art.text(STARS 0/156,'))).toBe(true);
+    expect(postcardFrom('backyard')).toEqual({ x: 118, y: 64 });
+    expect(postcardFrom('park')).toEqual({ x: 118, y: 64 });
+    expect(postcardFrom('school')).toEqual({ x: 118, y: 120 });
   });
 
   it('the Park blips until Biscuit is beaten, then A enters it', () => {
@@ -89,10 +123,24 @@ describe('the road map into the Park', () => {
     expect(before.drawn).not.toContain('art.venues.park.layers.far');
   });
 
-  it('after Sam the School says COMING SOON, and A on it still blips', () => {
-    const ctx = inPark({ [PARK_BOSS_ID]: 1 });
+  it("after Sam the School's card is a postcard of its own art, and A enters it", () => {
+    const ctx = inPark({ 'park-1': 1, 'park-2': 1, 'park-3': 1, 'park-4': 1, [PARK_BOSS_ID]: 1 });
     const { g, drawn } = recordingContext();
-    const s = createRoadMapScene(ctx, 2);
+    const s = createRoadMapScene(ctx);
+    expect(s.index).toBe(2);
+    s.draw(g, 0);
+    expect(drawn).toContain('art.venues.school.layers.far');
+    expect(drawn.some(n => n.startsWith('art.text(COMING SOON,'))).toBe(false);
+    const school = s.update(frame(['confirm']), STEP) as VenueScene;
+    expect(school.kind).toBe('venue');
+    expect(school.venue).toBe('school');
+  });
+
+  it('after Gus, STATE says COMING SOON, and A on it still blips', () => {
+    const tryouts = Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map(n => [`school-${n}`, 1]));
+    const ctx = inPark({ 'park-1': 1, 'park-2': 1, 'park-3': 1, 'park-4': 1, [PARK_BOSS_ID]: 1, ...tryouts, [SCHOOL_BOSS_ID]: 1 });
+    const { g, drawn } = recordingContext();
+    const s = createRoadMapScene(ctx, 3);
     s.draw(g, 0);
     expect(drawn.some(n => n.startsWith('art.text(COMING SOON,'))).toBe(true);
     expect(s.update(frame(['confirm']), STEP)).toBeNull();

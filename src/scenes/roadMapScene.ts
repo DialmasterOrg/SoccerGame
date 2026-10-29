@@ -1,7 +1,8 @@
 import { MASTER } from '../art/colors';
 import { BASE_W } from '../engine/viewport';
 import type { Camera } from '../game/camera';
-import { TOTAL_STARS, VENUES, careerStars, nextCareerMatch, stopLabel, venueOpen } from '../meta/career';
+import { stageFor } from '../game/stage';
+import { TOTAL_STARS, VENUES, careerStars, nextCareerMatch, stopLabel, venueOpen, type VenueId } from '../meta/career';
 import type { GameContext } from './context';
 import { createHubScene } from './hubScene';
 import { drawLayers } from './matchView';
@@ -15,13 +16,14 @@ export interface RoadMapScene extends Scene {
   readonly index: number;
 }
 
-/** Where each stop's card sits: its centre x and its top. The road climbs left to right. */
+/** Where each stop's card sits: its centre x and its top. The road climbs left to right; the School and the State get the widest gaps, for SCHOOL FIELD and COMING SOON. */
 export const STOPS: readonly { cx: number; y: number }[] = [
-  { cx: 44, y: 118 },
-  { cx: 104, y: 100 },
-  { cx: 164, y: 82 },
-  { cx: 224, y: 64 },
-  { cx: 284, y: 46 },
+  { cx: 28, y: 122 },
+  { cx: 78, y: 106 },
+  { cx: 136, y: 90 },
+  { cx: 190, y: 74 },
+  { cx: 240, y: 58 },
+  { cx: 290, y: 42 },
 ];
 
 /** The Backyard behind the map, still and dimmed. */
@@ -30,20 +32,27 @@ const DIM = 0.35;
 const TITLE_Y = 6;
 const STARS_LINE_Y = 22;
 const STAR_GAP_PX = 4;
-const CARD = { w: 56, h: 34 };
-/** The postcard shows the venue's own layers, from this offset into them. */
-const POSTCARD_FROM = { x: 118, y: 64 };
-const POSTCARD_CAM: Camera = { x: 0 };
+export const CARD = { w: 46, h: 30 };
+/** The postcard shows the venue's own layers from this far along them. */
+const POSTCARD_X = 118;
+/** ...and from this many rows above the venue's far touchline, where its scenery stands. */
+const POSTCARD_ABOVE_FAR = 48;
 const FRAME = { thin: 1, thick: 2 };
-/** The dotted road between stop centres: 2×2 dots, this many per leg. */
-const ROAD = { dot: 2, perLeg: 14, below: 17 };
-const NAME_BELOW = 37;
-const LABEL_BELOW = 46;
+/** The dotted road between stop centres: 2×2 dots, this many per leg, through the card middles. */
+const ROAD = { dot: 2, perLeg: 14, below: 15 };
+export const NAME_BELOW = 33;
+export const LABEL_BELOW = 42;
 const HINT_Y = 168;
+
+/** Where a venue's postcard is cut from its own layers: POSTCARD_X along, POSTCARD_ABOVE_FAR rows above its far touchline. */
+export function postcardFrom(venue: VenueId): { x: number; y: number } {
+  const stage = stageFor(venue);
+  return { x: POSTCARD_X, y: stage.view.nearSY - stage.field.depth - POSTCARD_ABOVE_FAR };
+}
 
 
 /**
- * The road to the Cup: five stops climbing left to right across the dimmed
+ * The road to the Cup: six stops climbing left to right across the dimmed
  * Backyard. Left/right move the cursor, without wrapping; A or Start enters
  * an open venue and only blips on a locked one. B or Esc goes to the Hub.
  */
@@ -118,8 +127,10 @@ export function createRoadMapScene(ctx: GameContext, index?: number): RoadMapSce
           g.beginPath();
           g.rect(x, stop.y, CARD.w, CARD.h);
           g.clip();
-          g.translate(x - POSTCARD_FROM.x, stop.y - POSTCARD_FROM.y);
-          drawLayers(g, POSTCARD_CAM, art, venue.id);
+          const from = postcardFrom(venue.id);
+          g.translate(x - from.x, stop.y - from.y);
+          // Each venue draws at its own size, so the School shows its school building, not its sky.
+          drawLayers(g, { x: 0, view: stageFor(venue.id).view }, art, venue.id);
           g.restore();
         } else {
           g.fillStyle = MASTER.charcoal;

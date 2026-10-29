@@ -2,7 +2,7 @@ import { LADDER_MATCHES, trainingLine } from './ladder';
 import type { BonusId } from './objectives';
 import type { Profile } from './profile';
 
-export type VenueId = 'backyard' | 'park' | 'school' | 'stadium' | 'worldCup';
+export type VenueId = 'backyard' | 'park' | 'school' | 'state' | 'stadium' | 'worldCup';
 
 /** Who Harrison plays: Max, Biscuit, the Park crew, Speedy Sam. */
 export type OpponentId = 'max' | 'biscuit' | 'brick' | 'leo' | 'tia' | 'pete' | 'sam';
@@ -26,9 +26,22 @@ export interface CareerMatch {
   bonus: BonusId;
 }
 
+/** How a venue's screens name things. */
+export interface VenueWords {
+  /** A numbered match: MATCH, or TRYOUT at the School Field. */
+  match: string;
+  /** Results' news after `${match} ${n}` on a first win: BEATEN! or PASSED! */
+  beaten: string;
+  /** The boss's title on the VS card, and on the Hub with a !: THE PARK BOSS, THE SCHOOL BOSS. */
+  boss: string;
+  /** Results' news once the boss is beaten, and the Hub's line after: THE PARK DONE!, YOU MADE THE TEAM! */
+  done: string;
+}
+
 export interface Venue {
   id: VenueId;
   name: string;
+  words: VenueWords;
   matches: readonly CareerMatch[];
 }
 
@@ -37,13 +50,21 @@ export type MatchState = 'beaten' | 'next' | 'locked';
 export const rungId = (n: number): string => `backyard-${n}`;
 export const BOSS_ID = 'backyard-boss';
 export const PARK_BOSS_ID = 'park-boss';
+export const SCHOOL_BOSS_ID = 'school-boss';
 
 /** A match's stars at most. */
 const STARS_PER_MATCH = 3;
-/** Later venues: four matches and a boss. */
-const LATER_VENUE_MATCHES = 5;
+/** The Park: four matches and a boss. */
+const PARK_MATCHES = 5;
+/** Every venue after the Park: eight matches and a boss. */
+const LATER_VENUE_MATCHES = 9;
+/** The School, the State Championship, the City Stadium and the World Cup. */
 const LATER_VENUES = 4;
-export const TOTAL_STARS = (LADDER_MATCHES + 1 + LATER_VENUES * LATER_VENUE_MATCHES) * STARS_PER_MATCH;
+/** The roadmap's 156. */
+export const TOTAL_STARS = (LADDER_MATCHES + 1 + PARK_MATCHES + LATER_VENUES * LATER_VENUE_MATCHES) * STARS_PER_MATCH;
+
+/** The words every venue uses unless it says otherwise: a venue with no matches yet, and the Backyard and the Park as today. */
+const plainWords = (name: string): VenueWords => ({ match: 'MATCH', beaten: 'BEATEN!', boss: `${name} BOSS`, done: `${name} DONE!` });
 
 const RUNG_BONUSES: readonly BonusId[] = ['score3', 'cleanSheet', 'header', 'chip', 'volley', 'perfect', 'early', 'winBy3', 'twoStyle', 'win3Nil'];
 
@@ -58,6 +79,7 @@ const BISCUIT: CareerMatch = {
 export const BACKYARD: Venue = {
   id: 'backyard',
   name: 'BACKYARD',
+  words: plainWords('BACKYARD'),
   matches: [...Array(LADDER_MATCHES)].map((_, i) => rungMatch(i + 1)).concat(BISCUIT),
 };
 
@@ -68,6 +90,7 @@ const parkMatch = (rung: number, name: string, hudName: string, opponent: Oppone
 export const PARK: Venue = {
   id: 'park',
   name: 'THE PARK',
+  words: plainWords('THE PARK'),
   matches: [
     parkMatch(1, 'BIG BRICK', 'BRICK', 'brick', 'HE NEVER DIVES IN.', 'chip'),
     parkMatch(2, 'BOOMER LEO', 'LEO', 'leo', 'HE SHOOTS FROM ANYWHERE.', 'cleanSheet'),
@@ -80,13 +103,43 @@ export const PARK: Venue = {
   ],
 };
 
-/** The venues in career order; the School and beyond have no matches yet. */
+// Max stands in for every tryout until plan 4's cast, and for Gus until plan 5.
+const tryout = (rung: number, name: string, hudName: string, blurb: string, bonus: BonusId): CareerMatch => ({
+  id: `school-${rung}`, venue: 'school', kind: 'match', rung, name, hudName, opponent: 'max', blurb, tip: null, bonus,
+});
+
+/** The School Field: eight tryouts, then Goalie Gus. Tia's and Paige's blurbs are shortened from the spec's to fit the Hub card. */
+export const SCHOOL: Venue = {
+  id: 'school',
+  name: 'SCHOOL FIELD',
+  words: { match: 'TRYOUT', beaten: 'PASSED!', boss: 'THE SCHOOL BOSS', done: 'YOU MADE THE TEAM!' },
+  matches: [
+    tryout(1, 'MAX', 'MAX', "HE'S TRYING OUT TOO. HE'S GOT BETTER.", 'outsideBox'),
+    tryout(2, 'HEADER HANK', 'HANK', 'HE WINS EVERY BALL IN THE AIR.', 'header'),
+    tryout(3, 'LOFTY LOLA', 'LOLA', 'SHE CHIPS ANY KEEPER OFF HIS LINE.', 'chip'),
+    tryout(4, 'FAKE-OUT FINN', 'FINN', "HE SHAPES TO SHOOT. THEN HE DOESN'T.", 'steals3'),
+    tryout(5, 'TRICKY TIA', 'TIA', 'SHE MOVED HERE. HER FAKE IS SHARPER.', 'cleanSheet'),
+    tryout(6, 'POACHER PRIYA', 'PRIYA', 'SHE FOLLOWS EVERY SHOT IN.', 'rebound'),
+    tryout(7, 'NUTMEG NIKO', 'NIKO', 'HE PUTS IT THROUGH YOUR LEGS.', 'perfect'),
+    tryout(8, 'PINPOINT PAIGE', 'PAIGE', 'THE TOP SCORER. SHE PICKS A CORNER.', 'noPaigeGoals'),
+    {
+      id: SCHOOL_BOSS_ID, venue: 'school', kind: 'boss', rung: 0, name: 'GOALIE GUS', hudName: 'GUS', opponent: 'max',
+      blurb: 'THE CAPTAIN. HE FILLS THE WHOLE GOAL.', tip: null, bonus: 'threePastGus',
+    },
+  ],
+};
+
+/** A venue with no matches yet: its stop reads LOCKED, then COMING SOON once the venue before it is done. */
+const comingSoon = (id: VenueId, name: string): Venue => ({ id, name, words: plainWords(name), matches: [] });
+
+/** The venues in career order; the State Championship and beyond have no matches yet. */
 export const VENUES: readonly Venue[] = [
   BACKYARD,
   PARK,
-  { id: 'school', name: 'SCHOOL', matches: [] },
-  { id: 'stadium', name: 'STADIUM', matches: [] },
-  { id: 'worldCup', name: 'WORLD CUP', matches: [] },
+  SCHOOL,
+  comingSoon('state', 'STATE'),
+  comingSoon('stadium', 'STADIUM'),
+  comingSoon('worldCup', 'WORLD CUP'),
 ];
 
 const ALL_MATCHES: readonly CareerMatch[] = VENUES.flatMap(v => v.matches);
@@ -184,9 +237,9 @@ export function careerCardLines(p: Profile): { first: string; second: string | n
   const venue = venueById(next.venue);
   if (isBeaten(p, next)) {
     const after = VENUES[venueIndex(venue.id) + 1];
-    return { first: `${venue.name} DONE! STARS ${venueStars(p, venue.id)}/${venueMaxStars(venue.id)}`, second: after ? `${after.name}: COMING SOON` : null };
+    return { first: `${venue.words.done} STARS ${venueStars(p, venue.id)}/${venueMaxStars(venue.id)}`, second: after ? `${after.name}: COMING SOON` : null };
   }
-  if (next.kind === 'boss') return { first: `NEXT: ${next.name}`, second: `${venue.name} BOSS!` };
+  if (next.kind === 'boss') return { first: `NEXT: ${next.name}`, second: `${venue.words.boss}!` };
   if (next.kind === 'rung') return { first: `NEXT: ${next.name} - MATCH ${next.rung}/${LADDER_MATCHES}`, second: trainingLine(next.rung) };
   const numbered = venue.matches.filter(m => m.kind === 'match').length;
   return { first: `NEXT: ${next.name} - ${venue.name} ${next.rung}/${numbered}`, second: next.blurb };

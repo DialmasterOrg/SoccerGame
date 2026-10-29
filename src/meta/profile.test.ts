@@ -160,7 +160,7 @@ describe('profile', () => {
   });
 
   it('career junk falls back field by field: unknown ids drop, stars clamp to 3, streaks to 99, paid to 4', () => {
-    const p = profileFrom({ ...SOME, career: { stars: { 'backyard-2': 9, 'school-1': 2, 'backyard-boss': -1, nonsense: 3 }, milestonesPaid: 40, lossStreaks: { 'backyard-boss': 500, x: 1 } } }, 'normal');
+    const p = profileFrom({ ...SOME, career: { stars: { 'backyard-2': 9, 'state-1': 2, 'backyard-boss': -1, nonsense: 3 }, milestonesPaid: 40, lossStreaks: { 'backyard-boss': 500, x: 1 } } }, 'normal');
     expect(p.career).toEqual({ stars: { 'backyard-1': 1, 'backyard-2': 3, 'backyard-3': 1, 'backyard-4': 1 }, milestonesPaid: 4, lossStreaks: { 'backyard-boss': 99 } });
     expect(profileFrom({ ...SOME, career: 'none' }, 'normal').career).toEqual({ stars: FOUR_RETRO, milestonesPaid: 0, lossStreaks: {} });
     expect(MAX_LOADED).toMatchObject({ stars: 3, milestones: 4, streak: 99 });

@@ -25,7 +25,7 @@ const PORTRAIT_AT = { x: CARD.x + 6, y: CARD.y + 8 };
 export const TEXT_X = CARD.x + 80;
 /** Short enough that LEVEL 999, the bar and a 12-letter name on NORMAL share the LEVEL row. */
 export const XP_BAR = { gap: 6, w: 40, h: 4 };
-const CARD_RIGHT = CARD.x + CARD.w - 8;
+export const CARD_RIGHT = CARD.x + CARD.w - 8;
 const MENU_TOP = 98;
 /** Right of centre, so the backdrop's juggling Harrison (who drifts across the left and middle) is never hidden behind it. */
 const MENU_CX = 248;
