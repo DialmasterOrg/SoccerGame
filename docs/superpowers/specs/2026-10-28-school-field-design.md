@@ -787,3 +787,94 @@ Notes for plan 3:
 - The far layer tiles by its width, so the School's real far layer
   should be at least 534 wide, as the stand-in is.
 - `stageFor` sends every venue after the Park to the School's stage.
+
+## As built: plan 2
+
+Built on 2026-10-29. Checked in the browser on frames drawn by the real
+match scene (tryout 1 moved to the School, backup A in their goal): a
+shot to the far post, his dive and catch, getting up, the hold and the
+drop kick. The choices this spec left to the builder, and what changed
+on the way:
+
+- **The keeper's shape.** A `Keeper` record rides on an ordinary
+  `Player` body (`BASE_STATS`, the shared physics body), as Biscuit
+  does. `World.keepers` is null on the small stage, so the Backyard
+  and the Park play exactly as before; `Stage.keepers` turns them on
+  from the School Field. `createWorld` takes the lineup as its last
+  argument, and `stepWorld` steps both keepers itself, so every caller
+  still passes two intents. Three modules: `keeper.ts` (profiles by
+  difficulty and level, the acts, the hold and the drop kick),
+  `keeperAi.ts` (where he stands, reading shots, coming out) and
+  `keeperSaves.ts` (catch or push away). A keeper's centre never leaves
+  `penaltyArea` (the painted box); bodies resolve as one group of four.
+- **The dials** (`KEEPER_LEVELS`, levels 1 to 8 straight lines): the
+  plan's starting values except `comeOutPx` (Easy 16/16, Normal 21/19,
+  Hard 21/17), which decides most close shots, and `smotherAt` (Easy
+  18/20, Normal 20/24, Hard 22/26), kept beyond the dive's first reach
+  so a smother takes a moment to arrive. Harrison's keeper plays at
+  Normal at the match's level; their keeper at the difficulty, changed
+  mid-match from the pause menu with his dive playing out.
+- **Measured** with headless drills against the scripted Harrison
+  (`keeperScripts.ts`, a level up on rung-10 Max, his real aim error;
+  seeds 100-163). Goals let in from long shots outside the box, Easy/
+  Normal/Hard: .39/.26/.15 at level 1 (Normal saves .74), .23/0/0 at
+  level 8. From placed corner shots inside the box: .76/.43/.33 at
+  level 1, .63/.40/.19 at level 8. A patient one-on-one on Normal
+  scores .77 (rounding him by winding up while stepping across, a
+  judged chip, or a stepover). No wall: the sharpest keeper still lets
+  in .19 of corners (Hard 7). No soft goals: no slow roller ever goes
+  in, at either keeper, any level or difficulty. Scripted School
+  matches on Normal average .55 goals a side, at most 2, and the ball
+  never sits still in play for more than 3.3 s. Long shots at level 8
+  on Normal and Hard are all saved; corners keep every keeper beatable.
+- **The drop kick** is aimed to first bounce at halfway + his attacking
+  direction × (−40 to +240), z 24-104, launched at 40° with its speed
+  solved against air drag; measured first bounces land 340-700 from the
+  right keeper (and mirrored). It carries backspin (−6) so it checks up
+  near halfway; without it the bounces ran on to the far box. Nobody
+  plays it while it climbs. While a keeper holds the ball, everyone
+  else waits out where his kick comes down, around halfway.
+- **Rules the builder added** (each in the ledger as a ruling): a
+  keeper coming out at a dribbler sets himself on the angle as the
+  attacker winds up a kick, never backing toward his line (without it
+  no chip could beat a rushing keeper); "at his feet" for coming out
+  means within 10 px ahead, or his own touch still running with him; a
+  ball at a dribbler's feet is won only by the smother, never plucked
+  off them standing; a smother's reach grows over the dive, so a ball
+  knocked away as he commits gets past him (up-and-down dives keep
+  their full reach); he gathers a loose ball he can reach from inside
+  his box; a ball the trick is carrying is Harrison's; keepers make no
+  saves while the wave is live.
+- **What the whole-match tests and the tuning made me fix:** a pushed
+  ball that started the tick inside his zone was re-pushed every tick
+  forever (now he can't touch it for 0.25 s after a push); a tip-over
+  far off his line leapt the ball 170 px (it now carries to the bar in
+  0.25 s); a pushed ball resting 6 px outside his box went unreached
+  (his reach); every drop kick was an 800 px chase. The keepers'
+  whole AI-vs-AI test plays both sides at the scripted Harrison's
+  stats: at Base stats neither side scores often enough against any
+  keeper that meets the targets (3 goals in 24 matches).
+- **The art and the parent's verdict.** Steady Eddie (emerald, a
+  flat-top), backup A (berry, a brown mop; BACKUP MO on the sheet) and
+  backup B (lemon, a top bun; BACKUP JUNE on the sheet), all with
+  gloves; the backups' names never show on the HUD. Dives are a flat
+  dive figure turned a quarter (mirrored first for the near post),
+  mirrored after the turn for a left-facing keeper and leaned with
+  depth, three frames each, baked per facing. The palette grew to 70
+  colours (nine for the three tops). **The parent approved the sheet
+  and GIF on 2026-10-29.** Eddie keeps Harrison's goal; backup A takes
+  odd tryouts and backup B even ones and the boss. Four cues by design,
+  not by ear: glove, dive, parry, punt.
+- **1733 tests**, typecheck and build green.
+
+Notes for plans 3-5:
+
+- `KeeperEvents.pushed` is there for SCORE A REBOUND; `keepers.strike.x`
+  and `markings.box` give SCORE FROM OUTSIDE THE BOX.
+- `keeperLooks` gives the boss backup B until Gus.
+- Gus needs a bigger body, which `bodies.ts` doesn't have yet: one
+  `PLAYER_R` for everyone.
+- The wave's keeper rule has no brace yet (Gus's is plan 5's).
+- The tryouts cast inherits Max's attacking AI, which rarely beats a
+  keeper from range at low stats; plan 4's personalities should be
+  measured against keepers.
