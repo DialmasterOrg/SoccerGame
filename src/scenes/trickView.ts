@@ -17,6 +17,6 @@ export function drawTrickMarks(g: CanvasRenderingContext2D, cam: Camera, w: Worl
   const mark = art.text('?', 1, 'white', 'outline');
   const head = w.dog ? BISCUIT_ANCHOR.y : PLAYER_H;
   const bob = Math.floor(Math.max(0, nowS) * BOB_HZ * 2) % 2 === 0 ? 0 : BOB_PX;
-  const s = project(p.x, p.y, p.z, cam.x);
+  const s = project(p.x, p.y, p.z, cam);
   g.drawImage(mark, Math.round(s.sx - mark.width / 2), Math.round(s.sy - head - MARK_GAP - mark.height - bob));
 }

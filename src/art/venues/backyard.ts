@@ -1,4 +1,4 @@
-import { DEPTH_SHEAR, NEAR_SY, project } from '../../game/camera';
+import { DEPTH_SHEAR, SMALL_VIEW, project } from '../../game/camera';
 import { BACKYARD, type Goal } from '../../game/field';
 import { M } from '../colors';
 import { IndexedImage } from '../indexedImage';
@@ -16,7 +16,7 @@ export const PARALLAX = { far: 0.2, mid: 0.5, near: 0.8, ground: 1 } as const;
 
 const H = 180;
 /** Screen row of the far touchline (z = depth): the back fence stands on it. */
-const FAR_SY = NEAR_SY - BACKYARD.depth;
+const FAR_SY = SMALL_VIEW.nearSY - BACKYARD.depth;
 const FENCE_H = 20;
 const FENCE_TOP = FAR_SY - FENCE_H;
 const STRIPE_W = 32;
@@ -134,7 +134,7 @@ function near(): IndexedImage {
 
 /** Sets the pixel a world point projects to (camera at 0). */
 export function plot(img: IndexedImage, x: number, y: number, z: number, id: number, dx = 0, dy = 0): void {
-  const p = project(x, y, z, 0);
+  const p = project(x, y, z, { x: 0 });
   img.set(Math.round(p.sx) - dx, Math.round(p.sy) - dy, id);
 }
 
@@ -161,7 +161,7 @@ function endFence(img: IndexedImage, x0: number, x1: number): void {
 export function pitchGround(endFence: (img: IndexedImage, x0: number, x1: number) => void): IndexedImage {
   const img = new IndexedImage(GROUND_W, H);
   for (let y = FAR_SY; y < H; y++) {
-    const z = NEAR_SY - y;
+    const z = SMALL_VIEW.nearSY - y;
     for (let x = 0; x < GROUND_W; x++) {
       const stripe = Math.floor((x - z * DEPTH_SHEAR) / STRIPE_W);
       const tuft = Math.imul(x * 374761393 + y * 668265263, 1274126177) >>> 0 < 2 ** 32 / TUFT_EVERY;
@@ -169,7 +169,7 @@ export function pitchGround(endFence: (img: IndexedImage, x0: number, x1: number
     }
   }
   fillRect(img, 0, FAR_SY, GROUND_W, 1, M.grassDark); // the back fence's shadow
-  fillRect(img, 0, NEAR_SY + 1, GROUND_W, 1, M.grassDark); // the invisible near board
+  fillRect(img, 0, SMALL_VIEW.nearSY + 1, GROUND_W, 1, M.grassDark); // the invisible near board
   for (const [x0, x1] of END_FENCES) endFence(img, x0, x1);
   return img;
 }
@@ -202,8 +202,8 @@ export function goalSprites(side: 'left' | 'right'): GoalArt {
   const [xa, xb] = [Math.min(g.lineX, g.backX), Math.max(g.lineX, g.backX)];
   const col0 = Math.round(xa + g.z0 * DEPTH_SHEAR) - 1;
   const col1 = Math.round(xb + g.z1 * DEPTH_SHEAR) + 2;
-  const row0 = Math.round(NEAR_SY - g.z1 - top) - 1;
-  const row1 = Math.round(NEAR_SY - g.z0) + 1;
+  const row0 = Math.round(SMALL_VIEW.nearSY - g.z1 - top) - 1;
+  const row1 = Math.round(SMALL_VIEW.nearSY - g.z0) + 1;
   const sprite = () => new IndexedImage(col1 - col0 + 1, row1 - row0 + 1);
   const put = (img: IndexedImage, x: number, y: number, z: number, id: number) => plot(img, x, y, z, id, col0, row0);
   const grid = (from: number, to: number, visit: (v: number) => void) => {
@@ -213,7 +213,7 @@ export function goalSprites(side: 'left' | 'right'): GoalArt {
   const [farNet, nearNet] = [sprite(), sprite()];
   // The net is a dotted mesh, so the white frame stands out in front of it.
   const mesh = (img: IndexedImage, x: number, y: number, z: number) => {
-    const p = project(x, y, z, 0);
+    const p = project(x, y, z, { x: 0 });
     if ((Math.round(p.sx) + Math.round(p.sy)) % 2 === 0) put(img, x, y, z, M.silver);
   };
   // Net back.
@@ -248,5 +248,5 @@ export function goalSprites(side: 'left' | 'right'): GoalArt {
     });
     return img;
   };
-  return { farNet, nearNet, nearPost: post(g.z0), farPost: post(g.z1), origin: { x: col0 - g.lineX, y: row0 - NEAR_SY } };
+  return { farNet, nearNet, nearPost: post(g.z0), farPost: post(g.z1), origin: { x: col0 - g.lineX, y: row0 - SMALL_VIEW.nearSY } };
 }

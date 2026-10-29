@@ -34,10 +34,10 @@ export function drawBackdrop(g: CanvasRenderingContext2D, art: GameArt, nowS: nu
   drawLayers(g, cam, art, venue, nowS);
 
   const frame = Math.floor(nowS * JUGGLE_FPS) % JUGGLE_FRAMES;
-  const feet = project(JUGGLER.x, 0, JUGGLER.z, cam.x);
+  const feet = project(JUGGLER.x, 0, JUGGLER.z, cam);
   shadow(g, feet.sx, feet.sy);
   const toScreen = (p: WorldPoint) => {
-    const s = project(p.x, p.y, p.z, cam.x);
+    const s = project(p.x, p.y, p.z, cam);
     return { x: s.sx, y: s.sy };
   };
   art.backdropFx.draw(g, nowS, art.harrisonImage('home', 'juggle', frame), { x: JUGGLER.x, y: 0, z: JUGGLER.z }, 1, false, toScreen);
@@ -47,8 +47,8 @@ export function drawBackdrop(g: CanvasRenderingContext2D, art: GameArt, nowS: nu
   const loopS = JUGGLE_FRAMES / JUGGLE_FPS;
   const u = (((nowS * JUGGLE_FPS - KICK_FRAME) / JUGGLE_FRAMES) % 1 + 1) % 1;
   const height = FOOT.up + BALL_R + 4 * KICK_HEIGHT * u * (1 - u);
-  const ball = project(JUGGLER.x + FOOT.ahead, height, JUGGLER.z, cam.x);
-  const ground = project(JUGGLER.x + FOOT.ahead, 0, JUGGLER.z, cam.x);
+  const ball = project(JUGGLER.x + FOOT.ahead, height, JUGGLER.z, cam);
+  const ground = project(JUGGLER.x + FOOT.ahead, 0, JUGGLER.z, cam);
   shadow(g, ground.sx, ground.sy);
   const spin = Math.floor((nowS / loopS) * art.ball.length) % art.ball.length;
   g.drawImage(art.ball[spin]!, Math.round(ball.sx) - BALL_R, Math.round(ball.sy) - BALL_R);

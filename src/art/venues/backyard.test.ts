@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEPTH_SHEAR, NEAR_SY, VIEW_W, project } from '../../game/camera';
+import { DEPTH_SHEAR, SMALL_VIEW, project } from '../../game/camera';
 import { BACKYARD } from '../../game/field';
 import { M } from '../colors';
 import type { IndexedImage } from '../indexedImage';
@@ -7,14 +7,14 @@ import { backyardLayers, goalSprites, type GoalArt } from './backyard';
 
 const FENCE = [M.wood, M.hair, M.hairShadow];
 const GRASS = [M.grass, M.grassLight, M.grassDark];
-const MAX_CAM = BACKYARD.width + BACKYARD.depth * DEPTH_SHEAR - VIEW_W;
+const MAX_CAM = BACKYARD.width + BACKYARD.depth * DEPTH_SHEAR - SMALL_VIEW.w;
 
 describe('backyardLayers', () => {
   it('builds layers wide enough for the whole camera range, all full height', () => {
     const L = backyardLayers();
     expect(L.far.width).toBe(320);
-    expect(L.mid.width).toBeGreaterThanOrEqual(Math.max(480, Math.ceil(MAX_CAM * 0.5 + VIEW_W)));
-    expect(L.near.width).toBeGreaterThanOrEqual(Math.max(576, Math.ceil(MAX_CAM * 0.8 + VIEW_W)));
+    expect(L.mid.width).toBeGreaterThanOrEqual(Math.max(480, Math.ceil(MAX_CAM * 0.5 + SMALL_VIEW.w)));
+    expect(L.near.width).toBeGreaterThanOrEqual(Math.max(576, Math.ceil(MAX_CAM * 0.8 + SMALL_VIEW.w)));
     expect(L.ground.width).toBeGreaterThanOrEqual(640 + Math.ceil(64 * DEPTH_SHEAR));
     for (const layer of Object.values(L)) expect(layer.height).toBe(180);
   });
@@ -40,7 +40,7 @@ describe('backyardLayers', () => {
 
   it('draws the end fences slanted across the depth', () => {
     const g = backyardLayers().ground;
-    const at = (x: number, z: number) => g.get(Math.round(project(x, 1, z, 0).sx), Math.round(project(x, 1, z, 0).sy));
+    const at = (x: number, z: number) => g.get(Math.round(project(x, 1, z, { x: 0 }).sx), Math.round(project(x, 1, z, { x: 0 }).sy));
     for (const z of [0, 32, 63]) {
       expect(FENCE, `left, z ${z}`).toContain(at(2, z));
       expect(FENCE, `right, z ${z}`).toContain(at(638, z));
@@ -55,7 +55,7 @@ describe('backyardLayers', () => {
 
   it('marks the invisible near board with a darker grass line', () => {
     const g = backyardLayers().ground;
-    for (const x of [40, 320, 600]) expect(g.get(x, NEAR_SY + 1)).toBe(M.grassDark);
+    for (const x of [40, 320, 600]) expect(g.get(x, SMALL_VIEW.nearSY + 1)).toBe(M.grassDark);
   });
 
   it('the far layer is an opaque sky', () => {
@@ -90,8 +90,8 @@ function opaqueColumns(art: GoalArt, img: IndexedImage, lineX: number): number[]
 
 /** The id at a world point, read from a sprite placed for camera 0. */
 function pixelAt(art: GoalArt, img: IndexedImage, lineX: number, x: number, y: number, z: number): number {
-  const p = project(x, y, z, 0);
-  return img.get(Math.round(p.sx) - (lineX + art.origin.x), Math.round(p.sy) - (NEAR_SY + art.origin.y));
+  const p = project(x, y, z, { x: 0 });
+  return img.get(Math.round(p.sx) - (lineX + art.origin.x), Math.round(p.sy) - (SMALL_VIEW.nearSY + art.origin.y));
 }
 
 describe('goalSprites', () => {
@@ -104,7 +104,7 @@ describe('goalSprites', () => {
           [art.nearPost, goal.z0],
           [art.farPost, goal.z1],
         ] as const) {
-          const sx = Math.round(project(goal.lineX, 0, z, 0).sx);
+          const sx = Math.round(project(goal.lineX, 0, z, { x: 0 }).sx);
           const cols = opaqueColumns(art, img, goal.lineX);
           expect(cols).toContain(sx);
           for (const c of cols) expect(Math.abs(c - sx)).toBeLessThanOrEqual(1);

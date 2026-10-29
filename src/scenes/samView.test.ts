@@ -32,7 +32,7 @@ const CAM = { x: 0 };
 const running = (speed: number): Player => Object.assign(createPlayer('away', BASE_STATS, 200, 1), { handling: SAM_HANDLING, vx: speed });
 const dust: string[] = [MASTER.fade, MASTER.silver];
 /** Where his feet are on screen. */
-const feetX = (p: Player) => Math.round(project(p.x, 0, p.z, CAM.x).sx);
+const feetX = (p: Player) => Math.round(project(p.x, 0, p.z, CAM).sx);
 
 describe('drawSpeed', () => {
   it('draws nothing for a player standing still', () => {

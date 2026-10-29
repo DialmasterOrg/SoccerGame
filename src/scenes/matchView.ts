@@ -3,8 +3,7 @@ import { ANCHOR } from '../art/body/pose';
 import { MASTER, type MasterColor } from '../art/colors';
 import { PARALLAX } from '../art/venues/backyard';
 import { JOGGERS, PATH_Y } from '../art/venues/park';
-import { BASE_H } from '../engine/viewport';
-import { VIEW_W, offscreenArrow, project, type Camera } from '../game/camera';
+import { offscreenArrow, project, viewOf, type Camera } from '../game/camera';
 import { SWEET_SPOT } from '../game/kick';
 import { clockMinute, type Team } from '../game/match';
 import { DECEL, type Player } from '../game/player';
@@ -109,7 +108,7 @@ const ink = (g: CanvasRenderingContext2D, c: MasterColor) => (g.fillStyle = MAST
 
 /** Screen position of a world point. */
 function screen(cam: Camera, x: number, y: number, z: number): { x: number; y: number } {
-  const p = project(x, y, z, cam.x);
+  const p = project(x, y, z, cam);
   return { x: Math.round(p.sx), y: Math.round(p.sy) };
 }
 
@@ -139,7 +138,7 @@ export function drawLayers(g: CanvasRenderingContext2D, cam: Camera, art: GameAr
 
 /** Where a goal's sprites go: they all share one origin from its goal line. */
 function goalAt(cam: Camera, lineX: number, origin: { x: number; y: number }): { x: number; y: number } {
-  const at = project(lineX, 0, 0, cam.x);
+  const at = project(lineX, 0, 0, cam);
   return { x: Math.round(at.sx + origin.x), y: Math.round(at.sy + origin.y) };
 }
 
@@ -319,11 +318,12 @@ function drawText(g: CanvasRenderingContext2D, art: GameArt, s: string, cx: numb
   g.drawImage(t, Math.round(cx - t.width / 2), y);
 }
 
-function drawHud(g: CanvasRenderingContext2D, w: World, art: GameArt, nowS: number, awayName: string): void {
+function drawHud(g: CanvasRenderingContext2D, w: World, cam: Camera, art: GameArt, nowS: number, awayName: string): void {
   const { match, home } = w;
-  drawText(g, art, `${HOME_NAME} ${match.score.home}-${match.score.away} ${awayName}`, VIEW_W / 2, 0);
+  const cx = viewOf(cam).w / 2;
+  drawText(g, art, `${HOME_NAME} ${match.score.home}-${match.score.away} ${awayName}`, cx, 0);
   const clock = match.goldenGoal ? `90+${Math.floor(match.goldenS)}` : `${clockMinute(match)}'`;
-  drawText(g, art, clock, VIEW_W / 2, 7);
+  drawText(g, art, clock, cx, 7);
 
   ink(g, 'outline');
   g.fillRect(STAMINA_BAR.x - 1, STAMINA_BAR.y - 1, STAMINA_BAR.w + 2, STAMINA_BAR.h + 2);
@@ -350,19 +350,20 @@ export function calloutLine(hud: MatchHud): string | null {
 }
 
 /** GOAL!!! slams in at a bigger scale, then drops in and bounces to rest. */
-function drawGoalBanner(g: CanvasRenderingContext2D, art: GameArt, moment: GoalMoment, scale: number): void {
+function drawGoalBanner(g: CanvasRenderingContext2D, cam: Camera, art: GameArt, moment: GoalMoment, scale: number): void {
   const s = moment.t - BANNER_FROM_S;
-  if (s < GOAL_SLAM.forS) return drawText(g, art, 'GOAL!!!', VIEW_W / 2, BANNER_Y - 4, GOAL_SLAM.scale, 'energyGold');
+  const cx = viewOf(cam).w / 2;
+  if (s < GOAL_SLAM.forS) return drawText(g, art, 'GOAL!!!', cx, BANNER_Y - 4, GOAL_SLAM.scale, 'energyGold');
   const settle = Math.min(1, (s - GOAL_SLAM.forS) / GOAL_SLAM.settleS);
   const bounce = Math.round(GOAL_SLAM.bouncePx * Math.sin(settle * Math.PI) * (1 - settle));
-  drawText(g, art, 'GOAL!!!', VIEW_W / 2, BANNER_Y + bounce, scale, 'energyGold');
+  drawText(g, art, 'GOAL!!!', cx, BANNER_Y + bounce, scale, 'energyGold');
 }
 
 /** Where the off-screen ball arrow goes, if the ball is over the top: under the ball, kept clear of the POWER meter when it's shown. */
 export function arrowX(w: World, cam: Camera): number | null {
   const arrow = offscreenArrow(w.ball, cam);
   if (!arrow) return null;
-  const right = w.power ? POWER_METER_X0 - ARROW_CLEARANCE : VIEW_W - 4;
+  const right = w.power ? POWER_METER_X0 - ARROW_CLEARANCE : viewOf(cam).w - 4;
   return Math.round(Math.min(Math.max(arrow.x, 3), right));
 }
 
@@ -387,8 +388,9 @@ function pitchShake(w: World, hud: MatchHud, nowS: number): { dx: number; dy: nu
 
 /** An impact frame: the pitch in white, with the players and ball as dark silhouettes. */
 function drawImpact(g: CanvasRenderingContext2D, w: World, cam: Camera, art: GameArt, home: Clip, look: HomeLook, away: SpriteSet): void {
+  const view = viewOf(cam);
   ink(g, 'white');
-  g.fillRect(-8, -8, VIEW_W + 16, BASE_H + 16);
+  g.fillRect(-8, -8, view.w + 16, view.h + 16);
   drawAway(g, cam, w, art, look.nowS, away, true);
   drawHome(g, cam, w.home, art, home, look, true);
   if (!w.dog?.carrying) drawBall(g, w, cam, art, true);
@@ -403,6 +405,7 @@ function drawImpact(g: CanvasRenderingContext2D, w: World, cam: Camera, art: Gam
  */
 export function drawMatch(g: CanvasRenderingContext2D, w: World, cam: Camera, art: GameArt, nowS: number, hud: MatchHud): void {
   const { moment } = hud;
+  const view = viewOf(cam);
   const shake = pitchShake(w, hud, nowS);
   // Decided before this frame uses up an impact frame, so the flash comes on the frame after the last one.
   const flash = takeFlash(hud);
@@ -435,10 +438,10 @@ export function drawMatch(g: CanvasRenderingContext2D, w: World, cam: Camera, ar
     g.save();
     g.globalAlpha = FLASH_ALPHA;
     ink(g, 'white');
-    g.fillRect(0, 0, VIEW_W, BASE_H);
+    g.fillRect(0, 0, view.w, view.h);
     g.restore();
   }
-  drawHud(g, w, art, nowS, hud.awayName);
+  drawHud(g, w, cam, art, nowS, hud.awayName);
   if (hud.perfect && nowS < hud.perfect.untilS) {
     const kicker = hud.perfect.team === 'home' ? w.home : w.away;
     const at = screen(cam, kicker.x, kicker.y, kicker.z);
@@ -454,11 +457,11 @@ export function drawMatch(g: CanvasRenderingContext2D, w: World, cam: Camera, ar
     drawText(g, art, prompt, at.x, at.y + PROMPT_Y, 1, Math.floor(nowS * PROMPT_BLINK_HZ) % 2 === 0 ? 'energyGold' : 'white');
   }
   const b = banner(w, moment, hud.awayName);
-  if (b && moment) drawGoalBanner(g, art, moment, b.scale);
-  else if (b) drawText(g, art, b.text, VIEW_W / 2, BANNER_Y, b.scale);
+  if (b && moment) drawGoalBanner(g, cam, art, moment, b.scale);
+  else if (b) drawText(g, art, b.text, view.w / 2, BANNER_Y, b.scale);
   const callout = calloutLine(hud);
-  if (callout) drawText(g, art, callout, VIEW_W / 2, BANNER_Y + CALLOUT.gapPx, 2);
+  if (callout) drawText(g, art, callout, view.w / 2, BANNER_Y + CALLOUT.gapPx, 2);
   // Under the banner line, so it sits clear of FULL TIME or KICK OFF.
-  else if (hud.bonusCallout) drawText(g, art, hud.bonusCallout, VIEW_W / 2, BANNER_Y + CALLOUT.gapPx, 2, 'energyGold');
+  else if (hud.bonusCallout) drawText(g, art, hud.bonusCallout, view.w / 2, BANNER_Y + CALLOUT.gapPx, 2, 'energyGold');
   drawArrow(g, w, cam);
 }

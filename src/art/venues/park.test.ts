@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { NEAR_SY, project } from '../../game/camera';
+import { SMALL_VIEW, project } from '../../game/camera';
 import { BACKYARD } from '../../game/field';
 import { M } from '../colors';
 import { backyardLayers } from './backyard';
 import { JOGGERS, PATH_Y, joggerFrames, parkLayers } from './park';
 
 const HEDGE = [M.grassDark, M.grass, M.grassLight];
-const FAR_SY = NEAR_SY - BACKYARD.depth;
+const FAR_SY = SMALL_VIEW.nearSY - BACKYARD.depth;
 
 describe('parkLayers', () => {
   it('every layer is the same size as the Backyard’s', () => {
@@ -43,7 +43,7 @@ describe('parkLayers', () => {
   it('the ground has end hedges, not wood, where the Backyard has end fences', () => {
     const g = parkLayers().ground;
     expect(g.data.includes(M.wood)).toBe(false);
-    const at = (x: number, z: number) => g.get(Math.round(project(x, 1, z, 0).sx), Math.round(project(x, 1, z, 0).sy));
+    const at = (x: number, z: number) => g.get(Math.round(project(x, 1, z, { x: 0 }).sx), Math.round(project(x, 1, z, { x: 0 }).sy));
     for (const z of [0, 32, 63]) {
       expect(HEDGE, `left, z ${z}`).toContain(at(2, z));
       expect(HEDGE, `right, z ${z}`).toContain(at(638, z));

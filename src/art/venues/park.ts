@@ -1,4 +1,4 @@
-import { NEAR_SY } from '../../game/camera';
+import { SMALL_VIEW } from '../../game/camera';
 import { BACKYARD } from '../../game/field';
 import { M, type MasterColor } from '../colors';
 import { IndexedImage } from '../indexedImage';
@@ -7,7 +7,7 @@ import { MID_W, NEAR_W, along, pitchGround, plot, type VenueLayers } from './bac
 
 const H = 180;
 /** Screen row of the far touchline (z = depth): the hedge stands on it. */
-const FAR_SY = NEAR_SY - BACKYARD.depth;
+const FAR_SY = SMALL_VIEW.nearSY - BACKYARD.depth;
 /** The hedge along the far touchline, and its bumps along the top. */
 const HEDGE_H = 8;
 const BUMP = { r: 3, every: 6 };

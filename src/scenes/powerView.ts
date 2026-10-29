@@ -1,7 +1,7 @@
 import { ANCHOR } from '../art/body/pose';
 import { M, MASTER, masterPalette, type MasterColor, type ResolvedPalette } from '../art/colors';
 import { BALL_REST_Y } from '../game/ball';
-import { VIEW_W, project, type Camera } from '../game/camera';
+import { project, viewOf, type Camera } from '../game/camera';
 import { BRACE_S, BRACE_SKID_SPEED, type Player } from '../game/player';
 import { POWERED_S, WAVE_READY_S, waveReady, type PowerState } from '../game/power';
 import { WAVE_LINGER_S, type Wave } from '../game/wave';
@@ -71,7 +71,7 @@ const scatter = (i: number, salt: number) => {
 };
 
 function screen(cam: Camera, x: number, y: number, z: number): { x: number; y: number } {
-  const p = project(x, y, z, cam.x);
+  const p = project(x, y, z, cam);
   return { x: Math.round(p.sx), y: Math.round(p.sy) };
 }
 
@@ -281,7 +281,7 @@ export function drawBeam(g: CanvasRenderingContext2D, cam: Camera, wave: Wave, n
     g.globalAlpha = 0.75;
     orb(g, b.x, b.y, ORB_R.head);
     g.globalAlpha = 1;
-    drawSpeedLines(g, nowS);
+    drawSpeedLines(g, cam, nowS);
   }
   if (wave.ageS < SHOCKWAVE.s) {
     const t = wave.ageS / SHOCKWAVE.s;
@@ -310,12 +310,12 @@ export function drawBeam(g: CanvasRenderingContext2D, cam: Camera, wave: Wave, n
 }
 
 /** White streaks racing across the screen while the wave is live. */
-function drawSpeedLines(g: CanvasRenderingContext2D, nowS: number): void {
+function drawSpeedLines(g: CanvasRenderingContext2D, cam: Camera, nowS: number): void {
   g.globalAlpha = SPEED_LINES.alpha;
   ink(g, 'white');
   for (let i = 0; i < SPEED_LINES.count; i++) {
     const y = 24 + Math.floor(scatter(i, 5) * 130);
-    const span = VIEW_W + SPEED_LINES.len;
+    const span = viewOf(cam).w + SPEED_LINES.len;
     const x = Math.floor((nowS * SPEED_LINES.speedPx * (0.7 + scatter(i, 6) * 0.6) + scatter(i, 7) * span) % span) - SPEED_LINES.len;
     g.fillRect(x, y, SPEED_LINES.len, 1);
   }

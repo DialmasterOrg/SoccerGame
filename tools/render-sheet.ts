@@ -132,7 +132,7 @@ function venueView(L: VenueLayers, cam: number, actors: readonly Actor[], nowS: 
   const posts: Actor[] = [];
   for (const goal of BACKYARD.goals) {
     const art = goalSprites(goal.side);
-    const at = project(goal.lineX, 0, 0, cam);
+    const at = project(goal.lineX, 0, 0, { x: cam });
     const anchor = { x: -art.origin.x, y: -art.origin.y };
     // Nets before posts, as in the match, so a post is drawn over its net.
     for (const [z, img] of [
@@ -148,11 +148,11 @@ function venueView(L: VenueLayers, cam: number, actors: readonly Actor[], nowS: 
   for (let x = 0; x < 5; x++) shadow.set(x, 0, M.grassDark);
   for (const a of actors) {
     if (!a.shadow) continue;
-    const p = project(a.x, 0, a.z, cam);
+    const p = project(a.x, 0, a.z, { x: cam });
     paint(view, shadow, pal, Math.round(p.sx) - 2, Math.round(p.sy) + 1);
   }
   for (const a of [...actors, ...posts].sort((m, n) => n.z - m.z)) {
-    const p = project(a.x, a.y, a.z, cam);
+    const p = project(a.x, a.y, a.z, { x: cam });
     paint(view, a.img, a.palette, Math.round(p.sx - a.anchor.x), Math.round(p.sy - a.anchor.y));
   }
   return { width: VIEW_W, height: VIEW_H, rgba: view };

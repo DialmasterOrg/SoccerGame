@@ -42,7 +42,7 @@ export function drawSpeed(g: CanvasRenderingContext2D, cam: Camera, p: Player, n
   const speed = Math.hypot(p.vx, p.vz);
   const skidding = p.anim.name === 'skid';
   if (speed <= SPEED_FX.puffFrom && !skidding) return;
-  const at = project(p.x, 0, p.z, cam.x);
+  const at = project(p.x, 0, p.z, cam);
   const [x, y] = [Math.round(at.sx), Math.round(at.sy)];
   // Behind him is against his run; skidding, his front foot is planted ahead the way he's still sliding.
   const travel = skidFacing(p);

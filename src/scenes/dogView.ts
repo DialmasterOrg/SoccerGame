@@ -54,6 +54,6 @@ export function drawDog(g: CanvasRenderingContext2D, cam: Camera, w: World, art:
   const frame = frames[Math.min(clip.frame, frames.length - 1)]!;
   // Frames face right; flipped, the anchor column mirrors.
   const ax = p.facing === 1 ? BISCUIT_ANCHOR.x : frame.width - 1 - BISCUIT_ANCHOR.x;
-  const s = project(p.x, p.y, p.z, cam.x);
+  const s = project(p.x, p.y, p.z, cam);
   g.drawImage(flat ? silhouette(frame) : frame, Math.round(s.sx) - ax, Math.round(s.sy) - BISCUIT_ANCHOR.y);
 }
