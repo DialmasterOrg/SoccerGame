@@ -4,6 +4,7 @@ import { CREW_BODY, CREW_HEADS, crewLook } from '../art/opponents/crew';
 import { MAX_HEADS, maxLook } from '../art/opponents/max';
 import { SAM_HEADS, samLook } from '../art/opponents/sam';
 import { DEFAULT_OUTFIT, type Outfit } from '../meta/locker';
+import { BACKYARD, SCHOOL_FIELD } from '../game/field';
 import { OPPONENT_LOOKS, loadGameArt } from './art';
 import { stubCanvases } from './testDraw';
 
@@ -43,5 +44,20 @@ describe('dress', () => {
     expect(art.outfit).toEqual(HEADBAND);
     expect(art.home).not.toBe(plain);
     expect(art.backdropFx).not.toBe(fx);
+  });
+});
+
+describe('goalsFor', () => {
+  beforeEach(stubCanvases);
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('goal sprites are made once per field', () => {
+    const art = loadGameArt();
+    expect(art.goalsFor(SCHOOL_FIELD)).toBe(art.goalsFor(SCHOOL_FIELD));
+    expect(art.goalsFor(SCHOOL_FIELD)).not.toBe(art.goalsFor(BACKYARD));
+  });
+
+  it('the School has its own venue art', () => {
+    expect(loadGameArt().venues.school).toBeDefined();
   });
 });

@@ -14,13 +14,16 @@ import { CREW_BODY, CREW_HEADS, crewLook } from '../art/opponents/crew';
 import { MAX_HEADS, maxLook } from '../art/opponents/max';
 import { SAM_HEADS, samLook } from '../art/opponents/sam';
 import { addOutline } from '../art/raster';
-import { backyardLayers, goalSprites, type GoalArt, type VenueLayers } from '../art/venues/backyard';
+import { backyardLayers, type VenueLayers } from '../art/venues/backyard';
 import { JOGGERS, joggerFrames, parkLayers } from '../art/venues/park';
+import { goalSprites, type GoalArt } from '../art/venues/pitch';
+import { schoolLayers } from '../art/venues/school';
 import type { OpponentId, VenueId } from '../meta/career';
 import { DEFAULT_OUTFIT, outfitKey, type ChangeKit, type Outfit } from '../meta/locker';
 import { changeLook } from '../art/kits';
 import { toCanvas } from '../engine/bitmaps';
 import type { CrewId } from '../game/crew';
+import type { Field } from '../game/field';
 import { SpriteCache, type FacingFrames } from '../engine/sprites';
 import { HarrisonArt } from './harrisonArt';
 import { OutfitFx } from './outfitView';
@@ -59,7 +62,8 @@ export interface OpponentArt {
 export interface GameArt {
   /** Every venue with its own art; drawLayers falls back to the Backyard for the rest. */
   venues: Partial<Record<VenueId, VenueCanvases>>;
-  goal: Record<'left' | 'right', GoalCanvases>;
+  /** A field's two goals, made the first time it's asked for. */
+  goalsFor(field: Field): Readonly<Record<'left' | 'right', GoalCanvases>>;
   ball: HTMLCanvasElement[];
   /** Controller button pictures, for Help. */
   buttons: Record<ButtonName, HTMLCanvasElement>;
@@ -171,9 +175,22 @@ export function loadGameArt(): GameArt {
   const changed = new Map<string, SpriteSet>();
   let outfit = DEFAULT_OUTFIT;
   let backdropFx = new OutfitFx(outfit, BACKDROP_FX_SEED);
+  const goals = new Map<Field, Readonly<Record<'left' | 'right', GoalCanvases>>>();
   return {
-    venues: { backyard: venueCanvases(backyardLayers(), [], master), park: venueCanvases(parkLayers(), parkJoggers, master) },
-    goal: { left: goalCanvases(goalSprites('left'), master), right: goalCanvases(goalSprites('right'), master) },
+    venues: {
+      backyard: venueCanvases(backyardLayers(), [], master),
+      park: venueCanvases(parkLayers(), parkJoggers, master),
+      school: venueCanvases(schoolLayers(), [], master),
+    },
+    goalsFor(field) {
+      let made = goals.get(field);
+      if (!made) {
+        const side = (s: 'left' | 'right') => goalCanvases(goalSprites(field.goals.find(g => g.side === s)!), master);
+        made = { left: side('left'), right: side('right') };
+        goals.set(field, made);
+      }
+      return made;
+    },
     ball: ballFrames().map(f => toCanvas(f, master)),
     buttons: Object.fromEntries(BUTTONS.map(b => [b, toCanvas(buttonGlyph(b), master)])) as Record<ButtonName, HTMLCanvasElement>,
     get home() {

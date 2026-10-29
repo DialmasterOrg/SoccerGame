@@ -13,7 +13,8 @@ import { harrisonLook, type PowerForm } from '../src/art/harrison/look';
 import { BALL_R, ballFrames } from '../src/art/ball';
 import { ANCHOR } from '../src/art/body/pose';
 import { renderText, textPalette } from '../src/art/font';
-import { PARALLAX, backyardLayers, goalSprites, type VenueLayers } from '../src/art/venues/backyard';
+import { PARALLAX, backyardLayers, type VenueLayers } from '../src/art/venues/backyard';
+import { goalSprites } from '../src/art/venues/pitch';
 import { JOGGERS, PATH_Y, joggerFrames, parkLayers } from '../src/art/venues/park';
 import { harrisonPortrait } from '../src/art/harrison/portrait';
 import { IndexedImage, blit, flipX } from '../src/art/indexedImage';
@@ -131,7 +132,7 @@ function venueView(L: VenueLayers, cam: number, actors: readonly Actor[], nowS: 
   for (const name of ['near', 'ground'] as const) paint(view, L[name], pal, -Math.round(cam * PARALLAX[name]), 0);
   const posts: Actor[] = [];
   for (const goal of BACKYARD.goals) {
-    const art = goalSprites(goal.side);
+    const art = goalSprites(goal);
     const at = project(goal.lineX, 0, 0, { x: cam });
     const anchor = { x: -art.origin.x, y: -art.origin.y };
     // Nets before posts, as in the match, so a post is drawn over its net.

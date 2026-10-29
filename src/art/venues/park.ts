@@ -3,7 +3,8 @@ import { BACKYARD } from '../../game/field';
 import { M, type MasterColor } from '../colors';
 import { IndexedImage } from '../indexedImage';
 import { ditherRect, fillCircle, fillRect } from '../scenery';
-import { MID_W, NEAR_W, along, pitchGround, plot, type VenueLayers } from './backyard';
+import { MID_W, NEAR_W, type VenueLayers } from './backyard';
+import { along, pitchGround, plot } from './pitch';
 
 const H = 180;
 /** Screen row of the far touchline (z = depth): the hedge stands on it. */

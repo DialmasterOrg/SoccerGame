@@ -251,7 +251,7 @@ export function pitchDrawables(
     const part = (z: number, which: 'farNet' | 'nearNet' | 'nearPost' | 'farPost'): Drawable => ({
       z,
       draw: g => {
-        const sprites = art.goal[goal.side];
+        const sprites = art.goalsFor(w.field)[goal.side];
         const at = goalAt(cam, goal.lineX, sprites.origin);
         g.drawImage(sprites[which], at.x, at.y);
       },

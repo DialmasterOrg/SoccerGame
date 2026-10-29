@@ -3,7 +3,8 @@ import { DEPTH_SHEAR, SMALL_VIEW, project } from '../../game/camera';
 import { BACKYARD } from '../../game/field';
 import { M } from '../colors';
 import type { IndexedImage } from '../indexedImage';
-import { backyardLayers, goalSprites, type GoalArt } from './backyard';
+import { backyardLayers } from './backyard';
+import { goalSprites, type GoalArt } from './pitch';
 
 const FENCE = [M.wood, M.hair, M.hairShadow];
 const GRASS = [M.grass, M.grassLight, M.grassDark];
@@ -97,7 +98,7 @@ function pixelAt(art: GoalArt, img: IndexedImage, lineX: number, x: number, y: n
 describe('goalSprites', () => {
   for (const goal of BACKYARD.goals) {
     describe(`${goal.side} goal`, () => {
-      const art = goalSprites(goal.side);
+      const art = goalSprites(goal);
 
       it('posts land on the projected post positions', () => {
         for (const [img, z] of [
@@ -140,8 +141,8 @@ describe('goalSprites', () => {
   }
 
   it('the two goals are drawn from the geometry, not mirrored', () => {
-    const left = goalSprites('left');
-    const right = goalSprites('right');
+    const left = goalSprites(BACKYARD.goals[0]);
+    const right = goalSprites(BACKYARD.goals[1]);
     // The slant is global: both goals lean the same way, so the far post is right of the near post on both.
     const nearL = Math.min(...opaqueColumns(left, left.nearPost, 28));
     const farL = Math.min(...opaqueColumns(left, left.farPost, 28));
