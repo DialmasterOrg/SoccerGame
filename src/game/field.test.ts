@@ -44,9 +44,14 @@ describe('playerSpan', () => {
 });
 
 describe('the School Field', () => {
-  it('the School Field: goals 56 wide and 48 high, mirrored, inside the fences', () => {
+  it('the School Field: goals 68 wide and 48 high, mirrored, inside the fences and the goal area', () => {
+    // Widened from 56 at the parent's ask (2026-10-29): scoring against a keeper felt too hard.
     const [l, r] = SCHOOL_FIELD.goals;
-    for (const g of [l, r]) expect([g.z1 - g.z0, g.barY]).toEqual([56, 48]);
+    for (const g of [l, r]) expect([g.z1 - g.z0, g.barY]).toEqual([68, 48]);
+    for (const g of [l, r]) {
+      expect(g.z0).toBeGreaterThanOrEqual(SCHOOL_FIELD.markings!.goalArea.z0 + 2);
+      expect(g.z1).toBeLessThanOrEqual(SCHOOL_FIELD.markings!.goalArea.z1 - 2);
+    }
     expect(l.lineX).toBe(SCHOOL_FIELD.width - r.lineX);
     expect(l.backX).toBe(SCHOOL_FIELD.width - r.backX);
     expect(l.backX).toBeGreaterThan(SCHOOL_FIELD.fenceL);
@@ -55,6 +60,7 @@ describe('the School Field', () => {
 
   it('a ball in the School goal mouth under the bar scores', () => {
     expect(goalScored(SCHOOL_FIELD, { x: 1250, y: 10, z: 64 })).toBe('right');
-    expect(goalScored(SCHOOL_FIELD, { x: 1250, y: 10, z: 95 })).toBeNull();
+    expect(goalScored(SCHOOL_FIELD, { x: 1250, y: 10, z: 95 })).toBe('right');
+    expect(goalScored(SCHOOL_FIELD, { x: 1250, y: 10, z: 101 })).toBeNull();
   });
 });

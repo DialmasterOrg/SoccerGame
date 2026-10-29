@@ -1105,3 +1105,14 @@ shot saved, which felt too hard to score on. The keepers' targets above
   own side of it (it used to be 40 short to 240 past), so it usually
   comes down a little short of the line; the backspin still checks it up
   there, and the players still wait out where it comes down.
+- **The goals are wider** (the parent's ask, the same day, after another
+  playtest: scoring still felt a little too hard): the School Field's
+  goal mouth is 68 deep (z 30-98), not the brainstorm's 56 (z 36-92),
+  still 48 high and 4 px inside the goal area each side; the goal
+  sprites follow the geometry. A keeper's dive now covers about half of
+  the mouth instead of two thirds. Measured (seeds 100-163), goals let
+  in: long shots E/N/H .56/.41/.34 at level 1, .37/.19/.10 at level 8;
+  placed corners .86/.84/.72 at level 1, .86/.75/.64 at level 8; the
+  one-on-one on Normal .94 at level 1. No slow roller ever goes in;
+  scripted Normal matches average .63 goals a side, at most 2. The
+  Normal corner band is now .65-.9.

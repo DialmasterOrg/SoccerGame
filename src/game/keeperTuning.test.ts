@@ -14,9 +14,9 @@ describe("keepers on Normal, against the venue's first keeper", () => {
     expect(saved).toBeLessThanOrEqual(0.7);
   });
 
-  it('let in about two in three well-placed shots into a corner from inside the box', () => {
-    expect(goalRate('corner', 1, 'normal', SEEDS)).toBeGreaterThanOrEqual(0.55);
-    expect(goalRate('corner', 1, 'normal', SEEDS)).toBeLessThanOrEqual(0.8);
+  it('let in most well-placed shots into a corner from inside the box', () => {
+    expect(goalRate('corner', 1, 'normal', SEEDS)).toBeGreaterThanOrEqual(0.65);
+    expect(goalRate('corner', 1, 'normal', SEEDS)).toBeLessThanOrEqual(0.9);
   });
 
   it('are beaten nearly every time by a patient one-on-one', () => {

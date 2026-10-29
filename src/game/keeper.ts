@@ -56,14 +56,14 @@ const profile = (p: KeeperProfile): KeeperProfile => p;
  * shot's flight from the box's edge (650 px/s over 180 px is 0.28 s), or
  * he never moves for one and never pushes a ball away. Softened after the
  * parent's first playtest (2026-10-29: a 0-0 with every shot saved felt too
- * hard to score on). Measured with keeperScripts' drills (seeds 100-163):
- * goals let in from long shots E/N/H .46/.35/.24 at level 1 (Normal saves
- * .65), .26/.11/0 at level 8; from placed corner shots .77/.73/.49 at level
- * 1, .77/.60/.33 at level 8; a patient one-on-one on Normal scores .94 at
- * level 1 and .58 at level 8; the sharpest keeper still lets in .33 of
- * corners; no slow roller ever goes in. Scripted matches on Normal (seeds
- * 100-131) average .63 goals a side, at most 4. Mutable, so headless
- * sweeps can try other numbers.
+ * hard to score on), then the goal mouth widened from 56 to 68. Measured
+ * with keeperScripts' drills (seeds 100-163): goals let in from long shots
+ * E/N/H .56/.41/.34 at level 1 (Normal saves .59), .37/.19/.10 at level 8;
+ * from placed corner shots .86/.84/.72 at level 1, .86/.75/.64 at level 8;
+ * a patient one-on-one on Normal scores .94 at level 1 and .59 at level 8;
+ * the sharpest keeper still lets in .64 of corners; no slow roller ever
+ * goes in. Scripted matches on Normal (seeds 100-131) average .63 goals a
+ * side, at most 2. Mutable, so headless sweeps can try other numbers.
  */
 export const KEEPER_LEVELS: Record<Difficulty, { first: KeeperProfile; last: KeeperProfile }> = {
   easy: {

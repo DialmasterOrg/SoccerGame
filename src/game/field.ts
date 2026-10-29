@@ -60,8 +60,9 @@ export const SCHOOL_FIELD: Field = {
   fenceL: 4,
   fenceR: 1276,
   goals: [
-    { side: 'left', lineX: 40, backX: 12, barY: 48, barThick: 2, z0: 36, z1: 92 },
-    { side: 'right', lineX: 1240, backX: 1268, barY: 48, barThick: 2, z0: 36, z1: 92 },
+    // 68 deep (was 56): widened at the parent's ask, so a keeper's dive covers less of the mouth.
+    { side: 'left', lineX: 40, backX: 12, barY: 48, barThick: 2, z0: 30, z1: 98 },
+    { side: 'right', lineX: 1240, backX: 1268, barY: 48, barThick: 2, z0: 30, z1: 98 },
   ],
   markings: { touchZ: [3, 125], box: { out: 110, z0: 10, z1: 118 }, goalArea: { out: 36, z0: 26, z1: 102 }, spotOut: 76, circleR: 36 },
 };
