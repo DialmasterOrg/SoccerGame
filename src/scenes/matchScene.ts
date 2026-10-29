@@ -1,4 +1,5 @@
 import { keeperLevel, keeperLineup, keeperProfile } from '../game/keeper';
+import { keeperLooks } from './keeperView';
 import { matchFeedback, speedMemo } from '../audio/matchFeedback';
 import type { InputFrame } from '../engine/input';
 import { createBrain, think, type Difficulty } from '../game/ai';
@@ -168,6 +169,11 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
     // Read when drawn, so a scene made without art (in tests) never touches it.
     get awaySprites() {
       return change ? art.opponentIn(human, change) : art.opponents[human].sprites;
+    },
+    get keeperSprites() {
+      if (!world.keepers) return null;
+      const looks = keeperLooks(match);
+      return { home: art.keepers[looks.home], away: art.keepers[looks.away] };
     },
     fx: animates(outfitOf(ctx.profile)) ? new OutfitFx(outfitOf(ctx.profile), seed + FX_SEED_OFFSET) : null,
   };

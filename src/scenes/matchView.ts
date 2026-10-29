@@ -10,7 +10,8 @@ import { DECEL, type Player } from '../game/player';
 import { powerHint } from '../game/power';
 import type { World } from '../game/world';
 import type { VenueId } from '../meta/career';
-import type { GameArt, HomeSet, SpriteSet } from './art';
+import type { GameArt, HomeSet, KeeperSprites, SpriteSet } from './art';
+import { drawKeeperShadows, keeperDrawables } from './keeperView';
 import type { OutfitFx } from './outfitView';
 import { depthSorted, type Drawable } from './depthSort';
 import { drawDog } from './dogView';
@@ -56,6 +57,8 @@ export interface MatchHud {
   trickCallout: string | null;
   /** The away side's name on the HUD and its goal banner. */
   awayName: string;
+  /** Both keepers' sprites: Harrison's in the home goal, theirs in the away one; null or absent without keepers. */
+  readonly keeperSprites?: { home: KeeperSprites; away: KeeperSprites } | null;
   /** Where the match is played: its scenery. */
   venue: VenueId;
   /** The away player's sprites: Max, or the Park kid playing. Unused against Biscuit. */
@@ -246,6 +249,7 @@ export function pitchDrawables(
   home: Clip = w.home.anim,
   look: HomeLook = { set: 'home', aura: 0, nowS: 0, fx: null },
   away?: SpriteSet,
+  keepers: { home: KeeperSprites; away: KeeperSprites } | null = null,
 ): Drawable[] {
   const goals = w.field.goals.flatMap(goal => {
     const part = (z: number, which: 'farNet' | 'nearNet' | 'nearPost' | 'farPost'): Drawable => ({
@@ -292,6 +296,7 @@ export function pitchDrawables(
     ...speed,
     { z: w.home.z, draw: g => drawHome(g, cam, w.home, art, home, look) },
     { z: w.away.z, draw: g => drawAway(g, cam, w, art, look.nowS, away) },
+    ...(keepers ? keeperDrawables(w, cam, keepers, look.nowS) : []),
     // Last among equals: at his feet, the ball is drawn over his boots.
     ...(w.dog?.carrying ? [] : [{ z: w.ball.z, draw: (g: CanvasRenderingContext2D) => drawBall(g, w, cam, art) }]),
   ];
@@ -390,10 +395,11 @@ function pitchShake(w: World, hud: MatchHud, nowS: number): { dx: number; dy: nu
 }
 
 /** An impact frame: the pitch in white, with the players and ball as dark silhouettes. */
-function drawImpact(g: CanvasRenderingContext2D, w: World, cam: Camera, art: GameArt, home: Clip, look: HomeLook, away: SpriteSet): void {
+function drawImpact(g: CanvasRenderingContext2D, w: World, cam: Camera, art: GameArt, home: Clip, look: HomeLook, away: SpriteSet, keepers: MatchHud['keeperSprites'] = null): void {
   const view = viewOf(cam);
   ink(g, 'white');
   g.fillRect(-8, -8, view.w + 16, view.h + 16);
+  if (keepers) for (const d of keeperDrawables(w, cam, keepers, look.nowS, true)) d.draw(g);
   drawAway(g, cam, w, art, look.nowS, away, true);
   drawHome(g, cam, w.home, art, home, look, true);
   if (!w.dog?.carrying) drawBall(g, w, cam, art, true);
@@ -436,9 +442,10 @@ export function drawMatch(g: CanvasRenderingContext2D, w: World, cam: Camera, ar
   if (!w.dog?.carrying) drawShadow(g, cam, w.ball.x, w.ball.z);
   drawShadow(g, cam, w.away.x, w.away.z, w.dog ? DOG_SHADOW_W : SHADOW_W);
   drawShadow(g, cam, w.home.x, w.home.z);
+  drawKeeperShadows(g, cam, w);
   drawSkid(g, cam, w.away);
   drawTrail(g, cam, hud.trail);
-  for (const d of depthSorted(pitchDrawables(w, cam, art, home, look, hud.awaySprites))) d.draw(g);
+  for (const d of depthSorted(pitchDrawables(w, cam, art, home, look, hud.awaySprites, hud.keeperSprites ?? null))) d.draw(g);
   drawTrickMarks(g, cam, w, art, nowS);
   if (w.wave) {
     drawBeam(g, cam, w.wave, nowS);
@@ -446,7 +453,7 @@ export function drawMatch(g: CanvasRenderingContext2D, w: World, cam: Camera, ar
     if (w.wave.outcome === 'braced' && w.away.state === 'bracing') drawAway(g, cam, w, art, nowS, hud.awaySprites);
   }
   if (hud.impactFrames > 0) {
-    drawImpact(g, w, cam, art, home, look, hud.awaySprites);
+    drawImpact(g, w, cam, art, home, look, hud.awaySprites, hud.keeperSprites);
     hud.impactFrames--;
   }
   drawChargeBar(g, cam, w.away, nowS);

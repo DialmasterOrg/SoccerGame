@@ -1,6 +1,7 @@
 import { ballFrames } from '../art/ball';
 import type { AnimName } from '../art/body/animations';
 import { bakeAll, type BakedClip } from '../art/body/bake';
+import { NO_BODY_EXTRAS, type BodyExtras } from '../art/body/drawFigure';
 import type { HeadSprite } from '../art/body/head';
 import type { HeadFacing } from '../art/body/pose';
 import { HARRISON_BODY, type BodyProportions } from '../art/body/proportions';
@@ -13,7 +14,9 @@ import { BISCUIT_FACE, BISCUIT_FRAMES, type DogAnim } from '../art/opponents/bis
 import { CREW_BODY, CREW_HEADS, crewLook } from '../art/opponents/crew';
 import { MAX_HEADS, maxLook } from '../art/opponents/max';
 import { SAM_HEADS, samLook } from '../art/opponents/sam';
-import { addOutline } from '../art/raster';
+import { addOutline, type Point } from '../art/raster';
+import { KEEPER_EXTRAS, KEEPER_HEADS, keeperLook, type KeeperId } from '../art/keepers/keepers';
+import { KEEPER_POSE_FRAMES, bakeKeeperPoses, diveFrames, type KeeperPose } from '../art/keepers/poses';
 import { backyardLayers, type VenueLayers } from '../art/venues/backyard';
 import { JOGGERS, joggerFrames, parkLayers } from '../art/venues/park';
 import { goalSprites, type GoalArt } from '../art/venues/pitch';
@@ -34,6 +37,14 @@ export type HomeSet = 'home' | 'homePower' | 'homeGolden';
 export interface SpriteSet {
   right: Record<AnimName, HTMLCanvasElement[]>;
   left: Record<AnimName, HTMLCanvasElement[]>;
+}
+
+/** A keeper: the shared clips in his top and gloves, his own poses, and his dives baked for each facing. */
+export interface KeeperSprites {
+  /** The shared clips (run, sprint, fall, fooled, stumble...) in his top and gloves. */
+  body: SpriteSet;
+  poses: Record<KeeperPose, FacingFrames>;
+  dives: Record<'far' | 'near', { right: HTMLCanvasElement[]; left: HTMLCanvasElement[]; anchor: { right: Point; left: Point } }>;
 }
 
 /** Biscuit's clips, facing right and left. */
@@ -96,6 +107,8 @@ export interface GameArt {
   opponentIn(id: HumanOpponent, change: ChangeKit): SpriteSet;
   /** Harrison's portrait in each expression, in what he wears. */
   readonly portraits: Record<Expression, HTMLCanvasElement>;
+  /** The three keepers, baked the first time they're read. */
+  readonly keepers: Readonly<Record<KeeperId, KeeperSprites>>;
   /** Biscuit the Dog, the Backyard's boss. */
   biscuit: DogSprites;
   /** His face, front on and outlined, for the boss node and the VS card. */
@@ -123,8 +136,8 @@ export const OPPONENT_LOOKS: Readonly<Record<HumanOpponent, OpponentLook>> = {
   sam: { heads: SAM_HEADS, look: samLook(), body: HARRISON_BODY },
 };
 
-function spriteSet(cache: SpriteCache, who: string, heads: Readonly<Record<HeadFacing, HeadSprite>>, look: LookColors, body: BodyProportions = HARRISON_BODY): SpriteSet {
-  const baked = bakeAll(body, heads);
+function spriteSet(cache: SpriteCache, who: string, heads: Readonly<Record<HeadFacing, HeadSprite>>, look: LookColors, body: BodyProportions = HARRISON_BODY, extras: BodyExtras = NO_BODY_EXTRAS): SpriteSet {
+  const baked = bakeAll(body, heads, extras);
   const palette = resolvePalette(look);
   const set: SpriteSet = { right: {} as SpriteSet['right'], left: {} as SpriteSet['left'] };
   for (const [name, clip] of Object.entries(baked) as [AnimName, BakedClip][]) {
@@ -133,6 +146,21 @@ function spriteSet(cache: SpriteCache, who: string, heads: Readonly<Record<HeadF
     set.left[name] = f.left;
   }
   return set;
+}
+
+/** A keeper's sprites: every dive facing baked from its own turn, never a flip, since depth always leans right. */
+function keeperSprites(cache: SpriteCache, id: KeeperId): KeeperSprites {
+  const heads = KEEPER_HEADS[id];
+  const palette = resolvePalette(keeperLook(id));
+  const baked = bakeKeeperPoses(HARRISON_BODY, heads, KEEPER_EXTRAS);
+  const poses = Object.fromEntries(
+    (Object.keys(KEEPER_POSE_FRAMES) as KeeperPose[]).map(name => [name, cache.frames(`keeper-${id}/pose-${name}`, () => ({ frames: baked[name], palette }))]),
+  ) as Record<KeeperPose, FacingFrames>;
+  const dive = (toward: 'far' | 'near') => {
+    const [r, l] = [diveFrames(HARRISON_BODY, heads, KEEPER_EXTRAS, 1, toward), diveFrames(HARRISON_BODY, heads, KEEPER_EXTRAS, -1, toward)];
+    return { right: r.frames.map(f => toCanvas(f, palette)), left: l.frames.map(f => toCanvas(f, palette)), anchor: { right: r.anchor, left: l.anchor } };
+  };
+  return { body: spriteSet(cache, `keeper-${id}`, heads, keeperLook(id), HARRISON_BODY, KEEPER_EXTRAS), poses, dives: { far: dive('far'), near: dive('near') } };
 }
 
 /** A head on its own, with a one-pixel outline ring, in `look`'s colours. */
@@ -176,6 +204,15 @@ export function loadGameArt(): GameArt {
   let outfit = DEFAULT_OUTFIT;
   let backdropFx = new OutfitFx(outfit, BACKDROP_FX_SEED);
   const goals = new Map<Field, Readonly<Record<'left' | 'right', GoalCanvases>>>();
+  const keepers = new Map<KeeperId, KeeperSprites>();
+  const keeper = (id: KeeperId): KeeperSprites => {
+    let made = keepers.get(id);
+    if (!made) {
+      made = keeperSprites(cache, id);
+      keepers.set(id, made);
+    }
+    return made;
+  };
   return {
     venues: {
       backyard: venueCanvases(backyardLayers(), [], master),
@@ -234,6 +271,17 @@ export function loadGameArt(): GameArt {
     },
     get portraits() {
       return harrison.portraitsOf(outfit);
+    },
+    keepers: {
+      get eddie() {
+        return keeper('eddie');
+      },
+      get backupA() {
+        return keeper('backupA');
+      },
+      get backupB() {
+        return keeper('backupB');
+      },
     },
     biscuit: Object.fromEntries(
       Object.entries(BISCUIT_FRAMES).map(([name, frames]) => [name, cache.frames(`biscuit/${name}`, () => ({ frames: [...frames], palette: master }))]),

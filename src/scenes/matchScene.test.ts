@@ -22,7 +22,7 @@ import { DEFAULT_SETTINGS } from '../meta/settings';
 import { BONUS_CALLOUT, BONUS_SHOW_S, PAUSE_ITEMS, TRICK_CALLOUT_S, createMatchScene, type MatchScene } from './matchScene';
 import { trickSetup } from '../game/opponents';
 import type { Scene } from './scene';
-import { fakeArt, recordingContext, type Named } from './testDraw';
+import { fakeArt, recordingContext, stubCanvases, type Named } from './testDraw';
 import { testContext } from './testContext';
 import { frame } from './testInput';
 
@@ -1179,6 +1179,22 @@ describe('stages', () => {
 
   it('a Backyard match has no keepers', () => {
     expect(createMatchScene(testContext(), 3).world.keepers).toBeNull();
+  });
+
+  it("a School match draws both keepers: Eddie in Harrison's goal, a backup in theirs", () => {
+    stubCanvases();
+    const s = createMatchScene(testContext({ art: fakeArt() }), 3, SCHOOL_TEST);
+    const main = recordingContext();
+    s.draw(main.g, 0);
+    expect(main.drawn.some(n => n?.startsWith('art.keepers.eddie.poses.ready.right'))).toBe(true);
+    expect(main.drawn.some(n => n?.startsWith('art.keepers.backupA.poses.ready.left'))).toBe(true);
+  });
+
+  it('a Backyard match draws no keepers', () => {
+    const s = createMatchScene(testContext({ art: fakeArt() }), 3);
+    const main = recordingContext();
+    s.draw(main.g, 0);
+    expect(main.drawn.some(n => n?.includes('keepers'))).toBe(false);
   });
 
   it('a Backyard match keeps the 320×180 canvas and its 90 seconds', () => {
