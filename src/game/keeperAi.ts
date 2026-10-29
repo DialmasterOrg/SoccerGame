@@ -7,7 +7,7 @@ import { onTarget } from './power';
 import { SPRINT_MULTIPLIER, runSpeed, touchPush } from './stats';
 import { maxHasBall } from './steal';
 import { REACH_Z } from './zones';
-import { ZONE_AHEAD } from './keeperSaves';
+import { ZONE_AHEAD, atFeet } from './keeperSaves';
 import type { World } from './world';
 
 /** When and where the ball crosses his x-plane. */
@@ -121,8 +121,6 @@ const sprintS = (p: Player, at: { x: number; z: number }): number => Math.hypot(
 /** His side's opponent, and his own teammate. */
 const sides = (w: World, k: Keeper): [attacker: Player, mate: Player] => (k.side === 'away' ? [w.home, w.away] : [w.away, w.home]);
 
-/** A ball this close ahead of him, on his line, is at his feet whoever touched it last. */
-const FEET_AHEAD = 10;
 /** His own dribble touch runs the ball up to this far ahead of him... */
 const DRIBBLE_AHEAD = 32;
 /** ...at no more than this over his touch's push, px/s: any faster, it's a shot. */
@@ -133,10 +131,11 @@ const ROLLING = 40;
 /** The attacker has it: at his feet, or his own touch still running with him. */
 function dribbling(w: World, p: Player): boolean {
   const b = w.ball;
+  // In a trick with the ball, it's his wherever the trick carries it (up behind his heel in a flick).
+  if (atFeet(p, b) || p.trick?.onBall) return true;
   if (p.y !== 0 || p.state === 'fallen' || p.state === 'blown' || b.y > BALL_REST_Y + 0.5 || Math.abs(b.z - p.z) > REACH_Z) return false;
   const ahead = (b.x - p.x) * p.facing;
   if (ahead < 0) return false;
-  if (ahead <= FEET_AHEAD) return true;
   const speed = Math.hypot(b.vx, b.vz);
   const gaining = b.vx * p.facing - p.vx * p.facing;
   return b.touchedBy === p.team && ahead <= DRIBBLE_AHEAD && speed >= ROLLING && gaining <= touchPush(p.stats) + DRIBBLE_SLACK;
@@ -181,7 +180,15 @@ const lastMove = new WeakMap<Keeper, PlayerIntent>();
 export function thinkKeeper(w: World, k: Keeper, dt: number): KeeperIntent {
   noteFlight(w, k);
   k.readS = Math.max(0, k.readS - dt);
+  const { body } = k;
+  // Blown into his net, once he's up he walks straight out toward the pitch, whatever the phase.
+  if (body.inNet) return { move: body.state === 'ground' ? { ...NO_INTENT, moveX: pitchward(w.field, k.side) } : NO_INTENT, dive: null };
   if (w.match.phase !== 'playing') return { move: NO_INTENT, dive: null };
+  // Fooled by a stepover he dives the wrong way at once, toward his sway; stumbling from a flick, he stands.
+  if (body.fooled) {
+    const wrongWay = body.fooled.kind === 'confused' && (k.act === 'set' || k.act === 'rush');
+    return { move: NO_INTENT, dive: wrongWay ? { dirX: 0, dirZ: Math.sign(body.fooled.swayZ - body.z) || 1 } : null };
+  }
   // Coming out at a dribbler, he commits on how close the ball is, not on a fresh read: every touch is a new flight.
   if (k.readS > 0) {
     const committed = k.act === 'rush' && throughOnGoal(w, k) ? smother(w, k) : null;

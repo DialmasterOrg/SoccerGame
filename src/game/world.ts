@@ -360,7 +360,8 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
     kicks.forEach((k, i) => {
       if (k.kicked) keepers.strike = { team: i === 0 ? 'home' : 'away', kind: k.kicked, perfect: k.perfect, x: w.ball.x };
     });
-    if (!held && !punting) keeperSaves(w, from, keeper);
+    // While the wave is live nobody else touches the ball, keepers included.
+    if (!held && !punting && !w.wave?.live) keeperSaves(w, from, keeper);
     if (keepers.punt !== null && w.ball.vy <= 0) keepers.punt = null;
   }
   w.tick++;

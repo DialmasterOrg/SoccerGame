@@ -2,7 +2,7 @@ import type { Difficulty, Style } from './ai';
 import { BALL_REST_Y } from './ball';
 import { KEEP_OUT_X, canPlace } from './contact';
 import { ballIsHis } from './dragBack';
-import { PLAYER_R, type PlayerIntent } from './player';
+import { PLAYER_R, type Player, type PlayerIntent } from './player';
 import { addMeter } from './power';
 import { FOOT_SPOT } from './steal';
 import type { World } from './world';
@@ -114,12 +114,11 @@ export interface TrickEvents {
 export const quietTricks = (): TrickEvents => ({ started: null, released: false, fooled: null });
 
 /** The gap from Harrison to the defender along his facing, px. */
-const gapAhead = (w: World): number => (w.away.x - w.home.x) * w.home.facing;
+const gapAhead = (w: World, d: Player): number => (d.x - w.home.x) * w.home.facing;
 
 /** On his feet, playing as normal, facing Harrison: the defender a trick can work on. */
-function facingHim(w: World): boolean {
-  const { home, away } = w;
-  return away.state === 'ground' && away.y === 0 && away.fooled === null && away.facing === -home.facing;
+function facingHim(w: World, d: Player): boolean {
+  return d.state === 'ground' && d.y === 0 && d.fooled === null && d.facing === -w.home.facing;
 }
 
 /**
@@ -128,49 +127,69 @@ function facingHim(w: World): boolean {
  * wise to it, not backing off from a powered-up Harrison, and not holding
  * his spot at Harrison's kickoff.
  */
-export function squaredUp(w: World): boolean {
+export function squaredUp(w: World, d: Player = w.away): boolean {
   if (!w.tricks) return false;
-  const { home, away, ball, field } = w;
+  const { home, ball, field } = w;
   const { near, far } = w.tricks.profile;
-  const gap = gapAhead(w);
+  const gap = gapAhead(w, d);
   const kickoff = w.match.kickoffTeam === 'home' && Math.hypot(ball.x - field.width / 2, ball.z - field.depth / 2) <= ON_SPOT;
   const powered = (w.power?.activeS ?? 0) > 0;
-  return gap >= near && gap <= far && Math.abs(away.z - home.z) <= TRICK_LANE && facingHim(w) && away.wiseS === 0 && !powered && !kickoff;
+  return gap >= near && gap <= far && Math.abs(d.z - home.z) <= TRICK_LANE && facingHim(w, d) && d.wiseS === 0 && !powered && !kickoff;
 }
 
 /** The defender saw a trick that didn't fool him: facing Harrison from in front within SEE_RANGE, but not squared up. */
-export function seesTrick(w: World): boolean {
-  const gap = gapAhead(w);
-  return gap > 0 && gap <= SEE_RANGE && facingHim(w) && !squaredUp(w);
+export function seesTrick(w: World, d: Player = w.away): boolean {
+  const gap = gapAhead(w, d);
+  return gap > 0 && gap <= SEE_RANGE && facingHim(w, d) && !squaredUp(w, d);
 }
 
-/** The sell: a squared-up defender is fooled; one who only saw it is wise to it. */
-function sell(w: World, ev: TrickEvents): void {
-  const { away, field } = w;
+/** Their keeper, while he's coming out: then he's a defender a trick can work on. */
+function keeperOut(w: World): Player | null {
+  const k = w.keepers?.away;
+  return k && k.act === 'rush' ? k.body : null;
+}
+
+/** Fools or wises up one defender at the sell, at `scale`: true if he was fooled. */
+function sellTo(w: World, d: Player, scale: TrickScale, ev: TrickEvents): boolean {
   const trick = w.home.trick!;
-  if (trick.onBall && squaredUp(w)) {
-    const { profile, scale } = w.tricks!;
+  if (trick.onBall && squaredUp(w, d)) {
+    const { profile } = w.tricks!;
     const s = scale[trick.kind] * (trick.kind === 'stepover' ? profile.confusedS : profile.stumbleS);
-    const swayZ = Math.min(Math.max(away.z + trick.side * STEPOVER.swayPx, PLAYER_R), field.depth - PLAYER_R);
-    away.fooled = { kind: trick.kind === 'stepover' ? 'confused' : 'stumble', leftS: s, totalS: s, swayZ };
+    const swayZ = Math.min(Math.max(d.z + trick.side * STEPOVER.swayPx, PLAYER_R), w.field.depth - PLAYER_R);
+    d.fooled = { kind: trick.kind === 'stepover' ? 'confused' : 'stumble', leftS: s, totalS: s, swayZ };
     ev.fooled = trick.kind;
-    if (w.power) addMeter(w.power, 'trick');
-  } else if (seesTrick(w)) away.wiseS = WISE_S;
+    return true;
+  }
+  if (seesTrick(w, d)) d.wiseS = WISE_S;
+  return false;
 }
 
-/** The defender's fooled and wise timers, while play is live. A fooling that ends leaves him wise. */
-function tickDefender(w: World, dt: number): void {
-  const away = w.away;
-  if (w.match.phase !== 'playing') return;
-  if (!away.fooled) {
-    away.wiseS = Math.max(0, away.wiseS - dt);
+/** The sell: a squared-up defender is fooled; one who only saw it is wise to it. Their keeper coming out counts too, at the allRound scale. */
+function sell(w: World, ev: TrickEvents): void {
+  let fooled = sellTo(w, w.away, w.tricks!.scale, ev);
+  const keeper = keeperOut(w);
+  if (keeper) fooled = sellTo(w, keeper, TRICK_SCALE.allRound, ev) || fooled;
+  if (fooled && w.power) addMeter(w.power, 'trick');
+}
+
+/** One defender's fooled and wise timers. A fooling that ends leaves him wise. */
+function tickOne(d: Player, dt: number): void {
+  if (!d.fooled) {
+    d.wiseS = Math.max(0, d.wiseS - dt);
     return;
   }
-  away.fooled.leftS -= dt;
-  if (away.fooled.leftS <= 1e-9) {
-    away.fooled = null;
-    away.wiseS = WISE_S;
+  d.fooled.leftS -= dt;
+  if (d.fooled.leftS <= 1e-9) {
+    d.fooled = null;
+    d.wiseS = WISE_S;
   }
+}
+
+/** The defenders' fooled and wise timers, Max's and their keeper's, while play is live. */
+function tickDefender(w: World, dt: number): void {
+  if (w.match.phase !== 'playing') return;
+  tickOne(w.away, dt);
+  if (w.keepers) tickOne(w.keepers.away.body, dt);
 }
 
 /** Facing his own goal inside the keep-out zone, where a flick could drop into his own net. */

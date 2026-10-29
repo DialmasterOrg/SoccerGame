@@ -78,14 +78,19 @@ export function keepOutOfGoals(p: Player, field: Field): void {
   }
 }
 
-/** A player blown into a net stays in the goal his centre is in. */
+/**
+ * A keeper blown into his net: the net back and sides hold him, its mouth
+ * open so he can walk out. Clear of the goal, he's out of the net.
+ */
 function keepInNet(p: Player, field: Field): void {
-  for (const g of field.goals) {
-    if (!inGoalBox(g, p.x, p.z)) continue;
-    const [x0, x1] = [Math.min(g.lineX, g.backX), Math.max(g.lineX, g.backX)];
-    p.x = Math.min(Math.max(p.x, x0 + PLAYER_R), x1 - PLAYER_R);
-    p.z = Math.min(Math.max(p.z, g.z0 + PLAYER_R), g.z1 - PLAYER_R);
+  const g = field.goals.find(g => inGoalBox(g, p.x, p.z, PLAYER_R));
+  if (!g) {
+    p.inNet = false;
+    return;
   }
+  const out = g.side === 'right' ? -1 : 1;
+  p.x = out === -1 ? Math.min(p.x, g.backX - PLAYER_R) : Math.max(p.x, g.backX + PLAYER_R);
+  if ((p.x - g.lineX) * out < 0) p.z = Math.min(Math.max(p.z, g.z0 + PLAYER_R), g.z1 - PLAYER_R);
 }
 
 /**
@@ -103,8 +108,10 @@ function confine(p: Player, field: Field): boolean {
     p.x = Math.min(Math.max(p.x, p.area.x0), p.area.x1);
     p.z = Math.min(Math.max(p.z, p.area.z0), p.area.z1);
   }
+  // A keeper flying along the beam goes into his net, and the net then holds him.
+  if (p.area && p.state === 'blown' && !p.inNet && field.goals.some(g => inGoalBox(g, p.x, p.z))) p.inNet = true;
   if (p.inNet) keepInNet(p, field);
-  else keepOutOfGoals(p, field);
+  else if (!(p.area && p.state === 'blown')) keepOutOfGoals(p, field);
   return p.x !== x || p.z !== z;
 }
 

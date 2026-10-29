@@ -6,6 +6,7 @@ import { BLOWN_DOWN_S, NO_INTENT, PLAYER_R, blowAway } from './player';
 import { maxShotSpeed, BASE_STATS } from './stats';
 import { BRACE_DISTANCE, WAVE_HALF_WIDTH, WAVE_SPEED, fireWave } from './wave';
 import { createWorld, stepWorld, type World } from './world';
+import { keeperWorld, runFor, runUntil, setBall } from './testKeepers';
 
 const STEP = 1 / 60;
 const ORIGIN_X = 208;
@@ -132,5 +133,39 @@ describe('blown away beside his own goal', () => {
       expect(w.away.y).toBeLessThan(goal.barY);
     }
     expect(w.away.state).toBe('ground');
+  });
+});
+
+describe('the Energy Wave against keepers', () => {
+  function waveAtKeeper(): World {
+    const w = keeperWorld({ power: true });
+    runFor(w, 1);
+    Object.assign(w.away, { x: 500, z: 120 });
+    Object.assign(w.home, { x: 1092, z: 64, facing: 1 });
+    setBall(w, { x: 1100, z: 64 });
+    w.wave = fireWave(w);
+    return w;
+  }
+
+  it('the Energy Wave blows a keeper in its path into his net, and scores', () => {
+    const w = waveAtKeeper();
+    // The ball can cross the line a tick or two before he lands in the net, so watch for both.
+    let [inNet, goal] = [false, false];
+    runUntil(w, 1, w => {
+      inNet ||= w.keepers!.away.body.inNet === true;
+      goal ||= w.events.goal === 'home';
+      return inNet && goal;
+    });
+    expect([inNet, goal, w.wave?.keeperBlown]).toEqual([true, true, true]);
+  });
+
+  it('a keeper blown into his net walks back out before the kickoff', () => {
+    const w = waveAtKeeper();
+    runUntil(w, 1, w => w.events.goal === 'home');
+    runUntil(w, BLOWN_DOWN_S + 0.4, () => false);
+    const k = w.keepers!.away.body;
+    expect(w.match.phase).toBe('goal');
+    expect(k.inNet ?? false).toBe(false);
+    for (const g of w.field.goals) expect(inGoalBox(g, k.x, k.z, 0)).toBe(false);
   });
 });

@@ -7,7 +7,7 @@ import type { Difficulty } from './ai';
 import type { ContactEvents } from './contact';
 import { penaltyArea, type Field, type Goal } from './field';
 import type { Team } from './match';
-import { NO_INTENT, PLAYER_R, createPlayer, stepPlayer, type Player, type PlayerIntent } from './player';
+import { NO_INTENT, PLAYER_R, blowAway, createPlayer, stepPlayer, type Player, type PlayerIntent } from './player';
 import { BASE_STATS, runSpeed } from './stats';
 import type { World } from './world';
 
@@ -230,6 +230,7 @@ export function stepKeeper(w: World, k: Keeper, intent: KeeperIntent, live: bool
   k.actT += dt;
   if (k.pose && (k.pose.leftS -= dt) <= 0) k.pose = null;
   if (live && intent.dive && onFeet(k) && k.body.state === 'ground') startDive(k, intent.dive, ev);
+  const walkingOut = k.body.inNet === true;
   const { profile, body } = k;
   switch (k.act) {
     case 'dive':
@@ -259,7 +260,7 @@ export function stepKeeper(w: World, k: Keeper, intent: KeeperIntent, live: bool
       if (k.actT >= PUNT_S) enterAct(k, 'set');
       return;
     default: {
-      const move: PlayerIntent = live ? { ...intent.move, pace: profile.speed / runSpeed(BASE_STATS), faceX: pitchward(w.field, k.side) } : NO_INTENT;
+      const move: PlayerIntent = live || walkingOut ? { ...intent.move, pace: profile.speed / runSpeed(BASE_STATS), faceX: pitchward(w.field, k.side) } : NO_INTENT;
       stepPlayer(body, move, dt, w.field, false);
     }
   }
@@ -360,4 +361,11 @@ function dropKick(w: World, k: Keeper, ev: KeeperEvents): void {
   k.holding = false;
   w.keepers!.punt = k.side;
   ev.punted = k.side;
+}
+
+/** The Energy Wave reached him: blown back along the beam, his hold, dive and drop kick gone. */
+export function blowKeeper(w: World, k: Keeper, dirX: number, dirZ: number): void {
+  blowAway(k.body, dirX, dirZ);
+  Object.assign(k, { act: 'set', actT: 0, dive: null, holding: false, pose: null });
+  if (w.keepers!.punt === k.side) w.keepers!.punt = null;
 }

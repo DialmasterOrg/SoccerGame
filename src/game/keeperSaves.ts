@@ -2,7 +2,9 @@ import { BALL_R } from '../art/ball';
 import { blockBall } from './contact';
 import { GRAVITY } from './constants';
 import { keeperGoal, pitchward, startHold, type Keeper, type KeeperEvents, type KeeperProfile, type Strike } from './keeper';
-import { PLAYER_R } from './player';
+import { BALL_REST_Y } from './ball';
+import { PLAYER_R, type Player } from './player';
+import { REACH_Z } from './zones';
 import type { World } from './world';
 
 /** px/s: a ball this slow, at him, is always held. */
@@ -26,8 +28,19 @@ const TIP = { vx: 30, vy: 320 };
 
 const clamp01 = (v: number): number => Math.min(Math.max(v, 0), 1);
 
+/** A ball this close ahead of a player, on his line, is at his feet whoever touched it last. */
+export const FEET_AHEAD = 10;
+
+/** The ball at an outfielder's feet: low, just ahead of him on his line, him upright. */
+export function atFeet(p: Player, ball: { x: number; y: number; z: number }): boolean {
+  if (p.y !== 0 || p.state === 'fallen' || p.state === 'blown' || ball.y > BALL_REST_Y + 0.5 || Math.abs(ball.z - p.z) > REACH_Z) return false;
+  const ahead = (ball.x - p.x) * p.facing;
+  return ahead >= 0 && ahead <= FEET_AHEAD;
+}
+
 /** On his feet and not fooled, set or coming out (his standing zone) or diving (his dive zone). */
 export function canPlay(k: Keeper): boolean {
+  if (k.body.inNet) return false;
   return k.body.state === 'ground' && k.body.fooled === null && (k.act === 'set' || k.act === 'rush' || k.act === 'dive');
 }
 
@@ -112,7 +125,9 @@ export function keeperSaves(w: World, from: Pt, ev: KeeperEvents): void {
       blockBall(k.body, w.ball, w.field);
       continue;
     }
-    const hit = meets(k, from, w.ball);
+    // A ball at a dribbler's feet is won only by the smother, never plucked off them standing.
+    const atSomeonesFeet = k.act !== 'dive' && (atFeet(w.home, w.ball) || atFeet(w.away, w.ball));
+    const hit = atSomeonesFeet ? null : meets(k, from, w.ball);
     if (!hit) {
       blockBall(k.body, w.ball, w.field);
       continue;

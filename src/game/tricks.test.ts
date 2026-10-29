@@ -13,6 +13,7 @@ import { trickSetup, type HumanOpponentId } from './opponents';
 import { FLICK, STEPOVER, TRICK_COOLDOWN_S, TRICK_DIFFICULTY, WISE_S, squaredUp, type TrickSetup } from './tricks';
 import { fireWave } from './wave';
 import { createWorld, stepWorld, type World } from './world';
+import { keeperWorld, runFor, runUntil, setBall } from './testKeepers';
 
 const STEP = 1 / 60;
 const ticks = (s: number) => Math.round(s / STEP);
@@ -474,5 +475,59 @@ describe("each opponent's reaction time", () => {
     const w = facing(30, { tricks: trickSetup('normal', id) });
     toSell(w, kind === 'flick' ? FLICK_PRESS : RB);
     expect(w.away.fooled?.totalS).toBeCloseTo(s, 5);
+  });
+});
+
+describe('tricks against a keeper', () => {
+  /**
+   * Harrison through on goal at (1150, 64) with the ball at his feet, the keeper coming out at him.
+   * Returns the world once the gap between them is 60 px, so that at a trick's sell (0.2-0.25 s on)
+   * it's about 30: inside Normal's window and short of the smother.
+   */
+  function keeperComingOut(): World {
+    const w = keeperWorld({ tricks: true });
+    Object.assign(w.home, { x: 1150, z: 64, facing: 1 });
+    setBall(w, { x: 1158, z: 64 });
+    const k = w.keepers!.away;
+    if (!runUntil(w, 2, w => k.act === 'rush' && k.body.x - w.home.x <= 60)) throw new Error('the keeper never came out');
+    return w;
+  }
+
+  it('a stepover sends a keeper coming out diving the wrong way', () => {
+    const w = keeperComingOut();
+    const side = w.home.z >= w.field.depth / 2 ? 1 : -1;
+    runFor(w, 1 / 60, { ...NO_INTENT, trick: 'stepover' });
+    runUntil(w, 0.4, w => w.keepers!.away.body.fooled !== null);
+    runUntil(w, 0.2, w => w.events.keeper.dived === 'away');
+    expect(w.keepers!.away.dive?.dirZ).toBe(side);
+    expect(w.keepers!.away.holding).toBe(false);
+  });
+
+  it('a rainbow flick lifts the ball over a keeper coming out', () => {
+    const w = keeperComingOut();
+    runFor(w, 1 / 60, { ...NO_INTENT, trick: 'flick' });
+    expect(runUntil(w, 1, w => w.keepers!.away.body.fooled?.kind === 'stumble')).toBe(true);
+    expect(runUntil(w, 1, w => w.keepers!.away.holding || w.events.keeper.pushed !== null)).toBe(false);
+  });
+
+  it('a keeper set on his line is never fooled', () => {
+    const w = keeperWorld({ tricks: true });
+    runFor(w, 1);
+    const k = w.keepers!.away;
+    Object.assign(w.home, { x: k.body.x - 30, z: k.body.z, facing: 1 });
+    // Max goal-side of Harrison: not through on goal, so the keeper stays set.
+    Object.assign(w.away, { x: k.body.x - 15, z: 110 });
+    setBall(w, { x: w.home.x + 8, z: w.home.z });
+    runFor(w, 1 / 60, { ...NO_INTENT, trick: 'stepover' });
+    runFor(w, 0.3);
+    expect([k.act, k.body.fooled]).toEqual(['set', null]);
+  });
+
+  it('a fooled keeper is wise to the next trick', () => {
+    const w = keeperComingOut();
+    runFor(w, 1 / 60, { ...NO_INTENT, trick: 'stepover' });
+    runUntil(w, 0.4, w => w.keepers!.away.body.fooled !== null);
+    runUntil(w, 2, w => w.keepers!.away.body.fooled === null);
+    expect(w.keepers!.away.body.wiseS).toBeGreaterThan(WISE_S - 0.1);
   });
 });
