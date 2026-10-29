@@ -1,0 +1,47 @@
+import { DIFFICULTIES, DIFFICULTY, type AiProfile, type Difficulty } from './ai';
+import { CREW_PROFILES } from './crew';
+import type { Stats } from './stats';
+
+/** The six new kids trying out at the School Field. */
+export type TryoutKidId = 'hank' | 'lola' | 'finn' | 'priya' | 'niko' | 'paige';
+/** Who plays a tryout: Max and Tia at their School best, and the six new kids. */
+export type TryoutOpponent = 'max' | 'tia' | TryoutKidId;
+/** In tryout order, 1 to 8. */
+export const TRYOUT_ORDER: readonly TryoutOpponent[] = ['max', 'hank', 'lola', 'finn', 'tia', 'priya', 'niko', 'paige'];
+
+/** Each kid one level stronger overall than the one before, starting four above rung-10 Max, with one standout stat apiece. */
+export const TRYOUT_STATS: Readonly<Record<TryoutOpponent, Readonly<Stats>>> = {
+  max: { speed: 5, power: 5, jump: 3, control: 4, stamina: 1 },
+  hank: { speed: 4, power: 4, jump: 7, control: 3, stamina: 1 },
+  lola: { speed: 5, power: 5, jump: 3, control: 6, stamina: 1 },
+  finn: { speed: 7, power: 5, jump: 3, control: 5, stamina: 1 },
+  tia: { speed: 6, power: 4, jump: 3, control: 8, stamina: 1 },
+  priya: { speed: 8, power: 5, jump: 3, control: 6, stamina: 1 },
+  niko: { speed: 6, power: 5, jump: 3, control: 9, stamina: 1 },
+  paige: { speed: 6, power: 9, jump: 3, control: 6, stamina: 1 },
+};
+
+type Dials = Partial<AiProfile>;
+
+/** Three profiles on `from`'s, each its own object down to the kickoff spot, so a sweep that mutates one never moves another venue's. */
+const profiles = (from: Record<Difficulty, AiProfile>, dials: Partial<Record<Difficulty, Dials>> = {}): Record<Difficulty, AiProfile> =>
+  Object.fromEntries(DIFFICULTIES.map(d => {
+    const p = { ...from[d], ...dials[d] };
+    return [d, { ...p, kickoffSpot: { ...p.kickoffSpot } }];
+  })) as Record<Difficulty, AiProfile>;
+
+/**
+ * Each tryout's three difficulty profiles, measured by its tuning test on
+ * seeds 100–163 against the School's scripted Harrison a level up, with
+ * keepers. Mutable like DIFFICULTY, so headless sweeps can tune them at runtime.
+ */
+export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfile>> = {
+  max: profiles(DIFFICULTY),
+  hank: profiles(DIFFICULTY),
+  lola: profiles(DIFFICULTY),
+  finn: profiles(DIFFICULTY),
+  tia: profiles(CREW_PROFILES.tia),
+  priya: profiles(DIFFICULTY),
+  niko: profiles(DIFFICULTY),
+  paige: profiles(DIFFICULTY),
+};

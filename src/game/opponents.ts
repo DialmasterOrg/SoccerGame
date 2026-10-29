@@ -5,17 +5,21 @@ import { NORMAL_HANDLING, type Handling } from './player';
 import { SAM_HANDLING, SAM_PROFILES, SAM_STATS } from './sam';
 import { DOG_TRICKS, TRICK_DIFFICULTY, TRICK_SCALE, type TrickSetup } from './tricks';
 import type { Stats } from './stats';
+import { TRYOUT_PROFILES, TRYOUT_STATS } from './tryouts';
+import type { VenueId } from '../meta/career';
 
 /** Every opponent who plays on a human body. Biscuit has his own. */
 export type HumanOpponentId = 'max' | CrewId | 'sam';
 
-/** Their stats for the match: Max's come from the ladder rung, everyone else plays at their own. */
-export function opponentStats(id: HumanOpponentId, rung: number): Stats {
+/** Their stats for the match: Max's come from the ladder rung, everyone else plays at their own. Max and Tia come back tougher at the School Field, at their tryout stats and profiles. */
+export function opponentStats(id: HumanOpponentId, rung: number, venue?: VenueId): Stats {
+  if (venue === 'school' && (id === 'max' || id === 'tia')) return { ...TRYOUT_STATS[id] };
   if (id === 'max') return maxStats(rung);
   return { ...(id === 'sam' ? SAM_STATS : CREW_STATS[id]) };
 }
 
-export function opponentProfile(id: HumanOpponentId, d: Difficulty): AiProfile {
+export function opponentProfile(id: HumanOpponentId, d: Difficulty, venue?: VenueId): AiProfile {
+  if (venue === 'school' && (id === 'max' || id === 'tia')) return TRYOUT_PROFILES[id][d];
   if (id === 'max') return DIFFICULTY[d];
   return id === 'sam' ? SAM_PROFILES[d] : CREW_PROFILES[id][d];
 }

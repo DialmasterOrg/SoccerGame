@@ -103,9 +103,9 @@ export const PARK: Venue = {
   ],
 };
 
-// Max stands in for every tryout until plan 4's cast, and for Gus until plan 5.
-const tryout = (rung: number, name: string, hudName: string, blurb: string, bonus: BonusId): CareerMatch => ({
-  id: `school-${rung}`, venue: 'school', kind: 'match', rung, name, hudName, opponent: 'max', blurb, tip: null, bonus,
+// Max stands in for the new kids until their own builds, and for Gus until plan 5.
+const tryout = (rung: number, name: string, hudName: string, opponent: OpponentId, blurb: string, bonus: BonusId): CareerMatch => ({
+  id: `school-${rung}`, venue: 'school', kind: 'match', rung, name, hudName, opponent, blurb, tip: null, bonus,
 });
 
 /** The School Field: eight tryouts, then Goalie Gus. Tia's and Paige's blurbs are shortened from the spec's to fit the Hub card. */
@@ -114,14 +114,14 @@ export const SCHOOL: Venue = {
   name: 'SCHOOL FIELD',
   words: { match: 'TRYOUT', beaten: 'PASSED!', boss: 'THE SCHOOL BOSS', done: 'YOU MADE THE TEAM!' },
   matches: [
-    tryout(1, 'MAX', 'MAX', "HE'S TRYING OUT TOO. HE'S GOT BETTER.", 'outsideBox'),
-    tryout(2, 'HEADER HANK', 'HANK', 'HE WINS EVERY BALL IN THE AIR.', 'header'),
-    tryout(3, 'LOFTY LOLA', 'LOLA', 'SHE CHIPS ANY KEEPER OFF HIS LINE.', 'chip'),
-    tryout(4, 'FAKE-OUT FINN', 'FINN', "HE SHAPES TO SHOOT. THEN HE DOESN'T.", 'steals3'),
-    tryout(5, 'TRICKY TIA', 'TIA', 'SHE MOVED HERE. HER FAKE IS SHARPER.', 'cleanSheet'),
-    tryout(6, 'POACHER PRIYA', 'PRIYA', 'SHE FOLLOWS EVERY SHOT IN.', 'rebound'),
-    tryout(7, 'NUTMEG NIKO', 'NIKO', 'HE PUTS IT THROUGH YOUR LEGS.', 'perfect'),
-    tryout(8, 'PINPOINT PAIGE', 'PAIGE', 'THE TOP SCORER. SHE PICKS A CORNER.', 'noPaigeGoals'),
+    tryout(1, 'MAX', 'MAX', 'max', "HE'S TRYING OUT TOO. HE'S GOT BETTER.", 'outsideBox'),
+    tryout(2, 'HEADER HANK', 'HANK', 'max', 'HE WINS EVERY BALL IN THE AIR.', 'header'),
+    tryout(3, 'LOFTY LOLA', 'LOLA', 'max', 'SHE CHIPS ANY KEEPER OFF HIS LINE.', 'chip'),
+    tryout(4, 'FAKE-OUT FINN', 'FINN', 'max', "HE SHAPES TO SHOOT. THEN HE DOESN'T.", 'steals3'),
+    tryout(5, 'TRICKY TIA', 'TIA', 'tia', 'SHE MOVED HERE. HER FAKE IS SHARPER.', 'cleanSheet'),
+    tryout(6, 'POACHER PRIYA', 'PRIYA', 'max', 'SHE FOLLOWS EVERY SHOT IN.', 'rebound'),
+    tryout(7, 'NUTMEG NIKO', 'NIKO', 'max', 'HE PUTS IT THROUGH YOUR LEGS.', 'perfect'),
+    tryout(8, 'PINPOINT PAIGE', 'PAIGE', 'max', 'THE TOP SCORER. SHE PICKS A CORNER.', 'noPaigeGoals'),
     {
       id: SCHOOL_BOSS_ID, venue: 'school', kind: 'boss', rung: 0, name: 'GOALIE GUS', hudName: 'GUS', opponent: 'max',
       blurb: 'THE CAPTAIN. HE FILLS THE WHOLE GOAL.', tip: null, bonus: 'threePastGus',

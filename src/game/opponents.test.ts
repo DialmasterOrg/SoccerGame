@@ -11,6 +11,7 @@ import { cleanStealOdds } from './steal';
 import { BASE_STATS } from './stats';
 import { TUNING_STATS } from './dog';
 import { SAM_TUNING_STATS } from './samScripts';
+import { TRYOUT_PROFILES, TRYOUT_STATS } from './tryouts';
 import { createWorld, placeForKickoff, stepWorld } from './world';
 
 const DIFFS: readonly Difficulty[] = ['easy', 'normal', 'hard'];
@@ -21,6 +22,23 @@ describe('opponents', () => {
   it('Max goes through the ladder, as today', () => {
     expect(opponentStats('max', 7)).toEqual(maxStats(7));
     for (const d of DIFFS) expect(opponentProfile('max', d)).toBe(DIFFICULTY[d]);
+  });
+
+  it('Max and Tia come back at their School stats and profiles at the School, and only there', () => {
+    expect(opponentStats('max', 1, 'school')).toEqual(TRYOUT_STATS.max);
+    expect(opponentStats('max', 0, 'school')).toEqual(TRYOUT_STATS.max); // Gus's slot, standing in until plan 5
+    expect(opponentStats('max', 7, 'backyard')).toEqual(maxStats(7));
+    expect(opponentStats('max', 7)).toEqual(maxStats(7));
+    expect(opponentStats('tia', 5, 'school')).toEqual(TRYOUT_STATS.tia);
+    expect(opponentStats('tia', 3, 'park')).toEqual(CREW_STATS.tia);
+    expect(opponentStats('max', 1, 'school')).not.toBe(TRYOUT_STATS.max);
+    for (const d of DIFFS) {
+      expect(opponentProfile('max', d, 'school')).toBe(TRYOUT_PROFILES.max[d]);
+      expect(opponentProfile('max', d)).toBe(DIFFICULTY[d]);
+      expect(opponentProfile('tia', d, 'school')).toBe(TRYOUT_PROFILES.tia[d]);
+      expect(opponentProfile('tia', d, 'park')).toBe(CREW_PROFILES.tia[d]);
+      expect(opponentProfile('leo', d, 'school')).toBe(CREW_PROFILES.leo[d]);
+    }
   });
 
   it('each crew kid plays at their own stats, whatever the rung', () => {

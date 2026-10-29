@@ -23,7 +23,8 @@ import { EXTRA_IDS, GIFTS, LOCKER_ITEMS, itemPrice } from '../meta/locker';
 import { newProfile } from '../meta/profile';
 import { DEFAULT_SETTINGS } from '../meta/settings';
 import { BONUS_CALLOUT, BONUS_SHOW_S, PAUSE_ITEMS, TRICK_CALLOUT_S, createMatchScene, type MatchScene } from './matchScene';
-import { trickSetup } from '../game/opponents';
+import { opponentProfile, opponentStats, trickSetup } from '../game/opponents';
+import { TRYOUT_PROFILES, TRYOUT_STATS } from '../game/tryouts';
 import type { Scene } from './scene';
 import { fakeArt, recordingContext, stubCanvases, type Named } from './testDraw';
 import { testContext } from './testContext';
@@ -1376,17 +1377,37 @@ describe('the School Field, with Max standing in', () => {
   /** Sam beaten: the same stars as the career tests' PARK_DONE. */
   const PARK_DONE_PROFILE = { ...newProfile(), ladderWins: 10, career: { stars: { 'backyard-boss': 1, 'park-1': 1, 'park-2': 1, 'park-3': 1, 'park-4': 1, 'park-boss': 1 }, milestonesPaid: 0, lossStreaks: {} } };
 
-  it('every tryout and Gus build Max at the ladder stats, on the big pitch with keepers', () => {
+  it('every School slot builds its catalog opponent at their School best, on the big pitch with keepers', () => {
     for (const m of SCHOOL.matches) {
       const s = createMatchScene(testContext({ profile: { ...newProfile(), difficulty: 'hard' } }), 3, m);
+      const human = m.opponent === 'biscuit' ? 'max' : m.opponent;
       expect(s.size, m.id).toBe(BIG_VIEW);
       expect(s.world.field).toBe(SCHOOL_FIELD);
-      expect(s.world.away.stats).toEqual(maxStats(m.rung)); // Gus's slot, rung 0, clamps to rung 1's
-      expect(s.world.maxProfile).toBe(DIFFICULTY.hard);
+      expect(s.world.away.stats, m.id).toEqual(opponentStats(human, m.rung, 'school'));
+      expect(s.world.maxProfile, m.id).toBe(opponentProfile(human, 'hard', 'school'));
       expect(s.hud.awayName).toBe(m.hudName);
       expect([s.world.keepers!.home.profile, s.world.keepers!.away.profile]).toEqual([keeperProfile(keeperLevel(m), 'normal'), keeperProfile(keeperLevel(m), 'hard')]);
       expect(keeperLooks(m).away).toBe(m.kind === 'match' && m.rung % 2 === 1 ? 'backupA' : 'backupB');
       expect(clockText(s.world.match).text).toBe('2:00');
+    }
+    const statsAt = (id: string) => createMatchScene(testContext(), 3, matchById(id)!).world.away.stats;
+    expect(statsAt('school-1')).toEqual(TRYOUT_STATS.max);
+    expect(statsAt('school-boss')).toEqual(TRYOUT_STATS.max); // Max stands in for Gus at his School best until plan 5
+    expect(statsAt('school-5')).toEqual(TRYOUT_STATS.tia);
+  });
+
+  it('a difficulty change from pause keeps a tryout on its School profile (Review Focus 1)', () => {
+    for (const [id, who] of [['school-1', 'max'], ['school-5', 'tia']] as const) {
+      const s = createMatchScene(testContext(), 1, matchById(id)!);
+      s.world.match.phase = 'playing';
+      expect(s.world.maxProfile, id).toBe(TRYOUT_PROFILES[who].normal);
+      s.update(frame(['pause']), STEP);
+      for (let i = 0; i < PAUSE_ITEMS.indexOf('OPTIONS'); i++) s.update(frame(['down']), STEP);
+      const options = s.update(frame(['confirm']), STEP)!;
+      options.update(frame(['right']), STEP);
+      options.update(frame(['back']), STEP);
+      expect(s.world.maxProfile, id).toBe(TRYOUT_PROFILES[who].hard);
+      expect(s.world.aimErrorDeg.away, id).toBe(TRYOUT_PROFILES[who].hard.aimErrorDeg);
     }
   });
 

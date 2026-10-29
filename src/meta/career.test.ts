@@ -39,7 +39,7 @@ describe('the catalog', () => {
     expect([venueMaxStars('backyard'), venueMaxStars('park'), venueMaxStars('school')]).toEqual([33, 15, 27]);
   });
 
-  it('the School Field: eight tryouts, then Goalie Gus, Max standing in for all of them', () => {
+  it('the School Field: eight tryouts, then Goalie Gus', () => {
     expect(SCHOOL.name).toBe('SCHOOL FIELD');
     expect(SCHOOL.matches.map(m => m.id)).toEqual([...TRYOUTS, SCHOOL_BOSS_ID]);
     expect(SCHOOL.matches.map(m => [m.kind, m.rung, m.name, m.hudName, m.bonus])).toEqual([
@@ -53,7 +53,9 @@ describe('the catalog', () => {
       ['match', 8, 'PINPOINT PAIGE', 'PAIGE', 'noPaigeGoals'],
       ['boss', 0, 'GOALIE GUS', 'GUS', 'threePastGus'],
     ]);
-    expect(SCHOOL.matches.every(m => m.opponent === 'max' && m.blurb !== null && m.tip === null)).toBe(true);
+    // Tia comes back at tryout 5; Max stands in for the rest until their own tasks, and for Gus until plan 5.
+    expect(SCHOOL.matches.map(m => m.opponent)).toEqual(['max', 'max', 'max', 'max', 'tia', 'max', 'max', 'max', 'max']);
+    expect(SCHOOL.matches.every(m => m.blurb !== null && m.tip === null)).toBe(true);
     expect(VENUES.map(v => v.id)).toEqual(['backyard', 'park', 'school', 'state', 'stadium', 'worldCup']);
     expect([venueMaxStars('school'), venueMaxStars('state'), TOTAL_STARS]).toEqual([27, 0, 156]);
     expect(MATCH_IDS).toHaveLength(25);

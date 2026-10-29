@@ -129,12 +129,12 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
   let difficulty = ctx.profile.difficulty;
   const dog = match.opponent === 'biscuit';
   const human: HumanOpponentId = match.opponent === 'biscuit' ? 'max' : match.opponent;
-  const thinking = opponentProfile(human, difficulty);
+  const thinking = opponentProfile(human, difficulty, match.venue);
   const stage = stageFor(match.venue);
-  // At the School Field every slot's opponent is Max standing in, at the slot's ladder stats (Gus's rung 0 clamps to rung 1's), until plans 4 and 5 bring the tryouts cast and Gus.
+  // At the School Field Max and Tia come back at their School best; Max stands in for Gus there until plan 5.
   const world = createWorld(
     { ...ctx.profile.stats },
-    dog ? { ...BASE_STATS } : opponentStats(human, match.rung),
+    dog ? { ...BASE_STATS } : opponentStats(human, match.rung, match.venue),
     seed,
     { home: HUMAN_AIM_ERROR_DEG, away: thinking.aimErrorDeg },
     powerKit(ctx.profile),
@@ -253,7 +253,7 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
   /** Help and Options come back to this match, still paused, with any new difficulty applied to the opponent. */
   const backHere = (): Scene => {
     difficulty = ctx.profile.difficulty;
-    brain.profile = opponentProfile(human, difficulty);
+    brain.profile = opponentProfile(human, difficulty, match.venue);
     world.aimErrorDeg.away = brain.profile.aimErrorDeg;
     if (world.maxProfile) world.maxProfile = brain.profile;
     if (dogBrain && world.dog) dogBrain.profile = world.dog.profile = DOG_DIFFICULTY[difficulty];
