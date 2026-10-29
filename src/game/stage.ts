@@ -9,10 +9,12 @@ export interface Stage {
   readonly view: View;
   readonly matchS: number;
   readonly goldenGoalS: number;
+  /** A keeper in each goal: from the School Field on. */
+  readonly keepers: boolean;
 }
 
-export const SMALL_STAGE: Stage = { field: BACKYARD, view: SMALL_VIEW, matchS: MATCH_S, goldenGoalS: GOLDEN_GOAL_MAX_S };
-export const SCHOOL_STAGE: Stage = { field: SCHOOL_FIELD, view: BIG_VIEW, matchS: 120, goldenGoalS: 60 };
+export const SMALL_STAGE: Stage = { field: BACKYARD, view: SMALL_VIEW, matchS: MATCH_S, goldenGoalS: GOLDEN_GOAL_MAX_S, keepers: false };
+export const SCHOOL_STAGE: Stage = { field: SCHOOL_FIELD, view: BIG_VIEW, matchS: 120, goldenGoalS: 60, keepers: true };
 
 /** The Backyard and the Park play small; the School Field and every venue after it play on the big pitch. */
 export function stageFor(venue: VenueId): Stage {

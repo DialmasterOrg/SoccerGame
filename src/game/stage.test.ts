@@ -8,4 +8,8 @@ describe('stageFor', () => {
     expect(stageFor('school')).toBe(SCHOOL_STAGE);
     expect(stageFor('worldCup')).toBe(SCHOOL_STAGE);
   });
+
+  it('keepers play from the School Field on, never at the Backyard or the Park', () => {
+    expect([SMALL_STAGE.keepers, SCHOOL_STAGE.keepers]).toEqual([false, true]);
+  });
 });

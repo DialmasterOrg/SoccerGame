@@ -2,11 +2,12 @@ import { BALL_R } from '../art/ball';
 import { seeded, type Rng } from '../engine/random';
 import type { AiProfile } from './ai';
 import { BALL_REST_Y, stepBall, type Ball, type BallEvents } from './ball';
-import { resolveBodies } from './bodies';
+import { resolveAll, resolveBodies } from './bodies';
 import { canPlace, resolveContacts, type ContactEvents } from './contact';
 import { checkPinned, createDog, dropBall, parkBall, quietDog, resetDog, stepDog, vulnerable, type DogEvents, type DogProfile, type DogState } from './dog';
 import { goalScored, type Field } from './field';
 import { startDragBack, stepDragBack } from './dragBack';
+import { createKeepers, placeKeepers, quietKeepers, stepKeeper, type KeeperEvents, type KeeperLineup, type Keepers } from './keeper';
 import { createMatch, stepMatch, type MatchState, type Team } from './match';
 import { DECEL, NO_INTENT, NORMAL_HANDLING, createPlayer, stepPlayer, type Handling, type Player, type PlayerIntent } from './player';
 import {
@@ -53,6 +54,8 @@ export interface WorldEvents {
   steal: StealOutcome | null;
   /** What his tricks did this tick. All quiet without them. */
   trick: TrickEvents;
+  /** What the keepers did this tick. All quiet without them. */
+  keeper: KeeperEvents;
 }
 
 export interface World {
@@ -76,6 +79,8 @@ export interface World {
   tick: number;
   /** Harrison's tricks against this opponent; null below level 4, when a trick press does nothing and the match plays exactly as before. */
   tricks: TrickSetup | null;
+  /** A keeper in each goal, from the School Field on; null before it, when the match plays exactly as before. */
+  keepers: Keepers | null;
 }
 
 /** A ball slower than this, px/s, is at rest. */
@@ -98,6 +103,7 @@ const quietEvents = (): WorldEvents => ({
   dog: quietDog(),
   steal: null,
   trick: quietTricks(),
+  keeper: quietKeepers(),
 });
 
 /** The kicks that make a goal a style goal. */
@@ -109,7 +115,8 @@ const STYLE_KINDS: ReadonlySet<PowerState['lastKind']> = new Set(['header', 'vol
  * `awayHandling` is the away player's brakes, touch and shot (Speedy Sam's
  * are his own; everyone else's are normal). `tricks` gives Harrison his
  * stepover and flick against this opponent. `stage` is the pitch and the
- * match's length.
+ * match's length. `keepers` puts a keeper in each goal; it needs a pitch with
+ * painted boxes.
  */
 export function createWorld(
   homeStats: Stats,
@@ -122,8 +129,10 @@ export function createWorld(
   awayHandling: Handling = NORMAL_HANDLING,
   tricks: TrickSetup | null = null,
   stage: Stage = SMALL_STAGE,
+  keepers: KeeperLineup | null = null,
 ): World {
   const { field } = stage;
+  if (keepers && !field.markings) throw new Error('createWorld: keepers need a pitch with painted boxes');
   const centre = field.width / 2;
   const w: World = {
     field,
@@ -140,6 +149,7 @@ export function createWorld(
     maxProfile,
     tick: 0,
     tricks,
+    keepers: keepers ? createKeepers(field, keepers) : null,
   };
   w.away.handling = awayHandling;
   placeForKickoff(w);
@@ -169,6 +179,7 @@ export function placeForKickoff(w: World): void {
     else reset(p, centre - spot.back * dir, mid + spot.off);
   }
   if (w.dog) resetDog(w.dog);
+  placeKeepers(w);
 }
 
 /**
@@ -262,6 +273,7 @@ function dogContacts(w: World, dog: DogState, ev: DogEvents, steal: boolean): Co
 export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: PlayerIntent, dt: number): void {
   const live = w.match.phase === 'playing';
   const power = quietPower();
+  const keeper = quietKeepers();
   const home = w.home;
   const wasActive = (w.power?.activeS ?? 0) > 0;
   const wasReadying = waveReadying(w.power);
@@ -281,6 +293,8 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   const dog = dogBody ? stepDog(w, awayIntent, live, dt) : quietDog();
   if (!dogBody) stepOne(w.away, w.dog ? NO_INTENT : awayIntent, live, w, dt);
   if (!w.dog && live && awayIntent.carry) carryAtFeet(w, w.away);
+  const keepers = w.keepers;
+  if (keepers) for (const k of [keepers.home, keepers.away]) stepKeeper(w, k, { move: NO_INTENT, dive: null }, live, dt, keeper);
   if (w.power && home.powerArmed && canStartPower(w)) {
     home.powerArmed = false;
     w.power.activeS = POWERED_S;
@@ -292,7 +306,8 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
     w.power.activeS = 0;
     power.fired = true;
   }
-  resolveBodies(home, w.away, w.field);
+  if (keepers) resolveAll([home, w.away, keepers.home.body, keepers.away.body], w.field);
+  else resolveBodies(home, w.away, w.field);
   if (dogBody && live && checkPinned(w, awayIntent, Math.hypot(w.away.x - dogFrom.x, w.away.z - dogFrom.z), dt)) dog.dropped = true;
   if (carryFromZ !== null && windingUp(home)) carryInDepth(w, home.z - carryFromZ);
   const steal = resolveSteal(w, homeIntent);
@@ -350,7 +365,7 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
     if (goal === 'home' && STYLE_KINDS.has(w.power.lastKind)) addMeter(w.power, 'styleGoal');
     w.power.lastKind = null;
   }
-  w.events = { kicks, ball, goal, power, dog, steal, trick };
+  w.events = { kicks, ball, goal, power, dog, steal, trick, keeper };
   if (resetForKickoff) {
     placeForKickoff(w);
     w.wave = null;

@@ -81,6 +81,22 @@ export function inGoalBox(g: Goal, x: number, z: number, margin = 0): boolean {
   return x >= x0 && x <= x1 && z >= g.z0 - margin && z <= g.z1 + margin;
 }
 
+/** A rectangle on the ground plane. */
+export interface Area {
+  x0: number;
+  x1: number;
+  z0: number;
+  z1: number;
+}
+
+/** A goal's penalty box: from its line out toward the middle, across the box's depths. The field must have markings. */
+export function penaltyArea(field: Field, g: Goal): Area {
+  if (!field.markings) throw new Error('penaltyArea: this field has no painted box');
+  const { out, z0, z1 } = field.markings.box;
+  const [x0, x1] = g.side === 'left' ? [g.lineX, g.lineX + out] : [g.lineX - out, g.lineX];
+  return { x0, x1, z0, z1 };
+}
+
 /** Where players may stand along the pitch: fence to fence, so they can walk round the goals. */
 export function playerSpan(field: Field): [x0: number, x1: number] {
   return [field.fenceL, field.fenceR];

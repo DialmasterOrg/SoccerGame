@@ -78,13 +78,33 @@ export function keepOutOfGoals(p: Player, field: Field): void {
   }
 }
 
-/** Keeps a player on the pitch and out of the goals. Returns whether that moved him. */
+/** A player blown into a net stays in the goal his centre is in. */
+function keepInNet(p: Player, field: Field): void {
+  for (const g of field.goals) {
+    if (!inGoalBox(g, p.x, p.z)) continue;
+    const [x0, x1] = [Math.min(g.lineX, g.backX), Math.max(g.lineX, g.backX)];
+    p.x = Math.min(Math.max(p.x, x0 + PLAYER_R), x1 - PLAYER_R);
+    p.z = Math.min(Math.max(p.z, g.z0 + PLAYER_R), g.z1 - PLAYER_R);
+  }
+}
+
+/**
+ * Keeps a player on the pitch and out of the goals, and a keeper in his box
+ * (unless he's blown away, or in his net, which holds him). Returns whether
+ * that moved him.
+ */
 function confine(p: Player, field: Field): boolean {
   const [x, z] = [p.x, p.z];
   const [x0, x1] = playerSpan(field);
   p.x = Math.min(Math.max(p.x, x0 + PLAYER_R), x1 - PLAYER_R);
   p.z = Math.min(Math.max(p.z, PLAYER_R), field.depth - PLAYER_R);
-  keepOutOfGoals(p, field);
+  const free = p.state === 'blown' || p.inNet === true;
+  if (p.area && !free) {
+    p.x = Math.min(Math.max(p.x, p.area.x0), p.area.x1);
+    p.z = Math.min(Math.max(p.z, p.area.z0), p.area.z1);
+  }
+  if (p.inNet) keepInNet(p, field);
+  else keepOutOfGoals(p, field);
   return p.x !== x || p.z !== z;
 }
 
@@ -159,4 +179,11 @@ export function resolveBodies(a: Player, b: Player, field: Field): void {
     }
   }
   sidestep(a, b, field);
+}
+
+/** Every pair of bodies resolved in order, twice over, so a push passed along settles. */
+export function resolveAll(bodies: readonly Player[], field: Field): void {
+  for (let round = 0; round < 2; round++) {
+    for (let i = 0; i < bodies.length; i++) for (let j = i + 1; j < bodies.length; j++) resolveBodies(bodies[i]!, bodies[j]!, field);
+  }
 }

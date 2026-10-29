@@ -1,6 +1,6 @@
 import { CLIPS, SHOOT_CHARGE_FRAME, SHOOT_STRIKE_FRAME, SKID_FRAME_HOLD, SLIDE_HOLD_FRAME, type AnimName } from '../art/body/animations';
 import { GRAVITY } from './constants';
-import { BACKYARD, playerSpan, type Field } from './field';
+import { BACKYARD, playerSpan, type Area, type Field } from './field';
 import { TAP_CHARGE, type Aim } from './kick';
 import type { TrickKind } from './tricks';
 import { SPRINT_MULTIPLIER, chargeTime, jumpVelocity, runSpeed, staminaDrain, staminaRegen, type Stats } from './stats';
@@ -138,6 +138,10 @@ export interface Player {
   fooled: null | { kind: 'confused' | 'stumble'; leftS: number; totalS: number; swayZ: number };
   /** Time left wise to Harrison's tricks, when none can fool him. */
   wiseS: number;
+  /** A keeper's penalty box: his centre never leaves it. Absent on every other player. */
+  area?: Area;
+  /** A keeper blown into his net by the Energy Wave: the net holds him until he walks out. */
+  inNet?: boolean;
 }
 
 export const PLAYER_H = 40;
