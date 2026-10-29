@@ -1244,4 +1244,15 @@ describe("the tryouts' personalities", () => {
       }
     }
   });
+  it('heading straight across in depth with the opponent just ahead, it still sidesteps: never a stick of NaN', () => {
+    // The preferred side is straight back the way it came, which alone would cancel the step out.
+    const { w } = kidWorld('max');
+    const brain = createBrain(DIFFICULTY.normal);
+    Object.assign(w.away, { x: 300, z: 50 });
+    Object.assign(w.home, { x: 299, z: 60 });
+    const intent = steerFor(brain, w, w.away, w.home).to(300, 70, 40);
+    expect(Number.isFinite(intent.moveX)).toBe(true);
+    expect(Number.isFinite(intent.moveZ)).toBe(true);
+    expect(Math.hypot(intent.moveX, intent.moveZ)).toBeCloseTo(1);
+  });
 });

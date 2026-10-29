@@ -22,6 +22,13 @@ export const goalCentreZ = (g: Goal): number => (g.z0 + g.z1) / 2;
 export const roomySide = (w: World, z: number, from: number): number =>
   z === w.field.depth / 2 ? Math.sign(from - z) || 1 : Math.sign(w.field.depth / 2 - z);
 
+/** Whether `them` played the ball last tick: touched, kicked or tackled it, or poked or trapped it with the steal. */
+export function playedIt(w: World, them: Player): boolean {
+  const ev = w.events.kicks[them.team === 'home' ? 0 : 1];
+  const stealt = them.team === 'home' && (w.events.steal === 'poked' || w.events.steal === 'trapped');
+  return stealt || (ev !== undefined && (ev.touched || ev.kicked !== null || ev.tackledBall));
+}
+
 /** Where it aims its shots: mostly the far post, then the near post, sometimes straight. */
 const AIM_ODDS: readonly (readonly [Aim, number])[] = [
   ['far', 1 / 2],

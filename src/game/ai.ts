@@ -3,7 +3,7 @@ import { holdingKeeper, standOffSpot } from './keeper';
 import { LADDER_MATCHES, maxStats } from '../meta/ladder';
 import { NO_INTENT, PLAYER_R, type Player, type PlayerIntent } from './player';
 import { runSpeed } from './stats';
-import { CHASE_OFFSET, DEFEND_COVER, FAKE, POSSESSION_RANGE, RANGE_SHOT, attackDir, chargeHold, defendSpot, fakeMove, goalCentreZ, pickAim, predictBall, pressSprint, roomySide, theirBall } from './styles';
+import { CHASE_OFFSET, DEFEND_COVER, FAKE, POSSESSION_RANGE, RANGE_SHOT, attackDir, chargeHold, defendSpot, fakeMove, goalCentreZ, pickAim, playedIt, predictBall, pressSprint, roomySide, theirBall } from './styles';
 import type { Wave } from './wave';
 import { cueMove, looseBallPlay, onBallPlay, tickMove, type TryoutMove } from './tryoutMoves';
 import type { World } from './world';
@@ -13,7 +13,7 @@ export type Difficulty = 'easy' | 'normal' | 'hard';
 export const DIFFICULTIES: readonly Difficulty[] = ['easy', 'normal', 'hard'];
 
 /** How an opponent plays, beyond its numbers: Max all round, each of the Park crew's personalities, Speedy Sam, and the tryouts'. */
-export type Style = 'allRound' | 'blocker' | 'shooter' | 'dribbler' | 'presser' | 'speedster' | 'header' | 'chipper' | 'faker' | 'poacher' | 'nutmegger';
+export type Style = 'allRound' | 'blocker' | 'shooter' | 'dribbler' | 'presser' | 'speedster' | 'header' | 'chipper' | 'faker' | 'poacher' | 'nutmegger' | 'sniper';
 
 export interface AiProfile {
   /** Seconds between decisions. */
@@ -74,7 +74,7 @@ export interface AiBrain {
   kickoffHoldS: number | null;
   /** The dribbler's fake under way: side +1 deeper, −1 nearer, the way she leans first; t, how far into it. */
   fake: null | { side: 1 | -1; t: number };
-  /** Time until it may fake again: the dribbler's fake, or Finn's shape to shoot. */
+  /** Time until it may fake again: the dribbler's fake, or Finn's shape to shoot; or until Paige sets again after a look that found nothing. */
   fakeReadyS: number;
   /** Fakes started this match, for the personality check. */
   fakes: number;
@@ -161,6 +161,8 @@ function goRound(w: World, me: Player, them: Player, move: [number, number], goa
   for (const side of [preferred, -preferred]) {
     const [sx, sz] = [mx, mz + side];
     const d = Math.hypot(sx, sz);
+    // Heading straight across in depth, the step one way cancels the move out.
+    if (d === 0) continue;
     const ahead = { x: me.x + (sx / d) * SIDESTEP_LOOKAHEAD, z: me.z + (sz / d) * SIDESTEP_LOOKAHEAD };
     if (!w.field.goals.some(g => inGoalBox(g, ahead.x, ahead.z, PLAYER_R))) return [sx / d, sz / d];
   }
@@ -436,13 +438,6 @@ function endFake(brain: AiBrain): void {
   brain.fakeReadyS = FAKE.cooldownS;
   brain.nextDecisionS = 0;
   brain.intent = { ...brain.intent, carry: false };
-}
-
-/** Whether `them` played the ball last tick: touched, kicked or tackled it, or poked or trapped it with the steal. */
-function playedIt(w: World, them: Player): boolean {
-  const ev = w.events.kicks[them.team === 'home' ? 0 : 1];
-  const stealt = them.team === 'home' && (w.events.steal === 'poked' || w.events.steal === 'trapped');
-  return stealt || (ev !== undefined && (ev.touched || ev.kicked !== null || ev.tackledBall));
 }
 
 /** Her fake just ended with the ball at her feet within her fakeShot of the line she attacks: School Tia shoots, whatever her shootRange. */

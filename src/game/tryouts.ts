@@ -77,5 +77,12 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
     normal: { style: 'nutmegger', paceFactor: 1, cleanSteal: 0.85 },
     hard: { style: 'nutmegger', paceFactor: 1.15, shootRange: 230 },
   }),
-  paige: profiles(DIFFICULTY),
+  // Pinpoint Paige: sets herself, then shoots for the corner away from the keeper, only with a clear look past Harrison. Easy and Normal
+  // a touch slower, Normal easier to rob. Measured E 0.797, N 0.609, H 0.031 (keepers at level 8); on Normal her shots on target cross
+  // 4.5 px from the post vs Max's brain's 15.7, and none of her wind-ups starts with Harrison in her line (Max's brain: 87 of 676).
+  paige: profiles(DIFFICULTY, {
+    easy: { style: 'sniper', aimErrorDeg: 3, paceFactor: 0.98 },
+    normal: { style: 'sniper', aimErrorDeg: 2, paceFactor: 0.98, cleanSteal: 0.8 },
+    hard: { style: 'sniper', aimErrorDeg: 1 },
+  }),
 };
