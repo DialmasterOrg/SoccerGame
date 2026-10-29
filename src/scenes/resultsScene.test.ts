@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { measureText } from '../art/font';
-import { BOSS_ID, PARK_BOSS_ID, grantRungStars, matchById, nextCareerMatch, type CareerMatch } from '../meta/career';
+import { BOSS_ID, PARK_BOSS_ID, SCHOOL_BOSS_ID, grantRungStars, matchById, nextCareerMatch, type CareerMatch } from '../meta/career';
 import type { GoalRecord, MatchSummary } from '../meta/economy';
 import { nextMatch } from '../meta/ladder';
 import { newProfile, type Profile } from '../meta/profile';
@@ -10,6 +10,7 @@ import { LINE_S, SKIP_GRACE_S, STAR_S, XP_FILL_S, bonusLine, careerLine, createR
 import type { ShopScene } from './shopScene';
 import { TEST_TODAY, testContext } from './testContext';
 import { frame } from './testInput';
+import type { RoadMapScene } from './roadMapScene';
 import type { VsScene } from './vsScene';
 
 const STEP = 1 / 60;
@@ -345,5 +346,44 @@ describe('results: the skill moves unlock', () => {
     const { reward } = after(WIN_3_0, { ...newProfile(), level: 3, xp: 150 });
     expect(unlockLines(reward)).toEqual(['NEW MOVES: STEPOVER + RAINBOW FLICK']);
     expect(measureText('NEW MOVES: STEPOVER + RAINBOW FLICK')).toBeLessThanOrEqual(300);
+  });
+});
+
+/** A profile with Sam beaten and the first n tryouts passed. */
+const atSchool = (n = 0, more: Record<string, number> = {}): Profile => ({
+  ...newProfile(),
+  ladderWins: 10,
+  career: { stars: { [BOSS_ID]: 1, ...PARK_FOUR, [PARK_BOSS_ID]: 1, ...Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].slice(0, n).map(i => [`school-${i}`, 1])), ...more }, milestonesPaid: 0, lossStreaks: {} },
+});
+
+describe('careerLine at the School Field', () => {
+  it('a first win passes the tryout; the last one says Gus awaits; beating Gus makes the team', () => {
+    expect(careerLine(after(WIN_3_0, atSchool(2), matchById('school-3')!).reward)).toBe('TRYOUT 3 PASSED!');
+    expect(careerLine(after(WIN_3_0, atSchool(7), matchById('school-8')!).reward)).toBe('GOALIE GUS AWAITS!');
+    expect(careerLine(after(WIN_3_0, atSchool(8), matchById(SCHOOL_BOSS_ID)!).reward)).toBe('GUS BEATEN! YOU MADE THE TEAM!');
+  });
+
+  it('an improved replay is a new best, and a loss names the kid', () => {
+    expect(careerLine(after(WIN_3_0, atSchool(3, { 'school-2': 1 }), matchById('school-2')!).reward)).toBe('NEW BEST: 2 STARS!');
+    expect(careerLine(after({ ...WIN_3_0, goals: [g(10), g(20), g(30)] }, atSchool(3, { 'school-2': 1 }), matchById('school-2')!).reward)).toBe('NEW BEST: 2 STARS!');
+    expect(careerLine(after(LOSS_0_2, atSchool(2), matchById('school-3')!).reward)).toBe('LOLA TAKES THIS ONE. GO AGAIN!');
+  });
+
+  it("the Park's lines read as before", () => {
+    expect(careerLine(after(WIN_3_0, inPark(), matchById('park-1')!).reward)).toBe('MATCH 1 BEATEN!');
+    expect(careerLine(after(WIN_3_0, inPark(PARK_FOUR), matchById(PARK_BOSS_ID)!).reward)).toBe('SAM BEATEN! THE PARK DONE!');
+  });
+
+  it('NEXT MATCH leads from Sam to tryout 1, from tryout 8 to Gus, and after Gus CAREER opens the map on the School', () => {
+    const sam = after(WIN_3_0, inPark(PARK_FOUR), matchById(PARK_BOSS_ID)!);
+    expect(resultsItems(sam.reward)[0]).toBe('NEXT MATCH');
+    expect((createResultsScene(sam.ctx, sam.reward, true).update(frame(['confirm']), STEP) as VsScene).match.id).toBe('school-1');
+    const eighth = after(WIN_3_0, atSchool(7), matchById('school-8')!);
+    expect((createResultsScene(eighth.ctx, eighth.reward, true).update(frame(['confirm']), STEP) as VsScene).match.id).toBe(SCHOOL_BOSS_ID);
+    const gus = after(WIN_3_0, atSchool(8), matchById(SCHOOL_BOSS_ID)!);
+    expect(resultsItems(gus.reward)).toEqual(['CAREER', 'SHOP', 'HUB']);
+    const map = createResultsScene(gus.ctx, gus.reward, true).update(frame(['confirm']), STEP) as RoadMapScene;
+    expect(map.kind).toBe('roadMap');
+    expect(map.index).toBe(2);
   });
 });

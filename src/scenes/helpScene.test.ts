@@ -86,6 +86,15 @@ describe('Help about Sam', () => {
   });
 });
 
+describe('Help about the keepers', () => {
+  it("THE MATCH page says keepers guard the goals from the School Field on, before Biscuit's and Sam's lines", () => {
+    const lines = HELP_PAGES[1]!.lines;
+    expect(lines.at(-3)).toBe('FROM THE SCHOOL FIELD ON, A KEEPER GUARDS EACH GOAL.');
+    expect(lines.at(-2)).toBe("BISCUIT CAN'T SHOOT: BLOCK HIS WAY TO YOUR GOAL.");
+    expect(lines.at(-1)).toBe("SPEEDY SAM CAN'T STOP: TURN AND LET HIM FLY PAST.");
+  });
+});
+
 describe('help for the tricks', () => {
   it('CONTROLS has a right stick line with its keys, drawn with the RS picture', () => {
     const rs = HELP_PAGES[0]!.lines.find(l => l.startsWith('RS:'));

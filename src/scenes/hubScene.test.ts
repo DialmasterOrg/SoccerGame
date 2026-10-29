@@ -106,6 +106,21 @@ describe('hub', () => {
     expect(careerCardLines({ ...newProfile(), ladderWins: 4 })).toEqual({ first: 'NEXT: MAX - MATCH 5/10', second: 'MAX HAS BEEN TRAINING: SPEED UP' });
   });
 
+  it('the card follows him through the tryouts and out of the School', () => {
+    const school = (stars: Record<string, number>) => ({ ...newProfile(), ladderWins: 10, career: { stars: { 'backyard-boss': 1, 'park-1': 1, 'park-2': 1, 'park-3': 1, 'park-4': 1, 'park-boss': 1, ...stars }, milestonesPaid: 0, lossStreaks: {} } });
+    const drawnWith = (stars: Record<string, number>) => {
+      const { g, drawn } = recordingContext();
+      createHubScene(testContext({ art: fakeArt(), profile: school(stars) })).draw(g, 0);
+      return drawn;
+    };
+    const two = drawnWith({ 'school-1': 2, 'school-2': 1 });
+    expect(two).toContain('art.text(NEXT: LOFTY LOLA - SCHOOL FIELD 3/8,1,energyGold,outline)');
+    expect(two).toContain('art.text(SHE CHIPS ANY KEEPER OFF HIS LINE.,1,silver,outline)');
+    const done = drawnWith({ ...Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map(n => [`school-${n}`, 2])), [SCHOOL_BOSS_ID]: 3 });
+    expect(done).toContain('art.text(YOU MADE THE TEAM! STARS 19/27,1,energyGold,outline)');
+    expect(done).toContain('art.text(STATE: COMING SOON,1,silver,outline)');
+  });
+
   it('every career line the catalog can show fits the card', () => {
     const fits = (line: string | null) => expect(measureText(line ?? '') + 2, line ?? '').toBeLessThanOrEqual(CARD_RIGHT - TEXT_X);
     const before: CareerMatch[] = [];

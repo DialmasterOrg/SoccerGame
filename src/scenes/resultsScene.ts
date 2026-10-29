@@ -77,11 +77,12 @@ export function careerLine(reward: MatchReward): string {
   const { result } = reward.summary;
   if (firstWin && champion) return 'BACKYARD CHAMPION! BISCUIT AWAITS';
   const venue = venueById(match.venue);
-  if (firstWin && match.kind === 'boss') return `${match.hudName} BEATEN! ${venue.name} DONE!`;
+  const { words } = venue;
+  if (firstWin && match.kind === 'boss') return `${match.hudName} BEATEN! ${words.done}`;
   const numbered = venue.matches.filter(m => m.kind === 'match');
   const boss = venue.matches.find(m => m.kind === 'boss');
   if (firstWin && match.kind === 'match' && boss && match === numbered[numbered.length - 1]) return `${boss.name} AWAITS!`;
-  if (firstWin) return `MATCH ${match.rung} BEATEN!`;
+  if (firstWin) return `${words.match} ${match.rung} ${words.beaten}`;
   if (result === 'win') return improved ? `NEW BEST: ${stars} STARS!` : 'REMATCH WON!';
   return result === 'draw' ? 'ALL SQUARE. GO AGAIN!' : `${match.hudName} TAKES THIS ONE. GO AGAIN!`;
 }
