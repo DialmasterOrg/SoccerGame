@@ -175,10 +175,60 @@ export function placeKeepers(w: World): void {
   ks.strike = null;
 }
 
-/** Steps one keeper on his brain's intent: on his feet he moves at his own speed, always facing the pitch. Outside play he stands. */
+function enterAct(k: Keeper, act: KeeperAct): void {
+  k.act = act;
+  k.actT = 0;
+}
+
+/** On his feet and free to answer the ball: set, or coming out. */
+const onFeet = (k: Keeper): boolean => k.act === 'set' || k.act === 'rush';
+
+function startDive(k: Keeper, dir: { dirX: number; dirZ: number }, ev: KeeperEvents): void {
+  enterAct(k, 'dive');
+  k.dive = { ...dir };
+  ev.dived = k.side;
+}
+
+/** Slides his body along the dive, diveTravel over diveS: the keeper module moves him, not his legs. */
+function slideDive(k: Keeper, dt: number): void {
+  const { dirX, dirZ } = k.dive!;
+  const len = Math.hypot(dirX, dirZ) || 1;
+  const speed = k.profile.diveTravel / k.profile.diveS;
+  [k.body.vx, k.body.vz] = [(dirX / len) * speed, (dirZ / len) * speed];
+  k.body.x += k.body.vx * dt;
+  k.body.z += k.body.vz * dt;
+}
+
+/**
+ * Steps one keeper on his brain's intent. On his feet he moves at his own
+ * speed, always facing the pitch, and an intent to dive starts one: he
+ * slides along it, lies down, gets up, and is set again. Outside play he
+ * stands.
+ */
 export function stepKeeper(w: World, k: Keeper, intent: KeeperIntent, live: boolean, dt: number, ev: KeeperEvents): void {
-  void ev;
   k.actT += dt;
-  const move: PlayerIntent = live ? { ...intent.move, pace: k.profile.speed / runSpeed(BASE_STATS), faceX: pitchward(w.field, k.side) } : NO_INTENT;
-  stepPlayer(k.body, move, dt, w.field, false);
+  if (live && intent.dive && onFeet(k) && k.body.state === 'ground') startDive(k, intent.dive, ev);
+  const { profile, body } = k;
+  switch (k.act) {
+    case 'dive':
+      slideDive(k, dt);
+      if (k.actT >= profile.diveS) {
+        enterAct(k, 'down');
+        [body.vx, body.vz] = [0, 0];
+      }
+      return;
+    case 'down':
+      if (k.actT >= profile.downS) enterAct(k, 'getUp');
+      return;
+    case 'getUp':
+      if (k.actT >= profile.getUpS) {
+        enterAct(k, 'set');
+        k.dive = null;
+      }
+      return;
+    default: {
+      const move: PlayerIntent = live ? { ...intent.move, pace: profile.speed / runSpeed(BASE_STATS), faceX: pitchward(w.field, k.side) } : NO_INTENT;
+      stepPlayer(body, move, dt, w.field, false);
+    }
+  }
 }

@@ -8,6 +8,7 @@ import { checkPinned, createDog, dropBall, parkBall, quietDog, resetDog, stepDog
 import { goalScored, type Field } from './field';
 import { startDragBack, stepDragBack } from './dragBack';
 import { createKeepers, placeKeepers, quietKeepers, stepKeeper, type KeeperEvents, type KeeperLineup, type Keepers } from './keeper';
+import { thinkKeeper } from './keeperAi';
 import { createMatch, stepMatch, type MatchState, type Team } from './match';
 import { DECEL, NO_INTENT, NORMAL_HANDLING, createPlayer, stepPlayer, type Handling, type Player, type PlayerIntent } from './player';
 import {
@@ -294,7 +295,7 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   if (!dogBody) stepOne(w.away, w.dog ? NO_INTENT : awayIntent, live, w, dt);
   if (!w.dog && live && awayIntent.carry) carryAtFeet(w, w.away);
   const keepers = w.keepers;
-  if (keepers) for (const k of [keepers.home, keepers.away]) stepKeeper(w, k, { move: NO_INTENT, dive: null }, live, dt, keeper);
+  if (keepers) for (const k of [keepers.home, keepers.away]) stepKeeper(w, k, thinkKeeper(w, k, dt), live, dt, keeper);
   if (w.power && home.powerArmed && canStartPower(w)) {
     home.powerArmed = false;
     w.power.activeS = POWERED_S;
