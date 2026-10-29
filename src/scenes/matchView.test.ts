@@ -9,7 +9,7 @@ import { SAM_HANDLING } from '../game/sam';
 import { FLAG_FRAMES, LEAVES } from '../art/venues/schoolLife';
 import type { GameArt, SpriteSet } from './art';
 import { depthSorted } from './depthSort';
-import { arrowX, banner, calloutLine, drawLayers, drawMatch, homeClip, pitchDrawables, takeFlash, type MatchHud } from './matchView';
+import { MARKER_FAR, arrowX, banner, calloutLine, drawLayers, drawMatch, homeClip, homeMarker, pitchDrawables, takeFlash, type MatchHud } from './matchView';
 import { fakeArt, recordingContext } from './testDraw';
 import { powerMeterX0 } from './powerView';
 import { BIG_VIEW, type Camera } from '../game/camera';
@@ -281,6 +281,51 @@ describe('the off-screen ball arrow', () => {
   it('there is no arrow while the ball is on screen', () => {
     const w = createWorld(BASE_STATS, BASE_STATS, 1, { home: 4, away: 6 });
     expect(arrowX(w, { x: 160 })).toBeNull();
+  });
+});
+
+describe("Harrison's off-screen marker", () => {
+  const world = (x: number, z = 32) => {
+    const w = createWorld(BASE_STATS, BASE_STATS, 1, { home: 4, away: 6 });
+    Object.assign(w.home, { x, z });
+    return w;
+  };
+
+  it('there is no marker while he is on screen', () => {
+    expect(homeMarker(world(100), { x: 0 })).toBeNull();
+    expect(homeMarker(world(300), { x: 0 })).toBeNull();
+    expect(homeMarker(world(320 - 10 + 0), { x: 0 })).toBeNull();
+  });
+
+  it('off the left or right edge it sits at that edge, at his row', () => {
+    const left = homeMarker(world(100, 32), { x: 150 })!;
+    expect(left.side).toBe('left');
+    expect(left.y).toBe(176 - 32 - 28);
+    const right = homeMarker(world(500, 40), { x: 100 })!;
+    expect(right.side).toBe('right');
+    expect(right.y).toBe(176 - 40 - 28);
+  });
+
+  it('shows how far off he is in chevrons: one near the edge, two further, three far away', () => {
+    expect(MARKER_FAR).toEqual([60, 180]);
+    expect(homeMarker(world(100), { x: 150 })!.chevrons).toBe(1);
+    expect(homeMarker(world(100), { x: 220 })!.chevrons).toBe(2);
+    expect(homeMarker(world(100), { x: 400 })!.chevrons).toBe(3);
+    expect(homeMarker(world(600), { x: 0 })!.chevrons).toBe(3);
+  });
+
+  it('stays clear of the score at the top and the bottom edge', () => {
+    expect(homeMarker(world(100, 63), { x: 150 })!.y).toBeGreaterThanOrEqual(24);
+    expect(homeMarker(world(100, 0), { x: 150 })!.y).toBeLessThanOrEqual(180 - 8);
+  });
+
+  it('is placed in HUD-layer pixels at the big view', () => {
+    const w = createWorld(BASE_STATS, BASE_STATS, 1, { home: 4, away: 6 }, null, null, null, NORMAL_HANDLING, null, SCHOOL_STAGE);
+    Object.assign(w.home, { x: 100, z: 64 });
+    const m = homeMarker(w, { x: 400, view: BIG_VIEW })!;
+    expect(m.side).toBe('left');
+    expect(m.y).toBe(Math.round((296 - 64 - 28) / 2));
+    expect(m.chevrons).toBe(3);
   });
 });
 

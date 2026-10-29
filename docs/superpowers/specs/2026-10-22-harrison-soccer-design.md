@@ -575,3 +575,13 @@ only, without logos or sponsor; glasses as an optional accessory.
 
 - His favourite goal celebration. Until known, the default is "Point to the
   Back".
+
+## Amended 2026-10-29: Harrison's off-screen marker
+
+The camera follows the ball, so on the School Field's bigger pitch
+Harrison can be off the side of the screen. When he is, gold chevrons at
+that edge of the HUD, at his row (about his chest), point the way to him:
+one chevron within 60 px of the edge, two within 180, three beyond. There
+is no marker while he is in view. `homeMarker` in `matchView.ts` is the
+rule; the chevrons draw in HUD-layer pixels, so they double at the big
+view like the rest of the HUD.

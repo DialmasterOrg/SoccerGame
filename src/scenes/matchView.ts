@@ -105,6 +105,10 @@ const PROMPT_Y = -56;
 const PROMPT_BLINK_HZ = 8;
 /** The arrow is drawn 3 px either side of its x; this keeps a pixel's gap beside the meter. */
 const ARROW_CLEARANCE = 5;
+/** Harrison's off-screen marker: how far off the edge (px) earns a second and a third chevron. */
+export const MARKER_FAR = [60, 180] as const;
+/** The marker sits this far above his feet (about his chest), and keeps clear of the score and the bottom edge, in HUD-layer px. */
+const MARKER = { rise: 28, top: 24, bottom: 8, inset: 2, step: 4 } as const;
 const SHADOW_W = 5;
 /** Biscuit is long: his shadow is a wider patch. */
 const DOG_SHADOW_W = 9;
@@ -389,6 +393,35 @@ export function arrowX(w: World, cam: Camera): number | null {
   return Math.round(Math.min(Math.max(arrow.x / view.hudScale, 3), right));
 }
 
+/** Harrison off the side of the screen: which edge, his row in HUD-layer px, and how far off in chevrons (1 to 3). Null while he's in view. */
+export function homeMarker(w: World, cam: Camera): { side: 'left' | 'right'; y: number; chevrons: number } | null {
+  const view = viewOf(cam);
+  const p = project(w.home.x, w.home.y, w.home.z, cam);
+  const off = p.sx < 0 ? -p.sx : p.sx > view.w ? p.sx - view.w : 0;
+  if (off === 0) return null;
+  const h = hudSize(view).h;
+  const y = Math.round(Math.min(Math.max((p.sy - MARKER.rise) / view.hudScale, MARKER.top), h - MARKER.bottom));
+  return { side: p.sx < 0 ? 'left' : 'right', y, chevrons: off > MARKER_FAR[1] ? 3 : off > MARKER_FAR[0] ? 2 : 1 };
+}
+
+/** A chevron's pixels from its tip, pointing out: the tip, then an arm each way. */
+const CHEVRON: readonly (readonly [back: number, dy: number])[] = [[0, 0], [1, -1], [1, 1], [2, -2], [2, 2]];
+
+/** Gold chevrons at the screen's edge pointing the way to Harrison, one more the further off he is. */
+function drawHomeMarker(g: CanvasRenderingContext2D, w: World, cam: Camera, hudW: number): void {
+  const m = homeMarker(w, cam);
+  if (!m) return;
+  // Each arm pixel sits `back` px inward from the tip; the tip points at the edge.
+  const inward = m.side === 'left' ? 1 : -1;
+  for (let i = 0; i < m.chevrons; i++) {
+    const tip = m.side === 'left' ? MARKER.inset + i * MARKER.step : hudW - 1 - MARKER.inset - i * MARKER.step;
+    ink(g, 'outline');
+    for (const [back, dy] of CHEVRON) g.fillRect(tip + inward * back - 1, m.y + dy - 1, 3, 3);
+    ink(g, 'energyGold');
+    for (const [back, dy] of CHEVRON) g.fillRect(tip + inward * back, m.y + dy, 1, 1);
+  }
+}
+
 function drawArrow(g: CanvasRenderingContext2D, w: World, cam: Camera): void {
   const x = arrowX(w, cam);
   if (x === null) return;
@@ -483,6 +516,7 @@ export function drawMatch(g: CanvasRenderingContext2D, w: World, cam: Camera, ar
     g.restore();
   }
   drawHud(overlay, w, hudW, art, nowS, hud.awayName);
+  drawHomeMarker(overlay, w, cam, hudW);
   if (hud.perfect && nowS < hud.perfect.untilS) {
     const kicker = hud.perfect.team === 'home' ? w.home : w.away;
     const at = screen(cam, kicker.x, kicker.y, kicker.z);
