@@ -1,11 +1,14 @@
 import type { AiBrain, Steer } from './ai';
 import { headPlay, headTick } from './hank';
+import { chipTick, loftPlay } from './lola';
 import type { Aim } from './kick';
 import type { Player, PlayerIntent } from './player';
 import type { World } from './world';
 
 /** A tryout kid's own move under way; each kid's task adds its kind. */
-export type TryoutMove = { kind: 'head'; t: number; at: { x: number; z: number }; jumpInS: number; jumped: boolean; aim: Aim };
+export type TryoutMove =
+  | { kind: 'head'; t: number; at: { x: number; z: number }; jumpInS: number; jumped: boolean; aim: Aim }
+  | { kind: 'chip'; t: number; charge: number; error: number; judged: boolean; pressed: boolean; aim: Aim };
 
 /** Starts `move`, counting it for the personality checks. */
 export function startMove(brain: AiBrain, move: TryoutMove): void {
@@ -17,6 +20,8 @@ export function startMove(brain: AiBrain, move: TryoutMove): void {
 export function onBallPlay(brain: AiBrain, w: World, me: Player, them: Player, steer: Steer): PlayerIntent | null {
   if (w.match.phase !== 'playing') return null;
   switch (brain.profile.style) {
+    case 'chipper':
+      return loftPlay(brain, w, me, them, steer);
     default:
       return null;
   }
@@ -38,7 +43,7 @@ export function tickMove(brain: AiBrain, w: World, me: Player, them: Player, dt:
   const move = brain.move;
   if (!move) return false;
   move.t += dt;
-  const intent = move.kind === 'head' ? headTick(move, w, me, them, steer) : null;
+  const intent = move.kind === 'head' ? headTick(move, w, me, them, steer) : chipTick(move, w, me, steer);
   if (!intent) {
     brain.move = null;
     brain.nextDecisionS = 0;

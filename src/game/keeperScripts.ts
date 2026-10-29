@@ -1,18 +1,16 @@
-import { BALL_R } from '../art/ball';
 import { seeded } from '../engine/random';
 import { maxStats } from '../meta/ladder';
 import { DIFFICULTY, createBrain, think, type Difficulty } from './ai';
-import { openCorner } from './aiming';
+import { judgedChip, openCorner } from './aiming';
 import { keeperLineup, type Keeper, type KeeperSide } from './keeper';
-import { stepBall } from './ball';
-import { HUMAN_AIM_ERROR_DEG, aimLine, chip, type Aim } from './kick';
+import { HUMAN_AIM_ERROR_DEG, type Aim } from './kick';
 import { harrisonIntent, harrisonStats, scriptMemo, type MaxMatch } from './maxScripts';
 import { opponentProfile, trickSetup } from './opponents';
 import { NO_INTENT, NORMAL_HANDLING, type PlayerIntent } from './player';
 import { SCHOOL_STAGE } from './stage';
 import { chargeTime } from './stats';
 import { createWorld, stepWorld, type World } from './world';
-import { ballAtFeet, ballIn, footZone } from './zones';
+import { ballAtFeet } from './zones';
 
 export type Drill = 'long' | 'corner' | 'oneOnOne' | 'roller';
 export type DrillOutcome = 'goal' | 'saved' | 'wide';
@@ -83,30 +81,6 @@ export const ONE_ON_ONE = {
   shotCharge: 0.75,
 };
 
-/** The charge whose chip from where the ball is crosses the goal line at `lineY`, found by flying it: a judged chip. */
-function judgedChip(w: World, lineY: number): number {
-  const g = w.field.goals[1];
-  const yAtLine = (charge: number): number => {
-    const k = chip(w.home.stats, charge, aimLine(w.ball, 1, 'straight', w.field));
-    const b = { ...w.ball, vx: k.vx, vy: k.vy, vz: k.vz, spin: k.spin };
-    // Measured as its front edge meets the line; one that comes back off the bar is too high.
-    const at = g.lineX - BALL_R - 1;
-    for (let i = 0; i < 240 && b.x < at && b.vx > 0; i++) {
-      stepBall(b, STEP, w.field);
-      // His swing meets it again while it's still at his foot, as the real chip does.
-      if (ballIn(footZone(w.home), b, BALL_R)) Object.assign(b, { vx: k.vx, vy: k.vy, vz: k.vz });
-    }
-    return b.vx <= 0 ? Infinity : b.x >= at ? b.y : -1;
-  };
-  let [lo, hi] = [0.2, 1];
-  for (let i = 0; i < 24; i++) {
-    const mid = (lo + hi) / 2;
-    if (yAtLine(mid) < lineY) lo = mid;
-    else hi = mid;
-  }
-  return (lo + hi) / 2;
-}
-
 /** Dribbles in, settles on the ball, waits for the keeper, then rounds him, chips him or steps over him by `turn`; or shoots for the far corner. */
 function oneOnOne(w: World, k: Keeper, rng: () => number, turn: number): Script {
   const O = ONE_ON_ONE;
@@ -152,7 +126,7 @@ function oneOnOne(w: World, k: Keeper, rng: () => number, turn: number): Script 
           return { ...NO_INTENT, faceX: 1, moveZ: side, shootHeld: true, aim };
         }
         if (turn === 1) {
-          [hold, chipping] = [judgedChip(w, O.chipLineY) + touch, true];
+          [hold, chipping] = [judgedChip(w, w.home, O.chipLineY) + touch, true];
           go('shoot');
           return { ...NO_INTENT, faceX: 1, chipHeld: true };
         }
