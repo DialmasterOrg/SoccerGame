@@ -183,7 +183,7 @@ describe('match scene', () => {
       const s = live();
       s.world.match.clockS = 40;
       headerGoal(s);
-      expect(s.goals).toEqual([{ minute: 40, kind: 'header', perfect: false }]);
+      expect(s.goals).toEqual([{ minute: 40, kind: 'header', perfect: false, outsideBox: false, rebound: false }]);
       run(s, 4);
       s.world.match.phase = 'playing';
       Object.assign(s.world.ball, { x: 616, y: 3, z: 32, vx: 100, vy: 0, vz: 0 });
@@ -241,7 +241,7 @@ describe('match scene', () => {
       s.world.match.clockS = 89.99;
       run(s, 3);
       expect(s.world.match.phase).toBe('fullTime');
-      expect(s.reward!.summary.goals).toEqual([{ minute: 20, kind: 'header', perfect: false }]);
+      expect(s.reward!.summary.goals).toEqual([{ minute: 20, kind: 'header', perfect: false, outsideBox: false, rebound: false }]);
       expect(s.reward!.career.match.id).toBe('backyard-1');
       expect(ctx.savedProfiles.at(-1)?.career.stars['backyard-1']).toBeGreaterThan(0);
     });

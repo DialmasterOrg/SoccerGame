@@ -231,7 +231,7 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
   };
   /** Notes one of his goals: a trick goal as 'trick', otherwise the kick it came from. */
   const recordGoal = (trick: boolean) => {
-    goals.push({ minute: clockMinute(world.match), kind: trick ? 'trick' : (lastKick?.kind ?? null), perfect: lastKick?.perfect ?? false });
+    goals.push({ minute: clockMinute(world.match), kind: trick ? 'trick' : (lastKick?.kind ?? null), perfect: lastKick?.perfect ?? false, outsideBox: false, rebound: false });
     checkBonus();
   };
   /** Shows an owed bonus callout, unless a goal moment is running: it waits behind one, so it never covers it. */

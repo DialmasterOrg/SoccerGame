@@ -1,17 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import type { GoalRecord, MatchSummary } from './economy';
-import { BONUSES, EARLY_GOAL_MINUTE, MAX_STARS, STEALS_FOR_BONUS, starsFor, type BonusId } from './objectives';
+import { BONUSES, EARLY_GOAL_MINUTE, MAX_STARS, STEALS_FOR_BONUS, starsFor, type BonusId, type BonusInput } from './objectives';
 
-const goal = (over: Partial<GoalRecord> = {}): GoalRecord => ({ minute: 40, kind: 'shot', perfect: false, ...over });
+const goal = (over: Partial<GoalRecord> = {}): GoalRecord => ({ minute: 40, kind: 'shot', perfect: false, outsideBox: false, rebound: false, ...over });
+const inPlay = (goals: GoalRecord[]): BonusInput => ({ goalsFor: goals.length, goalsAgainst: 0, goals, result: null, steals: 0 });
 const match = (over: Partial<MatchSummary>): MatchSummary => ({ result: 'win', goalsFor: 1, goalsAgainst: 0, styleGoals: [], goals: [goal()], steals: 0, ...over });
 
 describe('bonuses', () => {
-  it('has the thirteen spec labels, in the character set', () => {
+  it('has the seventeen spec labels, in the character set', () => {
     const labels = Object.values(BONUSES).map(b => b.label);
     expect(labels).toEqual([
       'SCORE 3 GOALS', 'KEEP A CLEAN SHEET', 'SCORE A HEADER', 'SCORE FROM A CHIP', 'SCORE A VOLLEY', 'SCORE A PERFECT STRIKE',
       'SCORE IN THE FIRST 30 SECONDS', 'WIN BY 3', 'SCORE 2 STYLE GOALS', 'WIN 3-0 OR BETTER', "DON'T LET BISCUIT SCORE",
       'WIN THE BALL WITH 3 STEALS', "DON'T LET SAM SCORE",
+      'SCORE FROM OUTSIDE THE BOX', 'SCORE A REBOUND', "DON'T LET PAIGE SCORE", 'PUT 3 PAST GUS',
     ]);
     for (const l of labels) expect(l).toMatch(/^[A-Z0-9 '\-:!?.,/+<>]+$/);
   });
@@ -45,7 +47,7 @@ describe('bonuses', () => {
 
   it('full-time bonuses wait for the result', () => {
     const live = { goalsFor: 3, goalsAgainst: 0, goals: [goal(), goal(), goal()], result: null, steals: 0 };
-    for (const id of ['cleanSheet', 'winBy3', 'win3Nil', 'noBossGoals', 'noSamGoals'] as const) {
+    for (const id of ['cleanSheet', 'winBy3', 'win3Nil', 'noBossGoals', 'noSamGoals', 'noPaigeGoals'] as const) {
       expect(BONUSES[id].inPlay).toBe(false);
       expect(BONUSES[id].done(live)).toBe(false);
       expect(BONUSES[id].done({ ...live, result: 'win' })).toBe(true);
@@ -57,7 +59,7 @@ describe('bonuses', () => {
 
   it('in-play bonuses are the ones a goal or a steal can settle', () => {
     const inPlay = Object.values(BONUSES).filter(b => b.inPlay).map(b => b.id);
-    expect(inPlay).toEqual(['score3', 'header', 'chip', 'volley', 'perfect', 'early', 'twoStyle', 'steals3']);
+    expect(inPlay).toEqual(['score3', 'header', 'chip', 'volley', 'perfect', 'early', 'twoStyle', 'steals3', 'outsideBox', 'rebound', 'threePastGus']);
   });
 
   it('three clean steals settle the steals bonus in play', () => {
@@ -72,6 +74,39 @@ describe('bonuses', () => {
     expect(BONUSES.noSamGoals.label).toBe("DON'T LET SAM SCORE");
     expect(BONUSES.noSamGoals.done({ goalsFor: 2, goalsAgainst: 0, goals: [], result: 'win', steals: 0 })).toBe(true);
     expect(BONUSES.noSamGoals.done({ goalsFor: 2, goalsAgainst: 0, goals: [], result: null, steals: 0 })).toBe(false);
+  });
+});
+
+describe('the School Field bonuses', () => {
+  it('a goal struck outside the box settles SCORE FROM OUTSIDE THE BOX in play', () => {
+    expect(BONUSES.outsideBox).toMatchObject({ label: 'SCORE FROM OUTSIDE THE BOX', inPlay: true });
+    expect(BONUSES.outsideBox.done(inPlay([goal()]))).toBe(false);
+    expect(BONUSES.outsideBox.done(inPlay([goal(), goal({ outsideBox: true })]))).toBe(true);
+  });
+
+  it('a rebound goal settles SCORE A REBOUND in play', () => {
+    expect(BONUSES.rebound).toMatchObject({ label: 'SCORE A REBOUND', inPlay: true });
+    expect(BONUSES.rebound.done(inPlay([goal({ outsideBox: true })]))).toBe(false);
+    expect(BONUSES.rebound.done(inPlay([goal({ rebound: true })]))).toBe(true);
+  });
+
+  it("Paige's bonus is a clean sheet at full time, with her name", () => {
+    expect(BONUSES.noPaigeGoals).toMatchObject({ label: "DON'T LET PAIGE SCORE", inPlay: false });
+    expect(BONUSES.noPaigeGoals.done(inPlay([goal()]))).toBe(false);
+    expect(BONUSES.noPaigeGoals.done({ ...inPlay([goal()]), result: 'win' })).toBe(true);
+    expect(BONUSES.noPaigeGoals.done({ ...inPlay([goal()]), goalsAgainst: 1, result: 'win' })).toBe(false);
+  });
+
+  it('three goals put 3 past Gus, in play', () => {
+    expect(BONUSES.threePastGus).toMatchObject({ label: 'PUT 3 PAST GUS', inPlay: true });
+    expect(BONUSES.threePastGus.done(inPlay([goal(), goal()]))).toBe(false);
+    expect(BONUSES.threePastGus.done(inPlay([goal(), goal(), goal()]))).toBe(true);
+  });
+
+  it('starsFor reads the new facts: a 2-0 win with a goal from outside the box is 3 stars there, 2 elsewhere', () => {
+    const s: MatchSummary = { result: 'win', goalsFor: 2, goalsAgainst: 0, styleGoals: [], goals: [goal(), goal({ outsideBox: true })], steals: 0 };
+    expect(starsFor(s, 'outsideBox')).toBe(3);
+    expect(starsFor(s, 'rebound')).toBe(2);
   });
 });
 

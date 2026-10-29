@@ -5,7 +5,7 @@ import { newProfile, type Profile } from './profile';
 import { applyMatch, localDate } from './progress';
 
 const TODAY = '2026-10-23';
-const shot = (minute: number) => ({ minute, kind: 'shot', perfect: false }) as const;
+const shot = (minute: number) => ({ minute, kind: 'shot', perfect: false, outsideBox: false, rebound: false }) as const;
 const win30: MatchSummary = { result: 'win', goalsFor: 3, goalsAgainst: 0, styleGoals: [], goals: [shot(10), shot(40), shot(70)], steals: 0 };
 const loss03: MatchSummary = { result: 'lose', goalsFor: 0, goalsAgainst: 3, styleGoals: [], goals: [], steals: 0 };
 const rung = (n: number) => matchById(rungId(n))!;
@@ -79,14 +79,14 @@ describe('applyMatch', () => {
   });
 
   it('three stars need the bonus and a two-goal margin together', () => {
-    const header = { result: 'win', goalsFor: 2, goalsAgainst: 0, styleGoals: ['header'], goals: [{ minute: 10, kind: 'header', perfect: false }, { minute: 50, kind: 'shot', perfect: false }], steals: 0 } as const;
+    const header = { result: 'win', goalsFor: 2, goalsAgainst: 0, styleGoals: ['header'], goals: [{ minute: 10, kind: 'header', perfect: false, outsideBox: false, rebound: false }, { minute: 50, kind: 'shot', perfect: false, outsideBox: false, rebound: false }], steals: 0 } as const;
     const { profile, reward } = applyMatch({ ...newProfile(), ladderWins: 2 }, header, rung(3), TODAY);
     expect(reward.career).toMatchObject({ stars: 3, bonusDone: true, improved: true });
     expect(profile.career.stars['backyard-3']).toBe(3);
   });
 
   it('a bonus done in a loss is reported but banks nothing', () => {
-    const { profile, reward } = applyMatch({ ...newProfile(), ladderWins: 2 }, { result: 'lose', goalsFor: 1, goalsAgainst: 2, styleGoals: ['header'], goals: [{ minute: 10, kind: 'header', perfect: false }], steals: 0 }, rung(3), TODAY);
+    const { profile, reward } = applyMatch({ ...newProfile(), ladderWins: 2 }, { result: 'lose', goalsFor: 1, goalsAgainst: 2, styleGoals: ['header'], goals: [{ minute: 10, kind: 'header', perfect: false, outsideBox: false, rebound: false }], steals: 0 }, rung(3), TODAY);
     expect(reward.career).toMatchObject({ stars: 0, bonusDone: true, improved: false });
     expect(profile.career.stars['backyard-3']).toBeUndefined();
     expect(profile.career.lossStreaks).toEqual({ 'backyard-3': 1 });
@@ -94,7 +94,7 @@ describe('applyMatch', () => {
 
   it('a replay can only raise a star, and a win clears the loss streak', () => {
     const start = { ...newProfile(), ladderWins: 5, career: { stars: { 'backyard-2': 3 }, milestonesPaid: 0, lossStreaks: { 'backyard-2': 2 } } };
-    const worse = applyMatch(start, { result: 'win', goalsFor: 1, goalsAgainst: 0, styleGoals: [], goals: [{ minute: 5, kind: 'shot', perfect: false }], steals: 0 }, rung(2), TODAY);
+    const worse = applyMatch(start, { result: 'win', goalsFor: 1, goalsAgainst: 0, styleGoals: [], goals: [{ minute: 5, kind: 'shot', perfect: false, outsideBox: false, rebound: false }], steals: 0 }, rung(2), TODAY);
     expect(worse.profile.career.stars['backyard-2']).toBe(3);
     expect(worse.reward.career).toMatchObject({ stars: 1, bestBefore: 3, improved: false, firstWin: false });
     expect(worse.profile.career.lossStreaks).toEqual({});

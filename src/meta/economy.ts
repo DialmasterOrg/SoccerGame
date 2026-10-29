@@ -14,6 +14,10 @@ export interface GoalRecord {
   /** Null when no kick of his was still live when the ball crossed the line. */
   kind: GoalKind | null;
   perfect: boolean;
+  /** The kick that scored was struck with the ball outside their penalty box. Always false without keepers. */
+  outsideBox: boolean;
+  /** That kick came within REBOUND_S of their keeper pushing the ball away. Always false without keepers. */
+  rebound: boolean;
 }
 
 /** A finished match, from Harrison's side. */

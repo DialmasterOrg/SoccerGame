@@ -1,6 +1,7 @@
 import type { GoalRecord, MatchSummary } from './economy';
 
-export type BonusId = 'score3' | 'cleanSheet' | 'header' | 'chip' | 'volley' | 'perfect' | 'early' | 'winBy3' | 'twoStyle' | 'win3Nil' | 'noBossGoals' | 'steals3' | 'noSamGoals';
+export type BonusId = 'score3' | 'cleanSheet' | 'header' | 'chip' | 'volley' | 'perfect' | 'early' | 'winBy3' | 'twoStyle' | 'win3Nil' | 'noBossGoals' | 'steals3' | 'noSamGoals'
+  | 'outsideBox' | 'rebound' | 'noPaigeGoals' | 'threePastGus';
 
 /** What a bonus can be judged on mid-match: the goals and clean steals so far, and the result once there is one. */
 export interface BonusInput {
@@ -52,6 +53,11 @@ export const BONUSES: Readonly<Record<BonusId, Bonus>> = {
   noBossGoals: bonus('noBossGoals', "DON'T LET BISCUIT SCORE", false, atFullTime(s => s.goalsAgainst === 0)),
   steals3: bonus('steals3', 'WIN THE BALL WITH 3 STEALS', true, s => s.steals >= STEALS_FOR_BONUS),
   noSamGoals: bonus('noSamGoals', "DON'T LET SAM SCORE", false, atFullTime(s => s.goalsAgainst === 0)),
+  // The School Field's four, from 7c.
+  outsideBox: bonus('outsideBox', 'SCORE FROM OUTSIDE THE BOX', true, s => s.goals.some(g => g.outsideBox)),
+  rebound: bonus('rebound', 'SCORE A REBOUND', true, s => s.goals.some(g => g.rebound)),
+  noPaigeGoals: bonus('noPaigeGoals', "DON'T LET PAIGE SCORE", false, atFullTime(s => s.goalsAgainst === 0)),
+  threePastGus: bonus('threePastGus', 'PUT 3 PAST GUS', true, s => s.goals.length >= SCORE3_GOALS),
 };
 
 /** 0 for a draw or loss; 1 for a win; 2 for a win by 2+; 3 for that and the bonus in the same match. */

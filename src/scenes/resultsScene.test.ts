@@ -16,7 +16,7 @@ const STEP = 1 / 60;
 const WIN_3_0: MatchSummary = { result: 'win', goalsFor: 3, goalsAgainst: 0, styleGoals: [], goals: [], steals: 0 };
 const LOSS_0_2: MatchSummary = { result: 'lose', goalsFor: 0, goalsAgainst: 2, styleGoals: [], goals: [], steals: 0 };
 const boss = matchById(BOSS_ID)!;
-const g = (minute: number): GoalRecord => ({ minute, kind: 'shot', perfect: false });
+const g = (minute: number): GoalRecord => ({ minute, kind: 'shot', perfect: false, outsideBox: false, rebound: false });
 
 /** A context whose profile has had `s` applied, as the match scene leaves it, and the reward for it. */
 function after(s: MatchSummary, from: Profile = newProfile(), match: CareerMatch = nextCareerMatch(from)) {
