@@ -1061,3 +1061,42 @@ Notes for plans 4–5:
   `bossSting` for him and keeps three lines after a loss.
 - `GoalRecord.outsideBox` and `rebound` are recorded in every match,
   so plan 4's Priya and plan 5's Gus need no new facts.
+
+## Amended after the parent's first playtest (2026-10-29): softer keepers
+
+The parent's first match at the School on Normal ended 0-0 with every
+shot saved, which felt too hard to score on. The keepers' targets above
+(*How good they are*) are softened, every difficulty and level one notch:
+
+- **Targets on Normal, against the venue's first keeper:** long shots
+  from outside the box are saved about two in three (was three in four);
+  a well-placed shot into a corner from inside the box scores about
+  three in four (was half); a patient one-on-one scores nearly every
+  time. Easy lets in nearly half of long shots and three in four
+  corners; Hard's first keeper is about the old Normal.
+- **What moved, and why not more.** The dials that decide scoring are
+  the reaction time (long shots and the one-on-one), how far he comes
+  off his line and his standing reach (corner shots); dive length, catch
+  pace and positioning error barely move the drills. The reaction time
+  stays under a hard shot's flight from the box's edge (650 px/s over
+  180 px is 0.28 s): a first try at 0.32 s on Normal left him unable to
+  move for one, so every rocket from the box's edge scored and he never
+  pushed a ball away (the push guarantee's test caught it). Normal's
+  first keeper is now at 0.27 s (was 0.24), comes out 17 (was 21), with
+  a standing reach of 1 in depth and 41 high (was 2 and 42); Easy's
+  first at 0.34 s (was 0.30), Hard's at 0.22 s (was 0.20); every last
+  keeper 0.03-0.04 s slower than before, with the rest of the dials a
+  notch softer each. `KEEPER_LEVELS` in `src/game/keeper.ts` has the
+  numbers.
+- **Measured** (seeds 100-163), goals let in: long shots E/N/H
+  .46/.35/.24 at level 1, .26/.11/0 at level 8; placed corners
+  .77/.73/.49 at level 1, .77/.60/.33 at level 8; the one-on-one on
+  Normal .94 at level 1, .58 at level 8. No wall: the sharpest keeper
+  lets in .33 of corners. No soft goals: no slow roller ever goes in.
+  Hard shots from the box's edge are still pushed away (24 of 64 on
+  Normal's first keeper) and never into his own goal. Scripted matches
+  on Normal average .63 goals a side, at most 4. Harrison's own keeper
+  plays at Normal, so he lets in more too; plan 4's cast is measured
+  against these keepers, not the old ones.
+- The bands in `keeperTuning.test.ts` pin the new targets, and a new
+  band pins Easy's first keeper.

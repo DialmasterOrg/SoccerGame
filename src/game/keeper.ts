@@ -49,29 +49,34 @@ const profile = (p: KeeperProfile): KeeperProfile => p;
 
 /**
  * Each difficulty's keeper at the venue's first match (level 1) and its last
- * (KEEPER_TOP_LEVEL); the levels between are straight lines. Tuned on
- * comeOutPx (how far he sets off his line decides most close shots) and
- * smotherAt; the rest are the plan's starting values. Measured with
- * keeperScripts' drills (seeds 100-163, 2026-10-29): goals let in from long
- * shots E/N/H .39/.26/.15 at level 1 (Normal saves .74), .23/0/0 at level 8;
- * from placed corner shots .76/.43/.33 at level 1, .63/.40/.19 at level 8;
- * a patient one-on-one on Normal scores .77; the weakest keeper still lets
- * in .19 of corners (Hard 7, seeds 100-131); no slow roller ever goes in.
- * Scripted matches on Normal (seeds 100-131) average .45 goals a side,
- * at most 2. Mutable, so headless sweeps can try other numbers.
+ * (KEEPER_TOP_LEVEL); the levels between are straight lines. The dials that
+ * decide scoring are reactionS (long shots and the one-on-one), comeOutPx
+ * and the standing reach (corner shots); dive length, catch pace and
+ * positioning error barely move the drills. reactionS stays under a hard
+ * shot's flight from the box's edge (650 px/s over 180 px is 0.28 s), or
+ * he never moves for one and never pushes a ball away. Softened after the
+ * parent's first playtest (2026-10-29: a 0-0 with every shot saved felt too
+ * hard to score on). Measured with keeperScripts' drills (seeds 100-163):
+ * goals let in from long shots E/N/H .46/.35/.24 at level 1 (Normal saves
+ * .65), .26/.11/0 at level 8; from placed corner shots .77/.73/.49 at level
+ * 1, .77/.60/.33 at level 8; a patient one-on-one on Normal scores .94 at
+ * level 1 and .58 at level 8; the sharpest keeper still lets in .33 of
+ * corners; no slow roller ever goes in. Scripted matches on Normal (seeds
+ * 100-131) average .63 goals a side, at most 4. Mutable, so headless
+ * sweeps can try other numbers.
  */
 export const KEEPER_LEVELS: Record<Difficulty, { first: KeeperProfile; last: KeeperProfile }> = {
   easy: {
-    first: profile({ reactionS: 0.3, speed: 95, posErrPx: 9, comeOutPx: 16, reachZ: 1, reachY: 40, diveTravel: 6, diveReach: 8, diveS: 0.45, catchSpeed: 320, holdOdds: 0.8, downS: 0.6, getUpS: 0.6, smotherAt: 18 }),
-    last: profile({ reactionS: 0.22, speed: 110, posErrPx: 6, comeOutPx: 16, reachZ: 2, reachY: 42, diveTravel: 8, diveReach: 9, diveS: 0.4, catchSpeed: 380, holdOdds: 0.85, downS: 0.5, getUpS: 0.5, smotherAt: 20 }),
+    first: profile({ reactionS: 0.34, speed: 92, posErrPx: 10, comeOutPx: 15, reachZ: 1, reachY: 40, diveTravel: 6, diveReach: 7, diveS: 0.47, catchSpeed: 310, holdOdds: 0.78, downS: 0.62, getUpS: 0.62, smotherAt: 18 }),
+    last: profile({ reactionS: 0.24, speed: 106, posErrPx: 7, comeOutPx: 15, reachZ: 1, reachY: 41, diveTravel: 7, diveReach: 8, diveS: 0.42, catchSpeed: 360, holdOdds: 0.83, downS: 0.52, getUpS: 0.52, smotherAt: 20 }),
   },
   normal: {
-    first: profile({ reactionS: 0.24, speed: 105, posErrPx: 6, comeOutPx: 21, reachZ: 2, reachY: 42, diveTravel: 8, diveReach: 9, diveS: 0.4, catchSpeed: 360, holdOdds: 0.85, downS: 0.5, getUpS: 0.5, smotherAt: 20 }),
-    last: profile({ reactionS: 0.16, speed: 120, posErrPx: 3, comeOutPx: 19, reachZ: 3, reachY: 44, diveTravel: 10, diveReach: 11, diveS: 0.35, catchSpeed: 440, holdOdds: 0.92, downS: 0.4, getUpS: 0.4, smotherAt: 24 }),
+    first: profile({ reactionS: 0.27, speed: 100, posErrPx: 7, comeOutPx: 17, reachZ: 1, reachY: 41, diveTravel: 7, diveReach: 8, diveS: 0.42, catchSpeed: 340, holdOdds: 0.82, downS: 0.55, getUpS: 0.55, smotherAt: 20 }),
+    last: profile({ reactionS: 0.19, speed: 115, posErrPx: 4, comeOutPx: 18, reachZ: 2, reachY: 43, diveTravel: 9, diveReach: 10, diveS: 0.37, catchSpeed: 420, holdOdds: 0.9, downS: 0.42, getUpS: 0.42, smotherAt: 24 }),
   },
   hard: {
-    first: profile({ reactionS: 0.2, speed: 112, posErrPx: 4, comeOutPx: 21, reachZ: 3, reachY: 44, diveTravel: 9, diveReach: 10, diveS: 0.38, catchSpeed: 400, holdOdds: 0.9, downS: 0.45, getUpS: 0.45, smotherAt: 22 }),
-    last: profile({ reactionS: 0.12, speed: 128, posErrPx: 2, comeOutPx: 17, reachZ: 4, reachY: 46, diveTravel: 11, diveReach: 12, diveS: 0.32, catchSpeed: 480, holdOdds: 0.95, downS: 0.35, getUpS: 0.35, smotherAt: 26 }),
+    first: profile({ reactionS: 0.22, speed: 108, posErrPx: 5, comeOutPx: 20, reachZ: 2, reachY: 43, diveTravel: 8, diveReach: 9, diveS: 0.4, catchSpeed: 380, holdOdds: 0.88, downS: 0.48, getUpS: 0.48, smotherAt: 22 }),
+    last: profile({ reactionS: 0.14, speed: 124, posErrPx: 3, comeOutPx: 18, reachZ: 3, reachY: 45, diveTravel: 10, diveReach: 11, diveS: 0.34, catchSpeed: 460, holdOdds: 0.94, downS: 0.38, getUpS: 0.38, smotherAt: 26 }),
   },
 };
 

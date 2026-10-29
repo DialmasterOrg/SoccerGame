@@ -7,19 +7,27 @@ const SEEDS = [...Array(64)].map((_, i) => 100 + i);
 const FEW = SEEDS.slice(0, 32);
 
 describe("keepers on Normal, against the venue's first keeper", () => {
-  it('save about 3 in 4 long shots from outside the box', () => {
+  // Softened after the parent's first playtest (2026-10-29): a 0-0 with every shot saved felt too hard to score on.
+  it('save about half of long shots from outside the box', () => {
     const saved = 1 - goalRate('long', 1, 'normal', SEEDS);
-    expect(saved).toBeGreaterThanOrEqual(0.65);
-    expect(saved).toBeLessThanOrEqual(0.85);
+    expect(saved).toBeGreaterThanOrEqual(0.45);
+    expect(saved).toBeLessThanOrEqual(0.7);
   });
 
-  it('let in about half of well-placed shots into a corner from inside the box', () => {
-    expect(goalRate('corner', 1, 'normal', SEEDS)).toBeGreaterThanOrEqual(0.4);
-    expect(goalRate('corner', 1, 'normal', SEEDS)).toBeLessThanOrEqual(0.6);
+  it('let in about two in three well-placed shots into a corner from inside the box', () => {
+    expect(goalRate('corner', 1, 'normal', SEEDS)).toBeGreaterThanOrEqual(0.55);
+    expect(goalRate('corner', 1, 'normal', SEEDS)).toBeLessThanOrEqual(0.8);
   });
 
-  it('are beaten most of the time by a patient one-on-one', () => {
-    expect(goalRate('oneOnOne', 1, 'normal', SEEDS)).toBeGreaterThanOrEqual(0.7);
+  it('are beaten nearly every time by a patient one-on-one', () => {
+    expect(goalRate('oneOnOne', 1, 'normal', SEEDS)).toBeGreaterThanOrEqual(0.8);
+  });
+});
+
+describe("keepers on Easy, against the venue's first keeper", () => {
+  it('let in nearly half of long shots and three in four corner shots', () => {
+    expect(goalRate('long', 1, 'easy', SEEDS)).toBeGreaterThanOrEqual(0.4);
+    expect(goalRate('corner', 1, 'easy', SEEDS)).toBeGreaterThanOrEqual(0.7);
   });
 });
 
