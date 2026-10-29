@@ -10,6 +10,7 @@ import { NORMAL_HANDLING, NO_INTENT, PLAYER_R, type PlayerIntent } from './playe
 import { BALL_R } from '../art/ball';
 import { SCHOOL_STAGE } from './stage';
 import { chargeTime, type Stats } from './stats';
+import { FAKE } from './styles';
 import { TRYOUT_ORDER, TRYOUT_PROFILES, TRYOUT_STATS, type TryoutOpponent } from './tryouts';
 import { createWorld, stepWorld, type World } from './world';
 import type { TryoutMove } from './tryoutMoves';
@@ -75,6 +76,10 @@ export interface TryoutTraits extends Traits {
   strayTicks: number;
   /** Its own moves started, by kind: a copy of its brain's count. */
   moves: Partial<Record<TryoutMove['kind'], number>>;
+  /** Its fakes followed by a shot wind-up within FAKE_TO_SHOT_S of the fake's end. */
+  fakesToShot: number;
+  /** Its fakes run their whole course with the ball at its feet within its fakeShot of the line: the ones that end in a shot. */
+  fakesFinished: number;
 }
 
 export interface TryoutMatch extends MaxMatch {
@@ -86,6 +91,8 @@ const STEP = 1 / 60;
 const MATCH_TICKS = 60 * 500;
 /** The ball counts as still when it moves less than this in a tick. */
 const STILL_PX = 0.05;
+/** A wind-up this soon after a fake ends counts as the fake ending in a shot, s. */
+export const FAKE_TO_SHOT_S = 1;
 
 /** Whether Harrison's body is across the line from the ball to where `aim` crosses the goal the away side attacks: his centre within reach of it, between them. */
 function acrossLine(w: World, aim: Aim): boolean {
@@ -111,12 +118,18 @@ function schoolRecorder(w: World) {
   const base = traitRecorder(w);
   const attacks = w.field.goals[0]!;
   const shotLines: number[] = [];
-  let [headers, chips, chipGoals, reboundTouches, shotsInLine, windUps, strayTicks] = [0, 0, 0, 0, 0, 0, 0];
+  let [headers, chips, chipGoals, reboundTouches, shotsInLine, windUps, strayTicks, fakesToShot, fakesFinished] = [0, 0, 0, 0, 0, 0, 0, 0, 0];
   let lastKick: string | null = null;
-  let sinceHomePushS = Infinity;
+  let [sinceHomePushS, sinceFakeS, fakeT] = [Infinity, Infinity, null as number | null];
   return {
-    tick(w: World, away: PlayerIntent, was: World['away']['state']): void {
+    tick(w: World, away: PlayerIntent, was: World['away']['state'], brain: AiBrain): void {
       base.tick(w, away, was);
+      const ended = fakeT !== null && !brain.fake;
+      sinceFakeS = ended ? 0 : sinceFakeS + STEP;
+      // A fake that ran its course ends on the tick its clock passes the lean, the cut and the straightening.
+      const finished = ended && fakeT! >= FAKE.leanS + FAKE.cutS + FAKE.goS - STEP - 1e-9;
+      if (finished && ballAtFeet(w.away, w.ball) && w.away.x - attacks.lineX <= (brain.profile.fakeShot ?? 0)) fakesFinished++;
+      fakeT = brain.fake?.t ?? null;
       const ev = w.events.kicks[1];
       sinceHomePushS = w.events.keeper.pushed === 'home' ? 0 : sinceHomePushS + STEP;
       if (ev?.kicked) lastKick = ev.kicked;
@@ -132,10 +145,11 @@ function schoolRecorder(w: World) {
       if (was !== 'charging' && w.away.state === 'charging') {
         windUps++;
         if (acrossLine(w, away.aim)) shotsInLine++;
+        if (sinceFakeS <= FAKE_TO_SHOT_S) [fakesToShot, sinceFakeS] = [fakesToShot + 1, Infinity];
       }
       if (strayed(w)) strayTicks++;
     },
-    traits: (brain: AiBrain): TryoutTraits => ({ ...base.traits(brain), headers, chips, chipGoals, reboundTouches, shotLines, shotsInLine, windUps, strayTicks, moves: { ...brain.started } }),
+    traits: (brain: AiBrain): TryoutTraits => ({ ...base.traits(brain), headers, chips, chipGoals, reboundTouches, shotLines, shotsInLine, windUps, strayTicks, moves: { ...brain.started }, fakesToShot, fakesFinished }),
   };
 }
 
@@ -157,7 +171,7 @@ export function playTryout(m: Matchup, level: number, d: Difficulty, seed: numbe
     const still = Math.hypot(w.ball.x - x, w.ball.y - y, w.ball.z - z) < STILL_PX;
     stillS = w.match.phase === 'playing' && still ? stillS + STEP : 0;
     longestStillS = Math.max(longestStillS, stillS);
-    recorder.tick(w, away, was);
+    recorder.tick(w, away, was, brain);
   }
   return { result: w.match.result, score: { ...w.match.score }, longestStillS, traits: recorder.traits(brain) };
 }

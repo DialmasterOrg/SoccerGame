@@ -894,6 +894,28 @@ describe('Tricky Tia', () => {
     play(w, brain, 1);
     expect(brain.fakes).toBe(0);
   });
+
+  it("at the School her fake ends in a shot from 200 px out; the Park's Tia dribbles on from there", () => {
+    /** Tia dribbling 200 px from the goal line she attacks, Harrison standing 40 px ahead in her lane: is she winding up within 0.2 s of her fake's end? */
+    const shootsAfterFake = (profile?: AiProfile): boolean => {
+      const { w, brain } = kidWorld('tia', { profile });
+      const g = w.field.goals[0]!;
+      const z = w.field.depth / 2;
+      Object.assign(w.away, { x: g.lineX + 200, z, vx: -60, facing: -1 });
+      setBall(w, { x: g.lineX + 192, z, vx: -60 });
+      Object.assign(w.home, { x: w.away.x - 40, z, facing: 1 });
+      untilFake(w, brain);
+      for (let i = 0; i < 120 && brain.fake; i++) play(w, brain, STEP);
+      expect(brain.fake).toBeNull();
+      for (let i = 0; i < 0.2 / STEP; i++) {
+        play(w, brain, STEP);
+        if (w.away.state === 'charging') return true;
+      }
+      return false;
+    };
+    expect(shootsAfterFake()).toBe(true);
+    expect(shootsAfterFake(CREW_PROFILES.tia.normal)).toBe(false);
+  });
 });
 
 describe('Pesky Pete', () => {

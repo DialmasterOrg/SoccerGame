@@ -46,6 +46,8 @@ export interface AiProfile {
   style: Style;
   /** The speedster's chance per decision, blocked on the ball within range, of trying his weak shot from there (RANGE_SHOT). */
   rangeShot?: number;
+  /** From this close to the goal line her fake ends in a shot (School Tia); absent, she dribbles on (the Park). */
+  fakeShot?: number;
 }
 
 export const DIFFICULTY: Record<Difficulty, AiProfile> = {
@@ -365,9 +367,7 @@ function decide(brain: AiBrain, w: World, me: Player, them: Player): void {
     const blocked = blockAhead > 0 && blockAhead <= RANGE_SHOT.blockedAhead && Math.abs(blockSide) <= RANGE_SHOT.lane;
     const rangeShot = speedster && blocked && toGoal > 0 && toGoal <= RANGE_SHOT.from && w.rng() < (profile.rangeShot ?? 0);
     if ((toGoal > 0 && toGoal <= profile.shootRange) || rangeShot) {
-      brain.plan = 'charge';
-      brain.chargeLeftS = chargeHold(profile.style, w.rng);
-      brain.intent = { ...intent, moveX: dir, shootHeld: true, aim: pickAim(w) };
+      startCharge(brain, w, intent, dir);
       return;
     }
     brain.plan = 'dribble';
@@ -443,6 +443,13 @@ function decide(brain: AiBrain, w: World, me: Player, them: Player): void {
   brain.intent = moveTo(behindX, wrongSide ? besideZ : at.z, at.z);
 }
 
+/** It winds up a shot at goal, held for its style's time, at Max's aim. */
+function startCharge(brain: AiBrain, w: World, base: PlayerIntent, dir: 1 | -1): void {
+  brain.plan = 'charge';
+  brain.chargeLeftS = chargeHold(brain.profile.style, w.rng);
+  brain.intent = { ...base, moveX: dir, shootHeld: true, aim: pickAim(w) };
+}
+
 /** Her fake is over: she stops carrying the ball and decides afresh this tick. */
 function endFake(brain: AiBrain): void {
   brain.fake = null;
@@ -458,12 +465,23 @@ function playedIt(w: World, them: Player): boolean {
   return stealt || (ev !== undefined && (ev.touched || ev.kicked !== null || ev.tackledBall));
 }
 
-/** One tick of her fake: her move, with the ball kept at her feet; ends it when it's over. */
+/** Her fake just ended with the ball at her feet within her fakeShot of the line she attacks: School Tia shoots, whatever her shootRange. */
+function fakeEndsInShot(brain: AiBrain, w: World, me: Player, dir: 1 | -1): boolean {
+  const from = brain.profile.fakeShot;
+  if (from === undefined || !atFeet(w, me)) return false;
+  const goal = w.field.goals.find(g => g.side === (dir > 0 ? 'right' : 'left'))!;
+  const toGoal = (goal.lineX - me.x) * dir;
+  return toGoal > 0 && toGoal <= from;
+}
+
+/** One tick of her fake: her move, with the ball kept at her feet; ends it when it's over, in a shot if it ends in one. */
 function fakeTick(brain: AiBrain, w: World, me: Player, dir: 1 | -1): boolean {
   const move = brain.fake && fakeMove(brain.fake, dir);
   if (!move) {
     endFake(brain);
-    return false;
+    if (!fakeEndsInShot(brain, w, me, dir)) return false;
+    startCharge(brain, w, { ...NO_INTENT, pace: brain.profile.paceFactor }, dir);
+    return true;
   }
   brain.plan = 'dribble';
   // She keeps facing the goal she attacks, so the ball stays in front of her as she eases back.
