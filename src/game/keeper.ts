@@ -173,9 +173,11 @@ export const PUNT_STRIKE_S = 0.2;
 /**
  * Lands at halfway + dir × (from + rng × spread), z in z, launched at
  * elevationDeg, with backspin so it checks up after landing: without it the
- * bounces carry it on to the far box.
+ * bounces carry it on to the far box. Aimed a little short of halfway, on
+ * his own side of it (10 to 190 px), at the parent's ask: it used to carry
+ * 40 short to 240 past.
  */
-export const PUNT = { from: -40, spread: 280, z: [24, 104] as const, elevationDeg: 40, spin: -7 };
+export const PUNT = { from: -190, spread: 180, z: [24, 104] as const, elevationDeg: 40, spin: -7 };
 /** Nobody waits closer than this to a keeper holding the ball. */
 export const CROWD_GAP = 40;
 /** Where his boot meets the ball: this far ahead of him, this high. */

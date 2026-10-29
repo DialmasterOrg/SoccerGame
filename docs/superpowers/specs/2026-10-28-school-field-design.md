@@ -1100,3 +1100,8 @@ shot saved, which felt too hard to score on. The keepers' targets above
   against these keepers, not the old ones.
 - The bands in `keeperTuning.test.ts` pin the new targets, and a new
   band pins Easy's first keeper.
+- **The drop kick is shorter** (the parent's ask, the same day): its
+  first bounce is aimed 10 to 190 px short of halfway, on the keeper's
+  own side of it (it used to be 40 short to 240 past), so it usually
+  comes down a little short of the line; the backspin still checks it up
+  there, and the players still wait out where it comes down.

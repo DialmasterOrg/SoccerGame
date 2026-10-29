@@ -115,15 +115,18 @@ describe('the hold and the drop kick', () => {
     expect(w.ball.vy).toBeGreaterThan(0);
   });
 
-  it('the drop kick lands around halfway or beyond, toward his attacking half', () => {
-    // The away keeper attacks the left goal: halfway (640) and beyond, toward it.
+  it('the drop kick lands a little short of halfway, on his own side of it', () => {
+    // The away keeper attacks the left goal: halfway is 640, and his own side is beyond it. Shortened at the parent's ask (2026-10-29): it used to carry past halfway.
+    const bounces: number[] = [];
     for (let seed = 1; seed <= 64; seed++) {
       const w = keeperWorld({ seed });
       caught(w);
       const at = firstBounce(w);
-      expect(at.x, `seed ${seed}`).toBeLessThanOrEqual(640 + 60);
-      expect(at.x, `seed ${seed}`).toBeGreaterThanOrEqual(640 - 300);
+      bounces.push(at.x);
+      expect(at.x, `seed ${seed}`).toBeGreaterThanOrEqual(640 - 10);
+      expect(at.x, `seed ${seed}`).toBeLessThanOrEqual(640 + 220);
     }
+    expect(bounces.filter(x => x > 640).length).toBeGreaterThan(48); // usually short of the line
   });
 
   it('a drop kick never scores, from either keeper', () => {
