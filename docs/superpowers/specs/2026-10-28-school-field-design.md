@@ -709,3 +709,74 @@ The build order, as amended by Plans 3–10 and the roadmap:
    kicks, the rest of the Locker Room's cosmetics and celebrations,
    Trophy Room
 10. Polish (settings, difficulty and the quiet ease-off, balancing)
+
+## As built: plan 1
+
+Built on 2026-10-28. Checked in the browser on stills drawn by the real
+match scene (the School reached through a `CareerMatch` with
+`venue: 'school'`) and in the live loop. The choices this spec left to
+the builder, and what changed on the way:
+
+- **The view rides on the camera.** `View` in `src/game/camera.ts` is
+  the canvas size, the near touchline's screen row and the HUD's scale:
+  `SMALL_VIEW` is 320×180, row 176, HUD at 1×; `BIG_VIEW` is 534×300,
+  row 296, HUD at 2×. `Camera` carries an optional `view` (absent means
+  the small one) and `project(x, y, z, cam)` reads it, so every drawing
+  path works in either view. `VIEW_W` and `NEAR_SY` are gone.
+- **A stage per venue.** `Stage` in `src/game/stage.ts` is a field, a
+  view and the match and golden-goal lengths. `SMALL_STAGE` is the
+  Backyard's field, the small view, 90 s and 45 s; `SCHOOL_STAGE` is
+  `SCHOOL_FIELD` (in `field.ts`, with its painted `markings`), the big
+  view, 120 s and 60 s. `stageFor` gives the Backyard and the Park the
+  small stage and every later venue the School's. `createWorld` takes
+  the stage as its last argument, and the match scene picks it from the
+  venue.
+- **Each scene says its size.** `Scene.size` (absent means
+  `MENU_SIZE`, 320×180); the loop calls `screen.resize` with it before
+  every draw, which does nothing unless the size changed, and turns
+  smoothing off again after a resize. On a 1928×1969 device-pixel
+  window the School match showed at 3× (1602×900) and Help, the Hub and
+  a Backyard match at 6× (1920×1080), every frame crisp, through
+  match → pause → Help → back → restart → quit to Hub (the match swapped
+  into the live loop by hand, since no menu reaches the School yet).
+- **The HUD is a 267×150 layer, doubled.** At the big view the score,
+  clock, stamina bar, POWER meter, banners, goal callout, BONUS DONE!,
+  off-screen arrow and pause menu are laid out at 1× in a 267×150
+  canvas (`createHudLayer`), cleared each frame and drawn onto the
+  match canvas at 534×300, so text and its outlines double together.
+  The pitch, its effects and the callouts over a player (PERFECT, the
+  trick callouts, SHOOT!) stay on the match canvas at native size; the
+  flash and impact frames cover the whole canvas. The POWER meter keeps
+  to the layer's right edge (`powerMeterX0(hudW)`), and the arrow sits
+  under the ball in layer pixels, clear of it. In the small view the
+  HUD draws straight onto the canvas as before.
+- **The clock** shows the seconds left, rounded up, as `m:ss`; golden
+  goal counts its own time down in gold. Game minutes still run 0–90
+  over any length, so goal records and the early bonus keep their
+  meaning in a 90-second match.
+- **Pitch art for any field.** `src/art/venues/pitch.ts` holds `plot`,
+  `along`, `pitchGround(endFence, field, view)` and
+  `goalSprites(goal)`; the Backyard and the Park ground and goals are
+  pixel-identical to main's (pinned by hashes). `GameArt.goalsFor(field)`
+  makes each field's goals once. The School's ground is 1319×300 with
+  its white lines and a chain-link end fence at each end, on the face
+  toward the pitch (x 4 and 1276). Its far layer is a stand-in morning
+  sky and its mid and near layers are empty, until plan 3.
+- **The Backyard matches main** pixel for pixel apart from its clock
+  (checked on the same seeded frame from both builds).
+- **Today's AI needed no change on the big pitch.** Whole AI-vs-AI
+  matches at Normal on seeds 1–8 all finish with a result, no ball left
+  resting unreached, nobody stuck and nobody in a goal; they scored
+  1-4, 2-3 (golden goal), 2-3, 1-2, 3-1, 5-0, 4-3 and 4-5 (golden goal).
+- **1656 tests**, typecheck and build green.
+
+Notes for plan 3:
+
+- The School art is 300 rows tall with its near touchline on row 296.
+  Any 320×180 screen that shows the School (the road map's postcard,
+  the venue screen, the VS card, a backdrop) must offset or crop it.
+  None can yet: `art.venues.school` exists now, but `venueOpen` keeps
+  the School shut while it has no matches, so no menu draws it.
+- The far layer tiles by its width, so the School's real far layer
+  should be at least 534 wide, as the stand-in is.
+- `stageFor` sends every venue after the Park to the School's stage.
