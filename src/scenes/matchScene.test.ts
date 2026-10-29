@@ -9,11 +9,14 @@ import { seeded } from '../engine/random';
 import { DOG_DIFFICULTY } from '../game/dog';
 import { GOAL_PAUSE_S } from '../game/match';
 import { NORMAL_HANDLING, NO_INTENT } from '../game/player';
-import { keeperProfile, quietKeepers, stepKeeper } from '../game/keeper';
+import { keeperLevel, keeperProfile, quietKeepers, stepKeeper } from '../game/keeper';
+import { keeperLooks } from './keeperView';
+import { clockText } from '../game/match';
+import { BIG_VIEW } from '../game/camera';
 import { SAM_HANDLING, SAM_PROFILES, SAM_STATS } from '../game/sam';
 import { BASE_STATS } from '../game/stats';
 import { WAVE_READY_S } from '../game/power';
-import { matchById, type CareerMatch } from '../meta/career';
+import { SCHOOL, matchById, type CareerMatch } from '../meta/career';
 import { SCHOOL_FIELD } from '../game/field';
 import { maxStats } from '../meta/ladder';
 import { EXTRA_IDS, GIFTS, LOCKER_ITEMS, itemPrice } from '../meta/locker';
@@ -1366,5 +1369,36 @@ describe("the School's crowd", () => {
     run(s, 4);
     expect(s.moment).toBeNull();
     expect(audio.crowd).toBe('match');
+  });
+});
+
+describe('the School Field, with Max standing in', () => {
+  /** Sam beaten: the same stars as the career tests' PARK_DONE. */
+  const PARK_DONE_PROFILE = { ...newProfile(), ladderWins: 10, career: { stars: { 'backyard-boss': 1, 'park-1': 1, 'park-2': 1, 'park-3': 1, 'park-4': 1, 'park-boss': 1 }, milestonesPaid: 0, lossStreaks: {} } };
+
+  it('every tryout and Gus build Max at the ladder stats, on the big pitch with keepers', () => {
+    for (const m of SCHOOL.matches) {
+      const s = createMatchScene(testContext({ profile: { ...newProfile(), difficulty: 'hard' } }), 3, m);
+      expect(s.size, m.id).toBe(BIG_VIEW);
+      expect(s.world.field).toBe(SCHOOL_FIELD);
+      expect(s.world.away.stats).toEqual(maxStats(m.rung)); // Gus's slot, rung 0, clamps to rung 1's
+      expect(s.world.maxProfile).toBe(DIFFICULTY.hard);
+      expect(s.hud.awayName).toBe(m.hudName);
+      expect([s.world.keepers!.home.profile, s.world.keepers!.away.profile]).toEqual([keeperProfile(keeperLevel(m), 'normal'), keeperProfile(keeperLevel(m), 'hard')]);
+      expect(keeperLooks(m).away).toBe(m.kind === 'match' && m.rung % 2 === 1 ? 'backupA' : 'backupB');
+      expect(clockText(s.world.match).text).toBe('2:00');
+    }
+  });
+
+  it('a tryout plays to full time and pays out, whatever the score', () => {
+    const ctx = testContext({ profile: PARK_DONE_PROFILE });
+    const s = createMatchScene(ctx, 5, matchById('school-1')!);
+    let next: Scene | null = null;
+    for (let i = 0; i < 200 * 60 && !next; i++) next = s.update(frame(), STEP);
+    expect(next?.kind).toBe('results');
+    expect(ctx.profile.totals.matches).toBe(1);
+    const r = s.reward!.summary.result;
+    if (r === 'win') expect(ctx.profile.career.stars['school-1']).toBeGreaterThanOrEqual(1);
+    if (r === 'lose') expect(ctx.profile.career.lossStreaks['school-1']).toBe(1);
   });
 });

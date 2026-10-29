@@ -131,6 +131,7 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
   const human: HumanOpponentId = match.opponent === 'biscuit' ? 'max' : match.opponent;
   const thinking = opponentProfile(human, difficulty);
   const stage = stageFor(match.venue);
+  // At the School Field every slot's opponent is Max standing in, at the slot's ladder stats (Gus's rung 0 clamps to rung 1's), until plans 4 and 5 bring the tryouts cast and Gus.
   const world = createWorld(
     { ...ctx.profile.stats },
     dog ? { ...BASE_STATS } : opponentStats(human, match.rung),
