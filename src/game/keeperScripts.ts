@@ -2,6 +2,7 @@ import { BALL_R } from '../art/ball';
 import { seeded } from '../engine/random';
 import { maxStats } from '../meta/ladder';
 import { DIFFICULTY, createBrain, think, type Difficulty } from './ai';
+import { openCorner } from './aiming';
 import { keeperLineup, type Keeper, type KeeperSide } from './keeper';
 import { stepBall } from './ball';
 import { HUMAN_AIM_ERROR_DEG, aimLine, chip, type Aim } from './kick';
@@ -106,12 +107,6 @@ function judgedChip(w: World, lineY: number): number {
   return (lo + hi) / 2;
 }
 
-/** The open side of the goal from the keeper: the corner further from him. */
-function openSide(w: World, k: Keeper): Aim {
-  const g = w.field.goals[1];
-  return Math.abs(k.body.z - g.z0) > Math.abs(k.body.z - g.z1) ? 'near' : 'far';
-}
-
 /** Dribbles in, settles on the ball, waits for the keeper, then rounds him, chips him or steps over him by `turn`; or shoots for the far corner. */
 function oneOnOne(w: World, k: Keeper, rng: () => number, turn: number): Script {
   const O = ONE_ON_ONE;
@@ -175,7 +170,7 @@ function oneOnOne(w: World, k: Keeper, rng: () => number, turn: number): Script 
       case 'finish': {
         // Onto the ball, then at the open side.
         if (ballAtFeet(w.home, w.ball) || phase.t > O.finishS) {
-          [aim, hold] = [openSide(w, k), O.finishCharge];
+          [aim, hold] = [openCorner(w, w.home), O.finishCharge];
           go('shoot');
           return { ...NO_INTENT, faceX: 1, aim, shootHeld: true };
         }
@@ -208,9 +203,7 @@ function stage(kind: Drill, w: World, rng: () => number, side: KeeperSide, seed:
     }
     case 'corner': {
       onBall(w, 1240 - (50 + rng() * 50), 30 + rng() * 68);
-      const goal = w.field.goals[1];
-      const aim: Aim = Math.abs(k.body.z - goal.z0) > Math.abs(k.body.z - goal.z1) ? 'near' : 'far';
-      return shoot(aim, 0.7 + rng() * 0.25);
+      return shoot(openCorner(w, w.home), 0.7 + rng() * 0.25);
     }
     case 'roller': {
       const g = w.field.goals[away ? 1 : 0];

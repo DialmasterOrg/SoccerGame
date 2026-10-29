@@ -3,7 +3,7 @@ import { LADDER_MATCHES, maxStats } from '../meta/ladder';
 import { createBrain, think, type AiBrain, type AiProfile, type Difficulty } from './ai';
 import { HUMAN_AIM_ERROR_DEG } from './kick';
 import { opponentHandling, opponentProfile, opponentStats, type HumanOpponentId } from './opponents';
-import { NO_INTENT, type Handling, type PlayerIntent } from './player';
+import { NO_INTENT, type Handling, type PlayerIntent, type PlayerState } from './player';
 import { MAX_STAT_LEVEL, STAT_NAMES, type Stats } from './stats';
 import { inStealReach, maxHasBall } from './steal';
 import { createWorld, stepWorld, type World } from './world';
@@ -148,12 +148,14 @@ export interface OpponentMatch extends MaxMatch {
   traits: Traits;
 }
 
-/** Plays a whole match against `m` headlessly, Harrison a level up on its stats, and reports it from Harrison's side. */
-export function playMatchup(m: Matchup, seed: number, harrison: Stats = harrisonStatsFor(m.stats)): OpponentMatch {
-  const { profile } = m;
-  const w = createWorld(harrison, { ...m.stats }, seed, { home: HUMAN_AIM_ERROR_DEG, away: profile.aimErrorDeg }, null, null, profile, m.handling);
-  const brain = createBrain(profile);
-  const memo = scriptMemo(seed);
+/** Records how the away side plays, tick by tick, for the personality checks. It draws no random number, so a match plays the same with or without it. */
+export interface TraitRecorder {
+  /** After each step: the away side's intent that step, and its state before it. */
+  tick(w: World, awayIntent: PlayerIntent, awayWas: PlayerState): void;
+  traits(brain: AiBrain): Traits;
+}
+
+export function traitRecorder(w: World): TraitRecorder {
   const attacks = w.field.goals.find(g => g.side === 'left')!;
   const own = w.field.goals.find(g => g.side === 'right')!;
   const shotsFrom: number[] = [];
@@ -162,6 +164,39 @@ export function playMatchup(m: Matchup, seed: number, harrison: Stats = harrison
   let [beats, faceOffs] = [0, 0];
   /** How long the face-off under way has run; null when there isn't one. */
   let faceOffS: number | null = null;
+  const windingUp = (s: string) => s === 'charging' || s === 'chipping';
+  return {
+    tick(w, away, was) {
+      if (!windingUp(was) && windingUp(w.away.state)) shotsFrom.push(Math.abs(w.away.x - attacks.lineX));
+      if (was !== 'sliding' && w.away.state === 'sliding') slides++;
+      const [ahead, side] = [w.away.x - w.home.x, w.home.z - w.away.z];
+      if (faceOffS === null && w.match.phase === 'playing' && maxHasBall(w.away, w.ball) && ahead > 0 && ahead <= BEAT.ahead && Math.abs(side) <= BEAT.lane) {
+        faceOffS = 0;
+        faceOffs++;
+      } else if (faceOffS !== null) {
+        faceOffS += STEP;
+        const past = -ahead >= BEAT.past && Math.hypot(w.ball.x - w.away.x, w.ball.z - w.away.z) <= BEAT.keep;
+        if (past) beats++;
+        if (past || maxHasBall(w.home, w.ball) || w.match.phase !== 'playing' || faceOffS >= BEAT.forS) faceOffS = null;
+      }
+      if (harrisons(w)) {
+        held++;
+        depthSum += Math.abs(own.lineX - w.away.x);
+        gapSum += Math.hypot(w.ball.x - w.away.x, w.ball.z - w.away.z);
+        if (away.sprint) sprints++;
+      }
+    },
+    traits: brain => ({ shotsFrom, slides, defendDepth: held ? depthSum / held : 0, pressGap: held ? gapSum / held : 0, sprintShare: held ? sprints / held : 0, fakes: brain.fakes, beats, faceOffs }),
+  };
+}
+
+/** Plays a whole match against `m` headlessly, Harrison a level up on its stats, and reports it from Harrison's side. */
+export function playMatchup(m: Matchup, seed: number, harrison: Stats = harrisonStatsFor(m.stats)): OpponentMatch {
+  const { profile } = m;
+  const w = createWorld(harrison, { ...m.stats }, seed, { home: HUMAN_AIM_ERROR_DEG, away: profile.aimErrorDeg }, null, null, profile, m.handling);
+  const brain = createBrain(profile);
+  const memo = scriptMemo(seed);
+  const recorder = traitRecorder(w);
   let [t, stillS, longestStillS] = [0, 0, 0];
   for (let i = 0; i < MAX_TICKS && w.match.result === null; i++) {
     const home = harrisonIntent(w, t, STEP, memo);
@@ -173,28 +208,9 @@ export function playMatchup(m: Matchup, seed: number, harrison: Stats = harrison
     const still = Math.hypot(w.ball.x - x, w.ball.y - y, w.ball.z - z) < STILL_PX;
     stillS = w.match.phase === 'playing' && still ? stillS + STEP : 0;
     longestStillS = Math.max(longestStillS, stillS);
-    const windingUp = (s: string) => s === 'charging' || s === 'chipping';
-    if (!windingUp(was) && windingUp(w.away.state)) shotsFrom.push(Math.abs(w.away.x - attacks.lineX));
-    if (was !== 'sliding' && w.away.state === 'sliding') slides++;
-    const [ahead, side] = [w.away.x - w.home.x, w.home.z - w.away.z];
-    if (faceOffS === null && w.match.phase === 'playing' && maxHasBall(w.away, w.ball) && ahead > 0 && ahead <= BEAT.ahead && Math.abs(side) <= BEAT.lane) {
-      faceOffS = 0;
-      faceOffs++;
-    } else if (faceOffS !== null) {
-      faceOffS += STEP;
-      const past = -ahead >= BEAT.past && Math.hypot(w.ball.x - w.away.x, w.ball.z - w.away.z) <= BEAT.keep;
-      if (past) beats++;
-      if (past || maxHasBall(w.home, w.ball) || w.match.phase !== 'playing' || faceOffS >= BEAT.forS) faceOffS = null;
-    }
-    if (harrisons(w)) {
-      held++;
-      depthSum += Math.abs(own.lineX - w.away.x);
-      gapSum += Math.hypot(w.ball.x - w.away.x, w.ball.z - w.away.z);
-      if (away.sprint) sprints++;
-    }
+    recorder.tick(w, away, was);
   }
-  const traits: Traits = { shotsFrom, slides, defendDepth: held ? depthSum / held : 0, pressGap: held ? gapSum / held : 0, sprintShare: held ? sprints / held : 0, fakes: brain.fakes, beats, faceOffs };
-  return { result: w.match.result, score: { ...w.match.score }, longestStillS, traits };
+  return { result: w.match.result, score: { ...w.match.score }, longestStillS, traits: recorder.traits(brain) };
 }
 
 /** A whole headless match against a human opponent at difficulty `d` (Max at rung `rung`). */

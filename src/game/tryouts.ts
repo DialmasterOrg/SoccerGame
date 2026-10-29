@@ -36,7 +36,8 @@ const profiles = (from: Record<Difficulty, AiProfile>, dials: Partial<Record<Dif
  * keepers. Mutable like DIFFICULTY, so headless sweeps can tune them at runtime.
  */
 export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfile>> = {
-  max: profiles(DIFFICULTY),
+  // School Max: Max's own dials, a touch less pace on Normal. Measured E 0.813, N 0.594, H 0.063 (keepers at level 1).
+  max: profiles(DIFFICULTY, { normal: { paceFactor: 1.02 } }),
   hank: profiles(DIFFICULTY),
   lola: profiles(DIFFICULTY),
   finn: profiles(DIFFICULTY),
