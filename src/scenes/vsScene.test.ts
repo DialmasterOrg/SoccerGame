@@ -100,14 +100,23 @@ describe('the Park on the VS card', () => {
 describe('the School Field on the VS card', () => {
   const back = () => createHubScene(testContext());
 
-  it('a tryout is TRYOUT n against the kid, over the School, with Max standing in', () => {
+  it('a tryout is TRYOUT n against the kid, over the School', () => {
     expect(vsLines(matchById('school-3')!, newProfile())).toEqual(['TRYOUT 3', 'HARRISON VS LOFTY LOLA', 'BONUS: SCORE FROM A CHIP']);
     const ctx = testContext({ art: fakeArt() });
     const { g, drawn } = recordingContext();
     createVsScene(ctx, matchById('school-3')!, back).draw(g, 0);
     expect(drawn).toContain('art.venues.school.layers.far');
-    expect(drawn).toContain('art.opponents.max.sprites.left.idle.0');
+    expect(drawn).toContain('art.opponents.lola.sprites.left.idle.0');
     expect(ctx.audio.played).not.toContain('bossSting');
+  });
+
+  it("every tryout's card draws that kid's own sprites", () => {
+    for (const [n, id] of ['max', 'hank', 'lola', 'finn', 'tia', 'priya', 'niko', 'paige'].entries()) {
+      const { g, drawn } = recordingContext();
+      createVsScene(testContext({ art: fakeArt() }), matchById(`school-${n + 1}`)!, back).draw(g, 0);
+      expect(drawn, id).toContain(`art.opponents.${id}.sprites.left.idle.0`);
+      expect(drawn.filter(d => d?.startsWith('art.opponents.') && !d.startsWith(`art.opponents.${id}.`)), id).toEqual([]);
+    }
   });
 
   it("Gus's card is THE SCHOOL BOSS with the sting, and no tip even after a loss", () => {

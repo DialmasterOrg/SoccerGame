@@ -14,7 +14,7 @@ export const KIT_SLOT_NAMES = [
 ] as const;
 
 export type KitSlots = (typeof KIT_SLOT_NAMES)[number];
-export type KitId = 'home' | 'away' | 'blue' | 'orange' | 'purple' | 'teal' | 'lime' | 'pink';
+export type KitId = 'home' | 'away' | 'blue' | 'orange' | 'purple' | 'teal' | 'lime' | 'pink' | 'snow' | 'sun' | 'night' | 'olive' | 'cocoa' | 'plum';
 
 /** Harrison's club kits and opponents' kits, as colours only (no logos or sponsor). */
 export const KITS: Record<KitId, Record<KitSlots, MasterColor>> = {
@@ -108,6 +108,73 @@ export const KITS: Record<KitId, Record<KitSlots, MasterColor>> = {
     Shorts: 'slate',
     SocksShadow: 'pinkDark',
     Socks: 'pink',
+  },
+  // The tryouts' kits: Hank's white with charcoal, Lola's gold, Finn's black with gold trim, and the three new ramps.
+  snow: {
+    JerseyShadow: 'silver',
+    Jersey: 'white',
+    JerseyLight: 'white',
+    TrimShadow: 'ink',
+    Trim: 'charcoal',
+    ShortsShadow: 'ink',
+    Shorts: 'charcoal',
+    SocksShadow: 'silver',
+    Socks: 'white',
+  },
+  sun: {
+    JerseyShadow: 'goldDark',
+    Jersey: 'gold',
+    JerseyLight: 'energyGoldLight',
+    TrimShadow: 'silver',
+    Trim: 'white',
+    ShortsShadow: 'silver',
+    Shorts: 'white',
+    SocksShadow: 'goldDark',
+    Socks: 'gold',
+  },
+  night: {
+    JerseyShadow: 'ink',
+    Jersey: 'charcoal',
+    JerseyLight: 'slate',
+    TrimShadow: 'goldDark',
+    Trim: 'gold',
+    ShortsShadow: 'ink',
+    Shorts: 'charcoal',
+    SocksShadow: 'ink',
+    Socks: 'charcoal',
+  },
+  olive: {
+    JerseyShadow: 'oliveDark',
+    Jersey: 'olive',
+    JerseyLight: 'oliveLight',
+    TrimShadow: 'silver',
+    Trim: 'white',
+    ShortsShadow: 'silver',
+    Shorts: 'white',
+    SocksShadow: 'oliveDark',
+    Socks: 'olive',
+  },
+  cocoa: {
+    JerseyShadow: 'cocoaDark',
+    Jersey: 'cocoa',
+    JerseyLight: 'cocoaLight',
+    TrimShadow: 'silver',
+    Trim: 'white',
+    ShortsShadow: 'cocoaDark',
+    Shorts: 'cocoa',
+    SocksShadow: 'silver',
+    Socks: 'white',
+  },
+  plum: {
+    JerseyShadow: 'plumDark',
+    Jersey: 'plum',
+    JerseyLight: 'plumLight',
+    TrimShadow: 'silver',
+    Trim: 'white',
+    ShortsShadow: 'charcoal',
+    Shorts: 'slate',
+    SocksShadow: 'plumDark',
+    Socks: 'plum',
   },
 };
 

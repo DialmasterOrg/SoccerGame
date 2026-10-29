@@ -7,7 +7,7 @@ export type BootsItemId = 'volt' | 'white' | 'black' | 'red' | 'blue' | 'pink' |
 export type ExtraId = 'glasses' | 'headband' | 'wristbands' | 'armband';
 export type LockerTab = 'kits' | 'boots' | 'extras';
 export type LockerItemId = `kit:${KitItemId}` | `boots:${BootsItemId}` | `extra:${ExtraId}`;
-export type ClashFamily = 'red' | 'black' | 'white' | 'blue' | 'purple' | 'orange' | 'yellow' | 'teal' | 'pink';
+export type ClashFamily = 'red' | 'black' | 'white' | 'blue' | 'purple' | 'orange' | 'yellow' | 'teal' | 'pink' | 'olive' | 'brown';
 /** The plain kit an opponent changes into on a clash. */
 export type ChangeKit = 'white' | 'black';
 /** Owned from the start, sold for coins, or a gift at a milestone index. */
@@ -92,6 +92,7 @@ export const KIT_CLASH: Readonly<Record<KitItemId, { family: ClashFamily; light:
 
 export const OPPONENT_FAMILY: Readonly<Record<Exclude<OpponentId, 'biscuit'>, ClashFamily>> = {
   max: 'blue', brick: 'orange', leo: 'purple', tia: 'teal', pete: 'yellow', sam: 'pink',
+  hank: 'white', lola: 'yellow', finn: 'black', priya: 'olive', niko: 'brown', paige: 'purple',
 };
 
 export const DEFAULT_OUTFIT: Outfit = { kit: 'home', boots: 'volt', extras: [] };

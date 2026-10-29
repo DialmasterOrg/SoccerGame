@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "sheet": "tsx tools/render-sheet.ts",
-    "keepers": "tsx tools/render-keepers.ts"
+    "keepers": "tsx tools/render-keepers.ts",
+    "tryouts": "tsx tools/render-tryouts.ts"
   },
   "repository": {
     "type": "git",

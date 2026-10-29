@@ -1,11 +1,12 @@
 import { LADDER_MATCHES, trainingLine } from './ladder';
 import type { BonusId } from './objectives';
 import type { Profile } from './profile';
+import type { TryoutKidId } from '../game/tryouts';
 
 export type VenueId = 'backyard' | 'park' | 'school' | 'state' | 'stadium' | 'worldCup';
 
-/** Who Harrison plays: Max, Biscuit, the Park crew, Speedy Sam. */
-export type OpponentId = 'max' | 'biscuit' | 'brick' | 'leo' | 'tia' | 'pete' | 'sam';
+/** Who Harrison plays: Max, Biscuit, the Park crew, Speedy Sam, and the School's tryouts. */
+export type OpponentId = 'max' | 'biscuit' | 'brick' | 'leo' | 'tia' | 'pete' | 'sam' | TryoutKidId;
 
 export interface CareerMatch {
   id: string;
@@ -103,7 +104,7 @@ export const PARK: Venue = {
   ],
 };
 
-// Max stands in for the new kids until their own builds, and for Gus until plan 5.
+// Max stands in for Gus until plan 5.
 const tryout = (rung: number, name: string, hudName: string, opponent: OpponentId, blurb: string, bonus: BonusId): CareerMatch => ({
   id: `school-${rung}`, venue: 'school', kind: 'match', rung, name, hudName, opponent, blurb, tip: null, bonus,
 });
@@ -115,13 +116,13 @@ export const SCHOOL: Venue = {
   words: { match: 'TRYOUT', beaten: 'PASSED!', boss: 'THE SCHOOL BOSS', done: 'YOU MADE THE TEAM!' },
   matches: [
     tryout(1, 'MAX', 'MAX', 'max', "HE'S TRYING OUT TOO. HE'S GOT BETTER.", 'outsideBox'),
-    tryout(2, 'HEADER HANK', 'HANK', 'max', 'HE WINS EVERY BALL IN THE AIR.', 'header'),
-    tryout(3, 'LOFTY LOLA', 'LOLA', 'max', 'SHE CHIPS ANY KEEPER OFF HIS LINE.', 'chip'),
-    tryout(4, 'FAKE-OUT FINN', 'FINN', 'max', "HE SHAPES TO SHOOT. THEN HE DOESN'T.", 'steals3'),
+    tryout(2, 'HEADER HANK', 'HANK', 'hank', 'HE WINS EVERY BALL IN THE AIR.', 'header'),
+    tryout(3, 'LOFTY LOLA', 'LOLA', 'lola', 'SHE CHIPS ANY KEEPER OFF HIS LINE.', 'chip'),
+    tryout(4, 'FAKE-OUT FINN', 'FINN', 'finn', "HE SHAPES TO SHOOT. THEN HE DOESN'T.", 'steals3'),
     tryout(5, 'TRICKY TIA', 'TIA', 'tia', 'SHE MOVED HERE. HER FAKE IS SHARPER.', 'cleanSheet'),
-    tryout(6, 'POACHER PRIYA', 'PRIYA', 'max', 'SHE FOLLOWS EVERY SHOT IN.', 'rebound'),
-    tryout(7, 'NUTMEG NIKO', 'NIKO', 'max', 'HE PUTS IT THROUGH YOUR LEGS.', 'perfect'),
-    tryout(8, 'PINPOINT PAIGE', 'PAIGE', 'max', 'THE TOP SCORER. SHE PICKS A CORNER.', 'noPaigeGoals'),
+    tryout(6, 'POACHER PRIYA', 'PRIYA', 'priya', 'SHE FOLLOWS EVERY SHOT IN.', 'rebound'),
+    tryout(7, 'NUTMEG NIKO', 'NIKO', 'niko', 'HE PUTS IT THROUGH YOUR LEGS.', 'perfect'),
+    tryout(8, 'PINPOINT PAIGE', 'PAIGE', 'paige', 'THE TOP SCORER. SHE PICKS A CORNER.', 'noPaigeGoals'),
     {
       id: SCHOOL_BOSS_ID, venue: 'school', kind: 'boss', rung: 0, name: 'GOALIE GUS', hudName: 'GUS', opponent: 'max',
       blurb: 'THE CAPTAIN. HE FILLS THE WHOLE GOAL.', tip: null, bonus: 'threePastGus',

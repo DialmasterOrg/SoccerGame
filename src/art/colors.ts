@@ -119,6 +119,16 @@ export const MASTER = {
   lemonDark: '#b0a218',
   lemon: '#f6ee4a',
   lemonLight: '#fffab4',
+  // The tryouts' new kits: Poacher Priya's olive, Nutmeg Niko's cocoa, Pinpoint Paige's plum.
+  oliveDark: '#4f5122',
+  olive: '#7d7f35',
+  oliveLight: '#aeb062',
+  cocoaDark: '#40221e',
+  cocoa: '#70382e',
+  cocoaLight: '#a0604c',
+  plumDark: '#3a1c3c',
+  plum: '#643463',
+  plumLight: '#9a6496',
 } as const;
 
 export type MasterColor = keyof typeof MASTER;

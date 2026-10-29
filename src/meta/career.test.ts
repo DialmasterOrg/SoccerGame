@@ -53,8 +53,8 @@ describe('the catalog', () => {
       ['match', 8, 'PINPOINT PAIGE', 'PAIGE', 'noPaigeGoals'],
       ['boss', 0, 'GOALIE GUS', 'GUS', 'threePastGus'],
     ]);
-    // Tia comes back at tryout 5; Max stands in for the rest until their own tasks, and for Gus until plan 5.
-    expect(SCHOOL.matches.map(m => m.opponent)).toEqual(['max', 'max', 'max', 'max', 'tia', 'max', 'max', 'max', 'max']);
+    // Max and Tia come back at tryouts 1 and 5; Max stands in for Gus until plan 5.
+    expect(SCHOOL.matches.map(m => m.opponent)).toEqual(['max', 'hank', 'lola', 'finn', 'tia', 'priya', 'niko', 'paige', 'max']);
     expect(SCHOOL.matches.every(m => m.blurb !== null && m.tip === null)).toBe(true);
     expect(VENUES.map(v => v.id)).toEqual(['backyard', 'park', 'school', 'state', 'stadium', 'worldCup']);
     expect([venueMaxStars('school'), venueMaxStars('state'), TOTAL_STARS]).toEqual([27, 0, 156]);

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BOOTS_IDS, EXTRA_IDS, GIFTS, GIFT_NAMES, KIT_IDS, LOCKER_ITEMS, OPPONENT_FAMILY,
   buyItem, changeKitFor, giftLine, starsFor, itemStatus, itemsIn, markSeen, outfitKey, outfitOf, owns, takeOff, unseenGifts, wearItem,
-  type LockerItemId,
+  type LockerItemId, KIT_CLASH,
 } from './locker';
 import { newProfile, type Profile } from './profile';
 
@@ -131,6 +131,17 @@ describe('outfits and clashes', () => {
     for (const k of KIT_IDS) {
       expect(changeKitFor(k, 'tia')).toBeNull();
       expect(changeKitFor(k, 'sam')).toBeNull();
+    }
+  });
+
+  it("the tryouts change kit whenever Harrison's kit is in their family, into one that isn't (Review Focus 2)", () => {
+    expect([changeKitFor('white', 'hank'), changeKitFor('away', 'finn'), changeKitFor('blackGold', 'finn'), changeKitFor('gold', 'lola'), changeKitFor('purple', 'paige')]).toEqual(['black', 'white', 'white', 'white', 'white']);
+    for (const kid of ['hank', 'lola', 'finn', 'priya', 'niko', 'paige'] as const) {
+      for (const k of KIT_IDS) {
+        const change = changeKitFor(k, kid);
+        expect(change !== null, `${k} vs ${kid}`).toBe(KIT_CLASH[k].family === OPPONENT_FAMILY[kid]);
+        if (change) expect(change, `${k} vs ${kid}`).not.toBe(KIT_CLASH[k].family);
+      }
     }
   });
 });

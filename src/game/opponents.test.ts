@@ -41,6 +41,18 @@ describe('opponents', () => {
     }
   });
 
+  it('each new tryout kid plays at their own School stats and profiles, whatever the rung and venue, handling normally', () => {
+    for (const id of ['hank', 'lola', 'finn', 'priya', 'niko', 'paige'] as const) {
+      for (const [rung, venue] of [[2, 'school'], [7, undefined], [3, 'park']] as const) expect(opponentStats(id, rung, venue), id).toEqual(TRYOUT_STATS[id]);
+      expect(opponentStats(id, 2, 'school')).not.toBe(TRYOUT_STATS[id]);
+      for (const d of DIFFS) {
+        expect(opponentProfile(id, d, 'school'), id).toBe(TRYOUT_PROFILES[id][d]);
+        expect(opponentProfile(id, d), id).toBe(TRYOUT_PROFILES[id][d]);
+      }
+      expect(opponentHandling(id)).toBe(NORMAL_HANDLING);
+    }
+  });
+
   it('each crew kid plays at their own stats, whatever the rung', () => {
     expect(CREW_STATS).toEqual({
       brick: { speed: 3, power: 4, jump: 2, control: 4, stamina: 1 },

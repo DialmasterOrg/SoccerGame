@@ -14,6 +14,8 @@ import { BISCUIT_FACE, BISCUIT_FRAMES, type DogAnim } from '../art/opponents/bis
 import { CREW_BODY, CREW_HEADS, crewLook } from '../art/opponents/crew';
 import { MAX_HEADS, maxLook } from '../art/opponents/max';
 import { SAM_HEADS, samLook } from '../art/opponents/sam';
+import { TRYOUT_BODY, TRYOUT_HEADS, tryoutLook } from '../art/opponents/tryouts';
+import type { TryoutKidId } from '../game/tryouts';
 import { addOutline, type Point } from '../art/raster';
 import { KEEPER_EXTRAS, KEEPER_HEADS, keeperLook, type KeeperId } from '../art/keepers/keepers';
 import { KEEPER_POSE_FRAMES, bakeKeeperPoses, diveFrames, type KeeperPose } from '../art/keepers/poses';
@@ -136,6 +138,7 @@ interface OpponentLook {
 }
 
 const crewKid = (id: CrewId): OpponentLook => ({ heads: CREW_HEADS[id], look: crewLook(id), body: CREW_BODY[id] });
+const tryoutKid = (id: TryoutKidId): OpponentLook => ({ heads: TRYOUT_HEADS[id], look: tryoutLook(id), body: TRYOUT_BODY[id] });
 
 /** What each human opponent's sprites and face are drawn from. */
 export const OPPONENT_LOOKS: Readonly<Record<HumanOpponent, OpponentLook>> = {
@@ -145,6 +148,12 @@ export const OPPONENT_LOOKS: Readonly<Record<HumanOpponent, OpponentLook>> = {
   tia: crewKid('tia'),
   pete: crewKid('pete'),
   sam: { heads: SAM_HEADS, look: samLook(), body: HARRISON_BODY },
+  hank: tryoutKid('hank'),
+  lola: tryoutKid('lola'),
+  finn: tryoutKid('finn'),
+  priya: tryoutKid('priya'),
+  niko: tryoutKid('niko'),
+  paige: tryoutKid('paige'),
 };
 
 function spriteSet(cache: SpriteCache, who: string, heads: Readonly<Record<HeadFacing, HeadSprite>>, look: LookColors, body: BodyProportions = HARRISON_BODY, extras: BodyExtras = NO_BODY_EXTRAS): SpriteSet {

@@ -165,6 +165,15 @@ describe('the School Field on the venue screen', () => {
     expect(drawn.some(n => n?.startsWith('art.biscuit'))).toBe(false);
   });
 
+  it("each tryout's panel shows that kid's face", () => {
+    stubCanvases();
+    for (const [n, id] of ['max', 'hank', 'lola', 'finn', 'tia', 'priya', 'niko', 'paige'].entries()) {
+      const { g, drawn } = recordingContext();
+      createVenueScene(schoolOpen(TRYOUTS_DONE), 'school', `school-${n + 1}`).draw(g, 0);
+      expect(drawn, id).toContain(`art.opponents.${id}.face`);
+    }
+  });
+
   it('once tryout 8 is passed the boss node shows the face itself', () => {
     stubCanvases();
     const { g, drawn } = recordingContext();

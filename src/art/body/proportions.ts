@@ -34,3 +34,6 @@ export const standingHipHeight = (b: BodyProportions): number => b.thigh + b.shi
 
 /** Big Brick: a pixel wider in the thighs, torso and upper arms, every length Harrison's, so he stands on the same feet and anchor. */
 export const BRICK_BODY: BodyProportions = { ...HARRISON_BODY, thighWidth: 5, torsoWidth: 7, upperArmWidth: 4 };
+
+/** Header Hank: two pixels more torso and a pixel more upper arm, every length below the hip Harrison's, so he stands on the same feet and anchor. */
+export const HANK_BODY: BodyProportions = { ...HARRISON_BODY, torso: 14, upperArm: 8 };
