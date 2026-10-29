@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { seeded } from '../engine/random';
 import { keepOutOfGoals, resolveBodies, separatePlayers } from './bodies';
-import { BACKYARD, inGoalBox } from './field';
+import { BACKYARD, SCHOOL_FIELD, inGoalBox } from './field';
 import { NO_INTENT, NORMAL_HANDLING, PLAYER_R, createPlayer, stepPlayer, type Player, type PlayerIntent } from './player';
 import { BASE_STATS } from './stats';
 import { createWorld, placeForKickoff } from './world';
@@ -199,6 +199,20 @@ describe('resolveBodies', () => {
     expect(gap(a, b)).toBeGreaterThanOrEqual(2 * PLAYER_R - 0.01);
     expect(inGoalBox(BACKYARD.goals[1], b.x, b.z, PLAYER_R - 0.01)).toBe(false);
     expect(a.z).toBeGreaterThanOrEqual(PLAYER_R);
+  });
+});
+
+describe('the School Field', () => {
+  it('a player walking up either end fence is stopped by the goal, never let through behind its net', () => {
+    for (const g of SCHOOL_FIELD.goals) {
+      const x = g.side === 'right' ? SCHOOL_FIELD.fenceR - PLAYER_R : SCHOOL_FIELD.fenceL + PLAYER_R;
+      const p = home(x, PLAYER_R);
+      for (let i = 0; i < ticks(4); i++) {
+        stepPlayer(p, move(0, 1), STEP, SCHOOL_FIELD, false);
+        keepOutOfGoals(p, SCHOOL_FIELD);
+      }
+      expect(p.z, g.side).toBeCloseTo(g.z0 - PLAYER_R);
+    }
   });
 });
 

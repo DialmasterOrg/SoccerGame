@@ -49,15 +49,19 @@ export const BACKYARD: Field = {
   ],
 };
 
-/** The School Field and every later venue's pitch: twice the Backyard's length and depth, with bigger goals a keeper has room to move in. */
+/**
+ * The School Field and every later venue's pitch: twice the Backyard's length
+ * and depth, with bigger goals a keeper has room to move in. As at the
+ * Backyard, the gap behind each net is 8, too narrow for a player.
+ */
 export const SCHOOL_FIELD: Field = {
   width: 1280,
   depth: 128,
   fenceL: 4,
   fenceR: 1276,
   goals: [
-    { side: 'left', lineX: 40, backX: 20, barY: 48, barThick: 2, z0: 36, z1: 92 },
-    { side: 'right', lineX: 1240, backX: 1260, barY: 48, barThick: 2, z0: 36, z1: 92 },
+    { side: 'left', lineX: 40, backX: 12, barY: 48, barThick: 2, z0: 36, z1: 92 },
+    { side: 'right', lineX: 1240, backX: 1268, barY: 48, barThick: 2, z0: 36, z1: 92 },
   ],
   markings: { touchZ: [3, 125], box: { out: 110, z0: 10, z1: 118 }, goalArea: { out: 36, z0: 26, z1: 102 }, spotOut: 76, circleR: 36 },
 };

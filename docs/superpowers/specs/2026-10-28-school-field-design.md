@@ -764,11 +764,18 @@ the builder, and what changed on the way:
   sky and its mid and near layers are empty, until plan 3.
 - **The Backyard matches main** pixel for pixel apart from its clock
   (checked on the same seeded frame from both builds).
+- **The nets are 28 deep, not 20:** their backs are at x 12 and 1268,
+  so the gap behind each net is 8, as at the Backyard, too narrow for a
+  player. With the backs at 20 and 1260 a player could walk up the end
+  fence behind a net, under its roof, where the ball can never go (the
+  final review found it). The goal lines, posts, bar and lines are as
+  drawn in the mockups.
 - **Today's AI needed no change on the big pitch.** Whole AI-vs-AI
   matches at Normal on seeds 1–8 all finish with a result, no ball left
-  resting unreached, nobody stuck and nobody in a goal; they scored
-  1-4, 2-3 (golden goal), 2-3, 1-2, 3-1, 5-0, 4-3 and 4-5 (golden goal).
-- **1656 tests**, typecheck and build green.
+  resting unreached, nobody stuck, nobody in a goal and nobody behind a
+  net; they scored 1-4, 1-2, 2-3, 2-1, 3-2, 4-1, 4-3 and 4-5. Easy and
+  Hard, checked the same way outside the suite, hold too.
+- **1657 tests**, typecheck and build green.
 
 Notes for plan 3:
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { seeded } from '../engine/random';
 import { DIFFICULTY, KICKOFF_HOLD_S, createBrain, think, type AiBrain, type AiProfile } from './ai';
 import { BALL_REST_Y } from './ball';
-import { inGoalBox } from './field';
+import { inGoalBox, roofSpan } from './field';
 import { SCHOOL_STAGE, type Stage } from './stage';
 import { NO_INTENT, NORMAL_HANDLING, PLAYER_R, type Player, type PlayerIntent } from './player';
 import { LADDER_MATCHES, maxStats } from '../meta/ladder';
@@ -398,6 +398,13 @@ describe('think', () => {
         if (opts.power || opts.stage) {
           for (const g of w.field.goals)
             for (const p of [w.home, w.away]) expect(inGoalBox(g, p.x, p.z, 0), `seed ${seed}: ${p.team} in a goal`).toBe(false);
+        }
+        if (opts.stage) {
+          // Nor behind a net: under the roof, which runs on from the goal line to the end fence.
+          for (const g of w.field.goals) {
+            const [x0, x1] = roofSpan(w.field, g);
+            for (const p of [w.home, w.away]) expect(p.x >= x0 && p.x <= x1 && p.z >= g.z0 && p.z <= g.z1, `seed ${seed}: ${p.team} behind a net`).toBe(false);
+          }
         }
         if (opts.power) {
           if (w.events.power.braced) waves.braced++;
