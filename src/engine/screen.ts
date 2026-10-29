@@ -1,8 +1,10 @@
-import { BASE_H, BASE_W, computeViewport, type Viewport } from './viewport';
+import { MENU_SIZE, computeViewport, type CanvasSize, type Viewport } from './viewport';
 
 export interface Screen {
-  /** The 320×180 game canvas everything draws into. */
+  /** The game canvas everything draws into: 320×180, or whatever size the scene showing asked for. */
   game: CanvasRenderingContext2D;
+  /** Sizes the game canvas for the scene about to draw, and refits it to the window. */
+  resize(size: CanvasSize): void;
   /** Scales the game canvas onto the window. */
   present(): void;
 }
@@ -15,8 +17,9 @@ export interface Screen {
 export function createScreen(canvas: HTMLCanvasElement): Screen {
   const ctx = canvas.getContext('2d');
   const gameCanvas = document.createElement('canvas');
-  gameCanvas.width = BASE_W;
-  gameCanvas.height = BASE_H;
+  let size = MENU_SIZE;
+  gameCanvas.width = size.w;
+  gameCanvas.height = size.h;
   const game = gameCanvas.getContext('2d');
   if (!ctx || !game) throw new Error('2D canvas unavailable');
   game.imageSmoothingEnabled = false;
@@ -24,7 +27,7 @@ export function createScreen(canvas: HTMLCanvasElement): Screen {
   let viewport: Viewport;
   const fit = () => {
     const dpr = window.devicePixelRatio || 1;
-    viewport = computeViewport(window.innerWidth, window.innerHeight, dpr);
+    viewport = computeViewport(window.innerWidth, window.innerHeight, dpr, size.w, size.h);
     canvas.width = viewport.deviceW;
     canvas.height = viewport.deviceH;
     // Exactly backing ÷ dpr so the browser maps canvas pixels 1:1 onto device pixels.
@@ -50,11 +53,20 @@ export function createScreen(canvas: HTMLCanvasElement): Screen {
 
   return {
     game,
+    resize(next) {
+      if (next.w === size.w && next.h === size.h) return;
+      size = next;
+      gameCanvas.width = size.w;
+      gameCanvas.height = size.h;
+      // Resizing a canvas resets its context, smoothing included.
+      game.imageSmoothingEnabled = false;
+      fit();
+    },
     present() {
       ctx.imageSmoothingEnabled = false;
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(gameCanvas, viewport.x, viewport.y, BASE_W * viewport.scale, BASE_H * viewport.scale);
+      ctx.drawImage(gameCanvas, viewport.x, viewport.y, size.w * viewport.scale, size.h * viewport.scale);
     },
   };
 }

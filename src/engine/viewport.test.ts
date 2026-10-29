@@ -27,4 +27,13 @@ describe('computeViewport', () => {
   it('handles ultrawide windows', () => {
     expect(computeViewport(3440, 1440, 1)).toMatchObject({ scale: 8, y: 0 });
   });
+
+  it("fits the 534×300 match into Harrison's maximized 1080p window at 3×", () => {
+    expect(computeViewport(1920, 930, 1, 534, 300)).toMatchObject({ scale: 3, x: 159, y: 15 });
+    expect(computeViewport(1920, 930, 1)).toMatchObject({ scale: 5, x: 160, y: 15 });
+  });
+
+  it('fits it into a maximized 4K window at dpr 1.25 at 6×', () => {
+    expect(computeViewport(3072, 1590, 1.25, 534, 300).scale).toBe(6);
+  });
 });

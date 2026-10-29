@@ -4,6 +4,7 @@ import { createInput, type InputFrame } from '../engine/input';
 import { createStepper, startLoop } from '../engine/loop';
 import { createRumble } from '../engine/rumble';
 import { createScreen } from '../engine/screen';
+import { MENU_SIZE } from '../engine/viewport';
 import { outfitOf } from '../meta/locker';
 import { newProfile } from '../meta/profile';
 import { createSaveSlots } from '../meta/saveSlots';
@@ -125,6 +126,7 @@ export function startGame(canvas: HTMLCanvasElement): void {
       latest = input.poll();
       pending = carry(pending, latest);
       stepper.advance(dt);
+      screen.resize(scene.size ?? MENU_SIZE);
       scene.draw(screen.game, nowS);
       screen.present();
     },
