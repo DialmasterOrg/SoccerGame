@@ -7,7 +7,7 @@ const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
 /** A save with something in every field, both unlocks owned. */
 const RICH: Profile = {
-  version: 6,
+  version: 7,
   name: 'NORMAL RUN',
   difficulty: 'hard',
   coins: 840,
@@ -55,7 +55,7 @@ describe('save code', () => {
 
   it('the code appends Stamina, then difficulty, and keeps four stats in their old place', () => {
     const f = decodeFields(encodeSaveCode(RICH))!;
-    expect(f).toHaveLength(48);
+    expect(f).toHaveLength(58);
     expect([f[41], f[42]]).toEqual([7, 3]);
     expect(f.slice(4, 8)).toEqual([4, 3, 2, 5]);
   });
@@ -86,8 +86,8 @@ describe('save code', () => {
     expect(decodeSaveCode(PARK_PLAYTEST, newProfile())?.locker).toEqual(EMPTY_LOCKER);
   });
 
-  it('the first field is 6', () => {
-    expect(decodeFields(encodeSaveCode(newProfile()))?.[0]).toBe(6);
+  it('the first field is 7', () => {
+    expect(decodeFields(encodeSaveCode(newProfile()))?.[0]).toBe(7);
   });
 
   it('a full locker round-trips', () => {
@@ -96,7 +96,7 @@ describe('save code', () => {
 
   it('the locker follows the difficulty: bought, kit, boots, extras, seen', () => {
     const f = decodeFields(encodeSaveCode(DRESSED))!;
-    expect(f.slice(43)).toEqual([0b11_0001_1111_1001_1111_1100, 10, 9, 0b1111, 0b1111]);
+    expect(f.slice(43, 48)).toEqual([0b11_0001_1111_1001_1111_1100, 10, 9, 0b1111, 0b1111]);
   });
 
   it('a v5 code loads with an empty locker', () => {
@@ -161,9 +161,26 @@ describe('save code', () => {
     const p: Profile = { ...RICH, career: { ...RICH.career, stars: { ...RICH.career.stars, 'park-1': 3 }, lossStreaks: { 'park-boss': 4 } } };
     const fields = decodeFields(encodeSaveCode(p)) ?? [];
     const v3 = decodeSaveCode(encodeFields([3, ...fields.slice(1, 35)]), RICH);
-    expect(v3?.version).toBe(6);
+    expect(v3?.version).toBe(7);
     expect(v3?.career.stars).toEqual(RICH.career.stars);
     expect(v3?.career.lossStreaks).toEqual({});
+  });
+
+  it("the School stars and Gus's loss streak survive a round trip", () => {
+    const school = { 'school-1': 3, 'school-2': 2, 'school-3': 1, 'school-4': 3, 'school-5': 1, 'school-6': 2, 'school-7': 3, 'school-8': 1, 'school-boss': 2 };
+    const p: Profile = { ...RICH, ladderWins: 10, career: { stars: { ...RICH.career.stars, ...school }, milestonesPaid: 2, lossStreaks: { 'backyard-boss': 1, 'school-boss': 4 } } };
+    const back = decodeSaveCode(encodeSaveCode(p), p);
+    expect(back?.career.stars).toMatchObject(school);
+    expect(back?.career.lossStreaks).toEqual({ 'backyard-boss': 1, 'school-boss': 4 });
+  });
+
+  it('a v6 code, without the School fields, applies with no School stars and no Gus streak', () => {
+    const p: Profile = { ...RICH, career: { ...RICH.career, stars: { ...RICH.career.stars, 'school-1': 3, 'school-boss': 1 }, lossStreaks: { 'school-boss': 4 } } };
+    const fields = decodeFields(encodeSaveCode(p)) ?? [];
+    const v6 = decodeSaveCode(encodeFields([6, ...fields.slice(1, -10)]), RICH);
+    expect(v6?.version).toBe(7);
+    expect(v6?.career.stars).toEqual(RICH.career.stars);
+    expect(v6?.career.lossStreaks).toEqual({});
   });
 
   it('rung loss streaks do not travel, the boss streak does', () => {

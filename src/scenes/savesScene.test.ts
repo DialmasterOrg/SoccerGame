@@ -193,7 +193,7 @@ describe('saves', () => {
     expect(careerStars(live)).toBe(Object.values(PARK_FOUR_STARS).reduce((a, b) => a + b, 0));
     step(s, A, A);
     const stored = JSON.parse(store.data[PROFILE_KEY]!);
-    expect(stored).toMatchObject({ version: 6, name: 'HARRISON', difficulty: 'easy', coins: 1240, stats: { stamina: 1 } });
+    expect(stored).toMatchObject({ version: 7, name: 'HARRISON', difficulty: 'easy', coins: 1240, stats: { stamina: 1 } });
   });
 
   it("switching saves keeps each save's own", () => {

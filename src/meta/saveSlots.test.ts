@@ -44,7 +44,7 @@ describe('save slots: read and list', () => {
 
   it("a v4 save loads on the loader's difficulty, and a v5 save keeps its own", () => {
     const saves = createSaveSlots(memoryStore({ [slotKey(1)]: json(V4), [slotKey(2)]: json(OWN) }), 'easy');
-    expect(saves.read(1)).toMatchObject({ version: 6, name: 'HARRISON', difficulty: 'easy', coins: 420 });
+    expect(saves.read(1)).toMatchObject({ version: 7, name: 'HARRISON', difficulty: 'easy', coins: 420 });
     expect(saves.read(2)).toEqual(OWN);
   });
 
@@ -78,7 +78,7 @@ describe('save slots: write and remove', () => {
   });
 
   it("a newer build's save is never written over or removed", () => {
-    const newer = json({ ...OWN, version: 7, gems: 5 });
+    const newer = json({ ...OWN, version: 8, gems: 5 });
     const store = memoryStore({ [slotKey(2)]: newer });
     const saves = createSaveSlots(store, 'normal');
     expect(saves.read(2)?.coins).toBe(300);

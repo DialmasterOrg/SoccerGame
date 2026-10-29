@@ -30,7 +30,7 @@ const SOME: V4Save = {
 const EMPTY_LOCKER: Profile['locker'] = { bought: [], kit: 'home', boots: 'volt', extras: [], seen: [] };
 
 /** SOME as it loads on Normal. */
-const LOADED: Profile = { ...SOME, version: 6, name: 'HARRISON', difficulty: 'normal', stats: { ...SOME.stats, stamina: 1 }, locker: EMPTY_LOCKER };
+const LOADED: Profile = { ...SOME, version: 7, name: 'HARRISON', difficulty: 'normal', stats: { ...SOME.stats, stamina: 1 }, locker: EMPTY_LOCKER };
 /** A v5 save with its own name, difficulty and Stamina. */
 const OWN: Profile = { ...LOADED, name: 'NORMAL RUN', difficulty: 'hard', stats: { ...LOADED.stats, stamina: 7 } };
 
@@ -42,7 +42,7 @@ const FOUR_RETRO = { 'backyard-1': 1, 'backyard-2': 1, 'backyard-3': 1, 'backyar
 describe('profile', () => {
   it('a new profile, and a game-specific key', () => {
     expect(newProfile()).toEqual({
-      version: 6,
+      version: 7,
       name: 'HARRISON',
       difficulty: 'normal',
       coins: 0,
@@ -61,8 +61,8 @@ describe('profile', () => {
     expect(LADDER_MATCHES).toBe(10);
   });
 
-  it('his live v4 save loads into v6 without loss', () => {
-    expect(profileFrom(SOME, 'easy')).toEqual({ ...SOME, version: 6, name: 'HARRISON', difficulty: 'easy', stats: { ...SOME.stats, stamina: 1 }, locker: EMPTY_LOCKER });
+  it('his live v4 save loads into v7 without loss', () => {
+    expect(profileFrom(SOME, 'easy')).toEqual({ ...SOME, version: 7, name: 'HARRISON', difficulty: 'easy', stats: { ...SOME.stats, stamina: 1 }, locker: EMPTY_LOCKER });
   });
 
   it('a name loads cleaned, cut to 12, or as HARRISON when nothing is left', () => {
@@ -107,7 +107,7 @@ describe('profile', () => {
     };
     const tenRetro = Object.fromEntries([...Array(10)].map((_, i) => [`backyard-${i + 1}`, 1]));
     expect(profileFrom(bad, 'normal')).toEqual({
-      version: 6,
+      version: 7,
       name: 'HARRISON',
       difficulty: 'normal',
       coins: 0,
@@ -128,7 +128,7 @@ describe('profile', () => {
     expect(profileFrom({ ...SOME, coins: -5 }, 'normal').coins).toBe(0);
   });
 
-  it('a full v1 save loads into v6 with every field kept', () => {
+  it('a full v1 save loads into v7 with every field kept', () => {
     const v1 = {
       version: 1,
       coins: 640,
@@ -139,10 +139,10 @@ describe('profile', () => {
       dailyWinDate: '2026-10-24',
       totals: { matches: 12, wins: 7, draws: 2, losses: 3, goalsFor: 21, goalsAgainst: 11, styleGoals: 5, xpEarned: 480 },
     };
-    expect(profileFrom(v1, 'normal')).toEqual({ ...v1, version: 6, name: 'HARRISON', difficulty: 'normal', stats: { ...v1.stats, stamina: 1 }, powerMoves: NO_POWER, powerForms: NO_POWER, career: { ...NO_CAREER, stars: FOUR_RETRO }, locker: EMPTY_LOCKER });
+    expect(profileFrom(v1, 'normal')).toEqual({ ...v1, version: 7, name: 'HARRISON', difficulty: 'normal', stats: { ...v1.stats, stamina: 1 }, powerMoves: NO_POWER, powerForms: NO_POWER, career: { ...NO_CAREER, stars: FOUR_RETRO }, locker: EMPTY_LOCKER });
   });
 
-  it('a v2 save loads into v6 with retro stars for its ladder wins', () => {
+  it('a v2 save loads into v7 with retro stars for its ladder wins', () => {
     const v2 = { ...SOME, version: 2, career: undefined };
     delete (v2 as { career?: unknown }).career;
     expect(profileFrom(v2, 'normal')).toEqual({ ...LOADED, career: { stars: FOUR_RETRO, milestonesPaid: 0, lossStreaks: {} } });
@@ -210,14 +210,14 @@ describe('profile', () => {
   it('a v3 save keeps Park stars, because Park ids are catalog ids', () => {
     const v3 = { ...SOME, version: 3, career: { ...SOME.career, stars: { ...SOME.career.stars, 'park-2': 3 }, lossStreaks: { 'park-boss': 1 } } };
     const p = profileFrom(v3, 'normal');
-    expect(p.version).toBe(6);
+    expect(p.version).toBe(7);
     expect(p.career.stars['park-2']).toBe(3);
     expect(p.career.lossStreaks).toEqual({ 'park-boss': 1 });
   });
 
   it('a v3 save without Park ids loads with no Park stars', () => {
     const p = profileFrom({ ...SOME, version: 3 }, 'normal');
-    expect(p.version).toBe(6);
+    expect(p.version).toBe(7);
     expect(Object.keys(p.career.stars).filter(id => id.startsWith('park-'))).toEqual([]);
   });
 
@@ -228,7 +228,29 @@ describe('profile', () => {
     expect(store.data[PROFILE_KEY]).toBe(before);
   });
 
-  it('a v5 save loads into v6 with an empty locker and keeps everything else', () => {
+  it('a v6 save keeps School stars, because School ids are catalog ids', () => {
+    const v6 = { ...OWN, version: 6, career: { ...OWN.career, stars: { ...OWN.career.stars, 'school-3': 2 }, lossStreaks: { 'school-boss': 1 } } };
+    const p = profileFrom(v6, 'normal');
+    expect(p.version).toBe(7);
+    expect(p.career.stars['school-3']).toBe(2);
+    expect(p.career.lossStreaks).toEqual({ 'school-boss': 1 });
+  });
+
+  it('a v6 save without School ids loads with no School stars', () => {
+    const p = profileFrom({ ...OWN, version: 6 }, 'normal');
+    expect(p.version).toBe(7);
+    expect(Object.keys(p.career.stars).filter(id => id.startsWith('school-'))).toEqual([]);
+  });
+
+  it('a v6 tab left open cannot write over a v7 save with School stars', () => {
+    const v7 = { ...OWN, version: 7, career: { ...OWN.career, stars: { ...OWN.career.stars, 'school-1': 3 } } };
+    const store = memoryStore({ [PROFILE_KEY]: JSON.stringify(v7) });
+    const before = store.data[PROFILE_KEY];
+    writeUnlessNewer(store, PROFILE_KEY, { ...OWN, version: 6 });
+    expect(store.data[PROFILE_KEY]).toBe(before);
+  });
+
+  it('a v5 save loads into v7 with an empty locker and keeps everything else', () => {
     const { locker: _locker, ...v5 } = {
       ...OWN,
       version: 5,
@@ -236,7 +258,7 @@ describe('profile', () => {
       career: { stars: { ...SOME.career.stars, 'backyard-5': 3, 'park-1': 2 }, milestonesPaid: 2, lossStreaks: { 'park-boss': 1 } },
     };
     const p = profileFrom(v5, 'easy');
-    expect(p).toEqual({ ...v5, version: 6, locker: EMPTY_LOCKER });
+    expect(p).toEqual({ ...v5, version: 7, locker: EMPTY_LOCKER });
     expect(unseenGifts(p)).toEqual(['extra:armband', 'boots:lightning']);
   });
 
@@ -255,10 +277,10 @@ describe('profile', () => {
     expect(load('junk')).toEqual(EMPTY_LOCKER);
   });
 
-  it("newProfile's locker is empty and stores as version 6", () => {
+  it("newProfile's locker is empty and stores as version 7", () => {
     expect(newProfile().locker).toEqual(EMPTY_LOCKER);
-    expect(newProfile().version).toBe(6);
-    expect(PROFILE_VERSION).toBe(6);
+    expect(newProfile().version).toBe(7);
+    expect(PROFILE_VERSION).toBe(7);
   });
 
   it('not a save at all loads a new profile', () => {

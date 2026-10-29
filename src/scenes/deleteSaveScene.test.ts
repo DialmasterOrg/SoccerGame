@@ -46,7 +46,7 @@ describe('delete save', () => {
   });
 
   it("YES on a newer build's save plays nope, stays, and keeps it", () => {
-    const newer = JSON.stringify({ ...SAVE, version: 7, gems: 5 });
+    const newer = JSON.stringify({ ...SAVE, version: 8, gems: 5 });
     const store = memoryStore({ [slotKey(SLOT)]: newer });
     const ctx = testContext({ saves: createSaveSlots(store, 'normal') });
     const s = createDeleteSaveScene(ctx, SLOT, SAVE, () => BEHIND, () => DELETED);

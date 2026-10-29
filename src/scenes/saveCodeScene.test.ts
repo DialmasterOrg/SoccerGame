@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { InputFrame } from '../engine/input';
 import { newProfile, type Profile } from '../meta/profile';
 import { decodeFields, encodeFields, encodeSaveCode } from '../meta/saveCode';
-import { BACKYARD, PARK } from '../meta/career';
+import { BACKYARD, PARK, SCHOOL } from '../meta/career';
 import { EXTRA_IDS, GIFTS, LOCKER_ITEMS } from '../meta/locker';
 import { MAX_ENTRY, codeLines, createSaveCodeScene } from './saveCodeScene';
 import type { Scene } from './scene';
@@ -165,7 +165,7 @@ describe('codeLines', () => {
       ladderWins: 10,
       dailyWinDate: '2099-12-31',
       totals: { matches: 999_999_999, wins: 999_999_999, draws: 999_999_999, losses: 999_999_999, goalsFor: 999_999_999, goalsAgainst: 999_999_999, styleGoals: 999_999_999, xpEarned: 999_999_999 },
-      career: { stars: Object.fromEntries([...BACKYARD.matches, ...PARK.matches].map(m => [m.id, 3])), milestonesPaid: 4, lossStreaks: { 'backyard-boss': 99, 'park-boss': 99 } },
+      career: { stars: Object.fromEntries([...BACKYARD.matches, ...PARK.matches, ...SCHOOL.matches].map(m => [m.id, 3])), milestonesPaid: 4, lossStreaks: { 'backyard-boss': 99, 'park-boss': 99, 'school-boss': 99 } },
       locker: {
         bought: LOCKER_ITEMS.filter(i => typeof i.source === 'object' && 'price' in i.source).map(i => i.id),
         kit: 'gold',
@@ -176,9 +176,9 @@ describe('codeLines', () => {
     };
     const shown = codeLines(encodeSaveCode(max));
     expect(shown.scale).toBe(1);
-    expect(shown.lines.length).toBeLessThanOrEqual(4);
-    expect(MAX_ENTRY).toBe(153);
-    expect(normaliseLength(encodeSaveCode(max))).toBe(151);
+    expect(shown.lines.length).toBeLessThanOrEqual(5);
+    expect(MAX_ENTRY).toBe(169);
+    expect(normaliseLength(encodeSaveCode(max))).toBe(167);
     expect(normaliseLength(encodeSaveCode(max))).toBeLessThanOrEqual(MAX_ENTRY);
   });
 });

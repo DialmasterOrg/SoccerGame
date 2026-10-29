@@ -1,6 +1,6 @@
 import { DIFFICULTIES } from '../game/ai';
 import type { StatName } from '../game/stats';
-import { BACKYARD, BOSS_ID, PARK, PARK_BOSS_ID } from './career';
+import { BACKYARD, BOSS_ID, PARK, PARK_BOSS_ID, SCHOOL, SCHOOL_BOSS_ID } from './career';
 import { FORM_IDS, MOVE_IDS } from './catalog';
 import { BOOTS_IDS, EXTRA_IDS, GIFTS, KIT_IDS, LOCKER_ITEMS } from './locker';
 import { TOTAL_NAMES, profileFrom, type Owned, type Profile } from './profile';
@@ -169,6 +169,9 @@ export function encodeSaveCode(p: Profile): string {
     BOOTS_IDS.indexOf(p.locker.boots) + 1,
     maskOf(p.locker.extras, EXTRA_IDS),
     maskOf(p.locker.seen, GIFTS),
+    // v7: the School Field's stars in match order, and Gus's loss streak.
+    ...SCHOOL.matches.map(m => p.career.stars[m.id] ?? 0),
+    p.career.lossStreaks[SCHOOL_BOSS_ID] ?? 0,
   ]);
 }
 
@@ -217,5 +220,8 @@ export function decodeSaveCode(text: string, onto: Profile): Profile | null {
       seen: idsIn(next() ?? 0, GIFTS),
     },
   });
+  // v7, after every v6 field: the School Field's stars, then Gus's loss streak.
+  Object.assign(record.career.stars, Object.fromEntries(SCHOOL.matches.map(m => [m.id, next()])));
+  Object.assign(record.career.lossStreaks, { [SCHOOL_BOSS_ID]: next() });
   return profileFrom(record, onto.difficulty);
 }

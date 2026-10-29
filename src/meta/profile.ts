@@ -52,8 +52,8 @@ export interface Locker {
 
 /** Harrison's progress, versioned so every later build can read it. */
 export interface Profile {
-  /** v5 adds the name, the difficulty and Stamina; v6 the locker. */
-  version: 6;
+  /** v5 adds the name, the difficulty and Stamina; v6 the locker; v7 nothing (see PROFILE_VERSION). */
+  version: 7;
   /** 1 to NAME_MAX of A-Z, 0-9 and space. */
   name: string;
   /** Each save has its own: picked when it's made, changed in Options. */
@@ -78,7 +78,8 @@ export interface Profile {
 
 /** Game-specific, so it never clashes with other pages on the same site. */
 export const PROFILE_KEY = 'harrisons-road-to-the-cup/profile';
-export const PROFILE_VERSION = 6;
+/** v7 adds no fields: the School Field's ids load because they're catalog ids. The bump stops a v6 tab left open writing over School stars. */
+export const PROFILE_VERSION = 7;
 /** What a save without a name is called: his live save, from before there were names. */
 export const DEFAULT_NAME = 'HARRISON';
 export const NAME_MAX = 12;

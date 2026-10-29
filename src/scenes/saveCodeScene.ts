@@ -30,16 +30,16 @@ const LOADED = 'SAVE LOADED!';
 export const BAD_CODE = "THAT CODE DOESN'T WORK";
 const SHOW_ITEMS = ['ENTER A CODE', 'BACK'] as const;
 const CONFIRM_ITEMS = ['NO', 'YES'] as const;
-/** Longer than any code (151 characters at the loader's ceilings), so a paste of junk can't grow the entry without end. */
-export const MAX_ENTRY = 153;
+/** Longer than any code (167 characters at the loader's ceilings), so a paste of junk can't grow the entry without end. */
+export const MAX_ENTRY = 169;
 
 const PANEL = { x: 8, y: 6, w: 304, h: 168 };
 const TITLE_Y = PANEL.y + 6;
 const CODE = { y: PANEL.y + 28 };
-/** A code is shown big, four groups to a line; one too long for three lines that way goes small, eight to a line, up to four lines. */
+/** A code is shown big, four groups to a line; one too long for three lines that way goes small, eight to a line, up to five lines (which end above STATUS_Y even with ENTRY_DROP). */
 const CODE_SIZES = [
   { scale: 2, groupsPerLine: 4, lineH: 16, maxLines: 3 },
-  { scale: 1, groupsPerLine: 8, lineH: 9, maxLines: 4 },
+  { scale: 1, groupsPerLine: 8, lineH: 9, maxLines: 5 },
 ] as const;
 const STATUS_Y = PANEL.y + 96;
 const MENU_TOP = PANEL.y + 110;
