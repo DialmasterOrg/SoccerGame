@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest';
-import { BACKYARD, BOSS_ID, PARK, PARK_BOSS_ID, matchById } from '../meta/career';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { measureText } from '../art/font';
+import { BACKYARD, BOSS_ID, PARK, PARK_BOSS_ID, SCHOOL, SCHOOL_BOSS_ID, matchById } from '../meta/career';
 import { newProfile } from '../meta/profile';
-import { fakeArt, recordingContext } from './testDraw';
+import { fakeArt, recordingContext, stubCanvases } from './testDraw';
 import { testContext } from './testContext';
 import { frame } from './testInput';
-import { createVenueScene, nodeX, panelLines, type VenueScene } from './venueScene';
+import { PANEL_TEXT_W, createVenueScene, nodeX, panelLines, type VenueScene } from './venueScene';
 import type { VsScene } from './vsScene';
 
 const STEP = 1 / 60;
@@ -118,5 +119,68 @@ describe('the Park on the venue screen', () => {
     expect(drawn).toContain('art.opponents.sam.face');
     expect(drawn).toContain('art.venues.park.layers.far');
     expect(drawn.filter(n => n.startsWith('art.biscuit'))).toEqual([]);
+  });
+});
+
+describe('the School Field on the venue screen', () => {
+  const PARK_DONE = { [BOSS_ID]: 1, 'park-1': 1, 'park-2': 1, 'park-3': 1, 'park-4': 1, [PARK_BOSS_ID]: 1 };
+  const schoolOpen = (stars: Record<string, number> = {}) => testContext({ art: fakeArt(), profile: { ...newProfile(), ladderWins: 10, career: { stars: { ...PARK_DONE, ...stars }, milestonesPaid: 0, lossStreaks: {} } } });
+  const TRYOUTS_DONE = Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map(n => [`school-${n}`, 1]));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("a tryout's panel: TRYOUT n and the kid, the blurb, the bonus; Gus by his name", () => {
+    expect(panelLines(matchById('school-3')!)).toEqual(['TRYOUT 3 - LOFTY LOLA', 'SHE CHIPS ANY KEEPER OFF HIS LINE.', 'BONUS: SCORE FROM A CHIP']);
+    expect(panelLines(matchById(SCHOOL_BOSS_ID)!)).toEqual(['GOALIE GUS', 'THE CAPTAIN. HE FILLS THE WHOLE GOAL.', 'BONUS: PUT 3 PAST GUS']);
+    expect(panelLines(matchById('park-2')!)).toEqual(['MATCH 2 - BOOMER LEO', 'HE SHOOTS FROM ANYWHERE.', 'BONUS: KEEP A CLEAN SHEET']);
+    expect(panelLines(matchById('backyard-1')!)).toEqual(['MATCH 1 - MAX', 'BONUS: SCORE 3 GOALS']);
+  });
+
+  it('every School line fits the panel, the title at 2x', () => {
+    expect(PANEL_TEXT_W).toBe(274);
+    for (const m of SCHOOL.matches) {
+      const [title, ...rest] = panelLines(m);
+      expect(measureText(title!, 2) + 2, title).toBeLessThanOrEqual(PANEL_TEXT_W);
+      for (const line of rest) {
+        expect(measureText(line) + 2, line).toBeLessThanOrEqual(PANEL_TEXT_W);
+        expect(line).toMatch(CHARSET);
+      }
+      expect(title).toMatch(CHARSET);
+    }
+  });
+
+  it("eight nodes in one row over the Backyard's span, clear of each other's ring and of the boss node", () => {
+    expect([1, 2, 3, 4, 5, 6, 7, 8].map(n => nodeX(matchById(`school-${n}`)!))).toEqual([16, 47, 78, 109, 139, 170, 201, 232]);
+  });
+
+  it('after Sam the venue draws the School behind SCHOOL FIELD and STARS 0/27, with the stand-in boss a silhouette', () => {
+    stubCanvases();
+    const { g, drawn } = recordingContext();
+    createVenueScene(schoolOpen(), 'school').draw(g, 0);
+    expect(drawn).toContain('art.venues.school.layers.far');
+    expect(drawn).toContain('art.text(SCHOOL FIELD,2,energyGold,outline)');
+    expect(drawn).toContain('art.text(STARS 0/27,1,white,outline)');
+    // Max's face shows once, in the panel for tryout 1; the boss node holds its silhouette (a canvas with no name).
+    expect(drawn.filter(n => n === 'art.opponents.max.face')).toHaveLength(1);
+    expect(drawn).toContain(undefined);
+    expect(drawn.some(n => n?.startsWith('art.biscuit'))).toBe(false);
+  });
+
+  it('once tryout 8 is passed the boss node shows the face itself', () => {
+    stubCanvases();
+    const { g, drawn } = recordingContext();
+    createVenueScene(schoolOpen(TRYOUTS_DONE), 'school').draw(g, 0);
+    expect(drawn.filter(n => n === 'art.opponents.max.face')).toHaveLength(2);
+    expect(drawn).toContain('art.text(GOALIE GUS,2,energyGold,outline)');
+  });
+
+  it('A on tryout 1 opens its VS card; A on tryout 2 only blips', () => {
+    const ctx = schoolOpen();
+    const s = createVenueScene(ctx, 'school');
+    expect(s.cursor.id).toBe('school-1');
+    expect((s.update(frame(['confirm']), STEP) as VsScene).match.id).toBe('school-1');
+    const locked = schoolOpen();
+    const second = createVenueScene(locked, 'school', 'school-2');
+    expect(second.update(frame(['confirm']), STEP)).toBeNull();
+    expect(locked.audio.played).toContain('nope');
   });
 });

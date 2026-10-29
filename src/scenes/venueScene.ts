@@ -39,6 +39,8 @@ const PANEL_TEXT_X = 32;
 const PANEL_LINE_YS = [100, 118, 132] as const;
 const PANEL_FOOT_Y = 146;
 const HINT_RIGHT = 306;
+/** The panel text's width: every line, the title at 2x, must fit it. */
+export const PANEL_TEXT_W = HINT_RIGHT - PANEL_TEXT_X;
 const STAR_GAP_PX = 4;
 
 /** The node's fill, border and number colours by state. */
@@ -57,9 +59,10 @@ export function nodeX(m: CareerMatch): number {
 /** An opponent's face, front on: Biscuit's own, or a human opponent's. */
 const faceOf = (art: GameContext['art'], m: CareerMatch): HTMLCanvasElement => (m.opponent === 'biscuit' ? art.biscuitFace : art.opponents[m.opponent].face);
 
-/** The match panel's lines: the match, its blurb (a rung's is its training line, none for rung 1), and its bonus. */
+/** The match panel's lines: the match (MATCH n, or TRYOUT n at the School), its blurb (a rung's is its training line, none for rung 1), and its bonus. */
 export function panelLines(match: CareerMatch): string[] {
-  const title = match.kind === 'boss' ? match.name : `MATCH ${match.rung} - ${match.name}`;
+  const words = VENUES.find(v => v.id === match.venue)!.words;
+  const title = match.kind === 'boss' ? match.name : `${words.match} ${match.rung} - ${match.name}`;
   const blurb = match.blurb ?? trainingLine(match.rung);
   return [title, ...(blurb ? [blurb] : []), `BONUS: ${BONUSES[match.bonus].label}`];
 }

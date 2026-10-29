@@ -45,8 +45,8 @@ const HINT_Y = 160;
  * lost to the boss, and until he beats him, the boss's card adds one tip.
  */
 export function vsLines(match: CareerMatch, p: Profile): string[] {
-  const venue = VENUES.find(v => v.id === match.venue)!;
-  const title = match.kind === 'boss' ? `${venue.name} BOSS` : `MATCH ${match.rung}`;
+  const { words } = VENUES.find(v => v.id === match.venue)!;
+  const title = match.kind === 'boss' ? words.boss : `${words.match} ${match.rung}`;
   const lines = [title, `HARRISON VS ${match.name}`, `BONUS: ${BONUSES[match.bonus].label}`];
   if (match.tip !== null && (p.career.lossStreaks[match.id] ?? 0) >= 1) lines.push(match.tip);
   return lines;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BOSS_ID, PARK_BOSS_ID, matchById } from '../meta/career';
+import { BOSS_ID, PARK_BOSS_ID, SCHOOL_BOSS_ID, matchById } from '../meta/career';
 import { newProfile } from '../meta/profile';
 import { createHubScene } from './hubScene';
 import type { MatchScene } from './matchScene';
@@ -94,6 +94,36 @@ describe('the Park on the VS card', () => {
     const { g, drawn } = recordingContext();
     createVsScene(ctx, matchById(PARK_BOSS_ID)!, back).draw(g, 0);
     expect(drawn).toContain('art.opponents.sam.sprites.left.idle.0');
+  });
+});
+
+describe('the School Field on the VS card', () => {
+  const back = () => createHubScene(testContext());
+
+  it('a tryout is TRYOUT n against the kid, over the School, with Max standing in', () => {
+    expect(vsLines(matchById('school-3')!, newProfile())).toEqual(['TRYOUT 3', 'HARRISON VS LOFTY LOLA', 'BONUS: SCORE FROM A CHIP']);
+    const ctx = testContext({ art: fakeArt() });
+    const { g, drawn } = recordingContext();
+    createVsScene(ctx, matchById('school-3')!, back).draw(g, 0);
+    expect(drawn).toContain('art.venues.school.layers.far');
+    expect(drawn).toContain('art.opponents.max.sprites.left.idle.0');
+    expect(ctx.audio.played).not.toContain('bossSting');
+  });
+
+  it("Gus's card is THE SCHOOL BOSS with the sting, and no tip even after a loss", () => {
+    const ctx = testContext({ art: fakeArt() });
+    createVsScene(ctx, matchById(SCHOOL_BOSS_ID)!, back);
+    expect(ctx.audio.played).toContain('bossSting');
+    expect(vsLines(matchById(SCHOOL_BOSS_ID)!, newProfile())).toEqual(['THE SCHOOL BOSS', 'HARRISON VS GOALIE GUS', 'BONUS: PUT 3 PAST GUS']);
+    const lost = { ...newProfile(), career: { ...newProfile().career, lossStreaks: { [SCHOOL_BOSS_ID]: 2 } } };
+    expect(vsLines(matchById(SCHOOL_BOSS_ID)!, lost)).toHaveLength(3);
+  });
+
+  it("the Park's and the Backyard's cards read as before", () => {
+    expect(vsLines(matchById('park-2')!, newProfile())[0]).toBe('MATCH 2');
+    expect(vsLines(matchById(PARK_BOSS_ID)!, newProfile())[0]).toBe('THE PARK BOSS');
+    expect(vsLines(matchById('backyard-4')!, newProfile())[0]).toBe('MATCH 4');
+    expect(vsLines(matchById(BOSS_ID)!, newProfile())[0]).toBe('BACKYARD BOSS');
   });
 });
 
