@@ -1257,3 +1257,75 @@ describe('stages', () => {
     expect(main.calls.map(c => c[0])).toContain('art.text(HARRISON 0-0 MAX,1,white,outline)');
   });
 });
+
+describe('the School Field bonuses', () => {
+  /** Sam beaten: the School is open. */
+  const SCHOOL_OPEN = { ...newProfile(), ladderWins: 10, career: { stars: { 'backyard-boss': 1, 'park-1': 1, 'park-2': 1, 'park-3': 1, 'park-4': 1, 'park-boss': 1 }, milestonesPaid: 0, lossStreaks: {} } };
+  const tryout = (id: string) => {
+    const ctx = testContext({ profile: SCHOOL_OPEN });
+    const s = createMatchScene(ctx, 1, matchById(id)!);
+    s.world.match.phase = 'playing';
+    return { s, ctx };
+  };
+  /** Their keeper lying down out of the way, at the box's far edge, for the next 10 s. */
+  const keeperDown = (s: MatchScene) => {
+    const k = s.world.keepers!.away;
+    k.profile = { ...k.profile, downS: 10 };
+    Object.assign(k, { act: 'down', actT: 0, dive: null });
+    Object.assign(k.body, { z: 118, vx: 0, vz: 0 });
+  };
+  /** Harrison on the ball at (x, 64) facing their goal, Max far away; he holds X for 0.6 s (at Power 1 a shorter hold stops short of the line from outside the box) and lets go, and the shot runs until his goal moment. */
+  const shootFrom = (s: MatchScene, x: number) => {
+    Object.assign(s.world.away, { x: 300, z: 100, vx: 0, vz: 0 });
+    Object.assign(s.world.home, { x, z: 64, y: 0, vx: 0, vy: 0, vz: 0, facing: 1, state: 'ground', kick: null });
+    Object.assign(s.world.ball, { x: x + 8, y: BALL_REST_Y, z: 64, vx: 0, vy: 0, vz: 0 });
+    run(s, 0.6, ['shoot']);
+    for (let i = 0; i < 180 && !s.moment; i++) s.update(frame(), STEP);
+    expect(s.moment).not.toBeNull();
+  };
+  /** Plays on through the goal moment until BONUS DONE! shows, or 6 s pass. */
+  const untilBonus = (s: MatchScene) => {
+    for (let i = 0; i < 360 && !s.bonusCallout; i++) s.update(frame(), STEP);
+    return s.bonusCallout;
+  };
+
+  it('tryout 1: a goal struck from outside the box is from outside the box, and BONUS DONE! follows', () => {
+    const { s, ctx } = tryout('school-1');
+    expect(s.match.bonus).toBe('outsideBox');
+    keeperDown(s);
+    shootFrom(s, 1000);
+    expect(s.goals).toHaveLength(1);
+    expect(s.goals[0]).toMatchObject({ kind: 'shot', outsideBox: true, rebound: false });
+    expect(untilBonus(s)).toBe(BONUS_CALLOUT);
+    expect(ctx.audio.played).toContain('star');
+  });
+
+  it('tryout 1: a goal struck from inside the box is not, and no BONUS DONE! follows', () => {
+    const { s, ctx } = tryout('school-1');
+    keeperDown(s);
+    shootFrom(s, 1200);
+    expect(s.goals[0]).toMatchObject({ kind: 'shot', outsideBox: false, rebound: false });
+    expect(untilBonus(s)).toBeNull();
+    expect(ctx.audio.played).not.toContain('star');
+  });
+
+  it('tryout 6: a goal within 2 s of their keeper pushing the ball away is a rebound, and BONUS DONE! follows', () => {
+    const { s } = tryout('school-6');
+    expect(s.match.bonus).toBe('rebound');
+    const k = s.world.keepers!.away;
+    k.profile = { ...k.profile, holdOdds: 0 };
+    Object.assign(s.world.home, { x: 700, z: 20, vx: 0, vz: 0 });
+    Object.assign(s.world.away, { x: 300, z: 100, vx: 0, vz: 0 });
+    Object.assign(s.world.ball, { x: k.body.x - 60, y: BALL_REST_Y, z: k.body.z, vx: 600, vy: 0, vz: 0 });
+    let pushed = false;
+    for (let i = 0; i < 60 && !pushed; i++) {
+      s.update(frame(), STEP);
+      pushed = s.world.events.keeper.pushed === 'away';
+    }
+    expect(pushed).toBe(true);
+    keeperDown(s);
+    shootFrom(s, 1150);
+    expect(s.goals[0]).toMatchObject({ kind: 'shot', outsideBox: false, rebound: true });
+    expect(untilBonus(s)).toBe(BONUS_CALLOUT);
+  });
+});

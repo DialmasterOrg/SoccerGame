@@ -8,7 +8,7 @@ import { NO_INTENT } from './player';
 import { keeperWorld, runFor, runUntil, setBall, shotAt } from './testKeepers';
 
 const p = keeperProfile(1, 'normal');
-const shotBy = (o: Partial<Strike>): Strike => ({ team: 'home', kind: 'shot', perfect: false, x: 1000, ...o });
+const shotBy = (o: Partial<Strike>): Strike => ({ team: 'home', kind: 'shot', perfect: false, x: 1000, z: 64, ...o });
 
 describe('holdChance', () => {
   it('a slow ball at him is always held, at every level and difficulty', () => {

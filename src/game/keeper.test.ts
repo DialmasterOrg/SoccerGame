@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DIFFICULTIES } from './ai';
 import { resolveAll } from './bodies';
-import { HOLD_S, KEEPER_TOP_LEVEL, PUNT_STRIKE_S, SET_OFF, keeperLevel, keeperLineup, keeperProfile, parkHeldBall, quietKeepers, startHold, stepKeeper, type Keeper, type KeeperProfile, type KeeperSide } from './keeper';
+import { HOLD_S, KEEPER_TOP_LEVEL, PUNT_STRIKE_S, SET_OFF, keeperLevel, keeperLineup, keeperProfile, parkHeldBall, quietKeepers, startHold, stepKeeper, type Keeper, type KeeperProfile, type KeeperSide, type Strike } from './keeper';
 import { startDragBack } from './dragBack';
 import { POWERED_S, WAVE_READY_S, canFireWave, canStartPower } from './power';
 import { resolveSteal } from './steal';
@@ -10,8 +10,9 @@ import { fireWave } from './wave';
 import { NO_INTENT, NORMAL_HANDLING, PLAYER_R } from './player';
 import { SCHOOL_STAGE } from './stage';
 import { BASE_STATS } from './stats';
-import { keeperWorld, runFor, runUntil, shotAt } from './testKeepers';
+import { keeperWorld, runFor, runUntil, setBall, shotAt } from './testKeepers';
 import { createWorld, placeForKickoff, type World } from './world';
+import { REACH_Z } from './zones';
 
 const BETTER: Partial<Record<keyof KeeperProfile, 1 | -1>> = {
   reactionS: -1, speed: 1, posErrPx: -1, reachZ: 1, reachY: 1, diveTravel: 1, diveReach: 1, diveS: -1, catchSpeed: 1, holdOdds: 1, downS: -1, getUpS: -1,
@@ -217,5 +218,34 @@ describe('a ball a keeper has is out of play for Harrison', () => {
     startHold(w, w.keepers!.home, quietKeepers(), true);
     runFor(w, 1 / 60);
     expect(w.wave?.live ?? false).toBe(false);
+  });
+});
+
+describe('the last strike', () => {
+  const STALE: Strike = { team: 'home', kind: 'shot', perfect: true, x: 1000, z: 64 };
+
+  it("a catch clears the last strike, so it can't follow the ball", () => {
+    const w = keeperWorld();
+    w.keepers!.strike = { ...STALE };
+    shotAt(w, { x: 1180, z: 64 }, 64, 150); // slow and straight at him: always held
+    expect(runUntil(w, 2, w => w.keepers!.away.holding)).toBe(true);
+    expect(w.keepers!.strike).toBeNull();
+  });
+
+  it('so does the drop kick', () => {
+    const w = keeperWorld();
+    shotAt(w, { x: 1180, z: 64 }, 64, 150);
+    runUntil(w, 2, w => w.keepers!.away.holding);
+    w.keepers!.strike = { ...STALE };
+    expect(runUntil(w, 3, w => w.keepers!.punt !== null)).toBe(true);
+    expect(w.keepers!.strike).toBeNull();
+  });
+
+  it("a strike records the ball's depth too", () => {
+    const w = keeperWorld();
+    Object.assign(w.home, { x: 1000, z: 64, facing: 1 });
+    setBall(w, { x: 1008, z: 64 });
+    expect(runUntil(w, 2, w => w.keepers!.strike !== null, w => ({ ...NO_INTENT, shootHeld: w.match.clockS < 0.3 }))).toBe(true);
+    expect(Math.abs(w.keepers!.strike!.z - w.home.z)).toBeLessThanOrEqual(REACH_Z);
   });
 });

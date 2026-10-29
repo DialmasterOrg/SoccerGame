@@ -95,7 +95,7 @@ const KICKOFF_DEFENDER_DEPTH = 70;
 const attackDir = (team: Team): 1 | -1 => (team === 'home' ? 1 : -1);
 
 const quietPower = (): PowerEvents => ({ started: false, ready: false, cancelled: false, fired: false, braced: false, blown: false });
-const quietContact = (): ContactEvents => ({ touched: false, blocked: false, kicked: null, perfect: false, tackledBall: false, trippedOpponent: false });
+export const quietContact = (): ContactEvents => ({ touched: false, blocked: false, kicked: null, perfect: false, tackledBall: false, trippedOpponent: false });
 const quietBall = (): BallEvents => ({ bounced: false, hitBar: false, hitPost: false, hitWall: false, hitNet: false });
 const quietEvents = (): WorldEvents => ({
   kicks: [],
@@ -358,7 +358,7 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   if (kicks[0]?.blocked || (resting && ballAtFeet(home, w.ball))) w.ball.touchedBy = 'home';
   if (keepers) {
     kicks.forEach((k, i) => {
-      if (k.kicked) keepers.strike = { team: i === 0 ? 'home' : 'away', kind: k.kicked, perfect: k.perfect, x: w.ball.x };
+      if (k.kicked) keepers.strike = { team: i === 0 ? 'home' : 'away', kind: k.kicked, perfect: k.perfect, x: w.ball.x, z: w.ball.z };
     });
     // While the wave is live nobody else touches the ball, keepers included.
     if (!held && !punting && !w.wave?.live) keeperSaves(w, from, keeper);

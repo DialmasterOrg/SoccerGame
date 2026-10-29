@@ -102,12 +102,13 @@ export function keeperLevel(m: Pick<CareerMatch, 'kind' | 'rung'>): number {
   return m.kind === 'boss' ? KEEPER_TOP_LEVEL : Math.min(Math.max(m.rung, 1), KEEPER_TOP_LEVEL);
 }
 
-/** A kick struck by either side: who, what, PERFECT or not, and where along the pitch. */
+/** A kick struck by either side: who, what, PERFECT or not, and where on the pitch. Cleared by a catch and a drop kick, so it can't follow the ball. */
 export interface Strike {
   team: Team;
   kind: NonNullable<ContactEvents['kicked']>;
   perfect: boolean;
   x: number;
+  z: number;
 }
 
 export interface Keeper {
@@ -307,6 +308,8 @@ export function parkHeldBall(w: World): void {
  */
 export function startHold(w: World, k: Keeper, ev: KeeperEvents, standing: boolean): void {
   k.holding = true;
+  // The kick he caught is over: whatever happens next isn't that strike.
+  w.keepers!.strike = null;
   if (standing) {
     enterAct(k, 'hold');
     k.pose = { name: 'catch', leftS: POSE_S };
@@ -372,6 +375,7 @@ function dropKick(w: World, k: Keeper, ev: KeeperEvents): void {
   Object.assign(b, { vx: (dx / dist) * ground, vy: speed * Math.sin(rad), vz: (dz / dist) * ground, spin: PUNT.spin });
   k.holding = false;
   w.keepers!.punt = k.side;
+  w.keepers!.strike = null;
   ev.punted = k.side;
 }
 

@@ -26,6 +26,7 @@ import { applyMatch, type MatchReward } from '../meta/progress';
 import type { GameContext } from './context';
 import { drawMenu, menuCue, stepMenu, type MenuState } from './menu';
 import { HAT_TRICK_GOALS, TRICK_CALLOUT, goalCallout, noteKick, noteTrick, trickGoal, type LastKick, type TrickChance } from './goalCallout';
+import { createKeeperWatch, goalFacts, stepKeeperWatch } from './goalFacts';
 import { createGoalMoment, simScale, stepGoalMoment, type GoalMoment } from './goalMoment';
 import { stepTrail, type TrailPoint } from './shotTrail';
 import { createHudLayer, drawMatch, type MatchHud } from './matchView';
@@ -185,6 +186,8 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
   const styleGoals: StyleKind[] = [];
   /** Every goal of his, for the bonus objective and the stars. */
   const goals: GoalRecord[] = [];
+  /** Their keeper's pushes and his kicks, for the School Field's bonuses. */
+  const watch = createKeeperWatch();
   const bonus = BONUSES[match.bonus];
   /** His clean steals with the steal button. */
   let steals = 0;
@@ -231,7 +234,7 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
   };
   /** Notes one of his goals: a trick goal as 'trick', otherwise the kick it came from. */
   const recordGoal = (trick: boolean) => {
-    goals.push({ minute: clockMinute(world.match), kind: trick ? 'trick' : (lastKick?.kind ?? null), perfect: lastKick?.perfect ?? false, outsideBox: false, rebound: false });
+    goals.push({ minute: clockMinute(world.match), kind: trick ? 'trick' : (lastKick?.kind ?? null), perfect: lastKick?.perfect ?? false, ...goalFacts(world, watch, lastKick) });
     checkBonus();
   };
   /** Shows an owed bonus callout, unless a goal moment is running: it waits behind one, so it never covers it. */
@@ -329,6 +332,7 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
       if (simDt > 0) {
         const prevPhase = world.match.phase;
         stepWorld(world, harrisonIntent(input), awayIntent(simDt), simDt);
+        stepKeeperWatch(watch, world, simDt);
         const feedback = matchFeedback(world, prevPhase, whoosh);
         for (const cue of feedback.cues) ctx.audio.play(cue);
         for (const kind of feedback.rumble) ctx.rumble.pulse(kind);
