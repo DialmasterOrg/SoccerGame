@@ -16,6 +16,7 @@ import {
   WALL_RESTITUTION,
 } from './constants';
 import { roofSpan, type Field, type Goal } from './field';
+import type { Team } from './match';
 
 /** Height of a resting ball's centre: it sits on the grass. */
 export const BALL_REST_Y = BALL_R;
@@ -34,6 +35,12 @@ export interface Ball {
   spinAngle: number;
   /** Who played it last: a touch, a kick, a tackle or a steal. Unset after a kickoff. */
   touchedBy?: 'home' | 'away';
+  /**
+   * A nutmeg under way: the ball passes through this side's outfield
+   * player, never its keeper, until it's clear of him along `dir` (the
+   * push's way along the pitch) or leftS runs out. Unset after a kickoff.
+   */
+  through?: { team: Team; dir: 1 | -1; leftS: number };
 }
 
 export interface BallEvents {

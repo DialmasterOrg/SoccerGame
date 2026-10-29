@@ -6,6 +6,7 @@ import { inGoalBox, roofSpan } from './field';
 import { keeperLevel, keeperLineup } from './keeper';
 import { HUMAN_AIM_ERROR_DEG, aimLine, type Aim } from './kick';
 import { harrisonIntent, harrisonStatsFor, scriptMemo, traitRecorder, type Matchup, type MaxMatch, type ScriptMemo, type Traits } from './maxScripts';
+import { squareAndStill } from './nutmeg';
 import { NORMAL_HANDLING, NO_INTENT, PLAYER_R, type PlayerIntent } from './player';
 import { BALL_R } from '../art/ball';
 import { SCHOOL_STAGE } from './stage';
@@ -83,6 +84,10 @@ export interface TryoutTraits extends Traits {
   fakesFinished: number;
   /** Mean distance from its own goal line while Harrison has the ball in open play in its half, px: where the poacher lingers. */
   halfDepth: number;
+  /** Ticks a nutmeg started: the ball's `through` appeared. */
+  nutmegs: number;
+  /** Of those, started without Harrison square and still on the world before the step: none, if the world rule holds. */
+  unfairNutmegs: number;
 }
 
 export interface TryoutMatch extends MaxMatch {
@@ -125,9 +130,18 @@ function schoolRecorder(w: World) {
   let lastKick: string | null = null;
   let [sinceHomePushS, sinceFakeS, fakeT] = [Infinity, Infinity, null as number | null];
   let [halfSum, halfTicks] = [0, 0];
+  let [nutmegs, unfairNutmegs, fairNow, throughNow] = [0, 0, false, false];
   return {
+    /** Read before the step: what the nutmeg's world rule saw. */
+    before(w: World): void {
+      [fairNow, throughNow] = [squareAndStill(w), w.ball.through !== undefined];
+    },
     tick(w: World, away: PlayerIntent, was: World['away']['state'], brain: AiBrain): void {
       base.tick(w, away, was);
+      if (w.ball.through && !throughNow) {
+        nutmegs++;
+        if (!fairNow) unfairNutmegs++;
+      }
       const ended = fakeT !== null && !brain.fake;
       sinceFakeS = ended ? 0 : sinceFakeS + STEP;
       // A fake that ran its course ends on the tick its clock passes the lean, the cut and the straightening.
@@ -157,7 +171,23 @@ function schoolRecorder(w: World) {
         halfTicks++;
       }
     },
-    traits: (brain: AiBrain): TryoutTraits => ({ ...base.traits(brain), headers, chips, chipGoals, reboundTouches, shotLines, shotsInLine, windUps, strayTicks, moves: { ...brain.started }, fakesToShot, fakesFinished, halfDepth: halfTicks ? halfSum / halfTicks : 0 }),
+    traits: (brain: AiBrain): TryoutTraits => ({
+      ...base.traits(brain),
+      headers,
+      chips,
+      chipGoals,
+      reboundTouches,
+      shotLines,
+      shotsInLine,
+      windUps,
+      strayTicks,
+      moves: { ...brain.started },
+      fakesToShot,
+      fakesFinished,
+      halfDepth: halfTicks ? halfSum / halfTicks : 0,
+      nutmegs,
+      unfairNutmegs,
+    }),
   };
 }
 
@@ -174,6 +204,7 @@ export function playTryout(m: Matchup, level: number, d: Difficulty, seed: numbe
     const away = think(brain, w, w.away, w.home, STEP);
     const [x, y, z] = [w.ball.x, w.ball.y, w.ball.z];
     const was = w.away.state;
+    recorder.before(w);
     stepWorld(w, home, away, STEP);
     t += STEP;
     const still = Math.hypot(w.ball.x - x, w.ball.y - y, w.ball.z - z) < STILL_PX;

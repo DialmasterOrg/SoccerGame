@@ -2,6 +2,7 @@ import type { AiBrain, Steer } from './ai';
 import { shapePlay, shapeTick } from './finn';
 import { headPlay, headTick } from './hank';
 import { chipTick, loftPlay } from './lola';
+import { nutmegPlay, nutmegTick } from './niko';
 import { followCue, followTick } from './priya';
 import type { Aim } from './kick';
 import type { Player, PlayerIntent } from './player';
@@ -12,7 +13,8 @@ export type TryoutMove =
   | { kind: 'head'; t: number; at: { x: number; z: number }; jumpInS: number; jumped: boolean; aim: Aim }
   | { kind: 'chip'; t: number; charge: number; error: number; judged: boolean; pressed: boolean; aim: Aim }
   | { kind: 'shape'; t: number; side: 1 | -1; cutAtS: number | null; aim: Aim }
-  | { kind: 'follow'; t: number; pounceAtS: number | null; aim: Aim };
+  | { kind: 'follow'; t: number; pounceAtS: number | null; aim: Aim }
+  | { kind: 'nutmeg'; t: number; side: 1 | -1 };
 
 /** The tick of whichever move is under way. */
 function tickOf(brain: AiBrain, move: TryoutMove, w: World, me: Player, them: Player, steer: Steer): PlayerIntent | null {
@@ -25,6 +27,8 @@ function tickOf(brain: AiBrain, move: TryoutMove, w: World, me: Player, them: Pl
       return shapeTick(brain, move, w, me, them);
     case 'follow':
       return followTick(move, w, me, them, steer);
+    case 'nutmeg':
+      return nutmegTick(move, w, me, them, steer);
   }
 }
 
@@ -42,6 +46,8 @@ export function onBallPlay(brain: AiBrain, w: World, me: Player, them: Player, s
       return loftPlay(brain, w, me, them, steer);
     case 'faker':
       return shapePlay(brain, w, me, them);
+    case 'nutmegger':
+      return nutmegPlay(brain, w, me, them, steer);
     default:
       return null;
   }

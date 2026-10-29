@@ -69,6 +69,13 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
     normal: { style: 'poacher', shootRange: 140 },
     hard: { style: 'poacher', paceFactor: 1.3, reactionS: 0.07, aimErrorDeg: 1 },
   }),
-  niko: profiles(DIFFICULTY),
+  // Nutmeg Niko: pokes the ball through a Harrison standing still and square in his lane, and runs round him. Easy slower and slower to
+  // react, Normal a touch slower and easier to rob, Hard quicker and shooting from further out. Measured E 0.813, N 0.547, H 0.047
+  // (keepers at level 7). The scripted Harrison rarely stands still in his lane: 1, 1 and 8 nutmegs over the 64 E/N/H matches, every one fair.
+  niko: profiles(DIFFICULTY, {
+    easy: { style: 'nutmegger', reactionS: 0.25, paceFactor: 0.97 },
+    normal: { style: 'nutmegger', paceFactor: 1, cleanSteal: 0.85 },
+    hard: { style: 'nutmegger', paceFactor: 1.15, shootRange: 230 },
+  }),
   paige: profiles(DIFFICULTY),
 };

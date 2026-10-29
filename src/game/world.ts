@@ -11,6 +11,7 @@ import { ballOutOfPlay, createKeepers, parkHeldBall, placeKeepers, quietKeepers,
 import { keeperSaves } from './keeperSaves';
 import { thinkKeeper } from './keeperAi';
 import { createMatch, stepMatch, type MatchState, type Team } from './match';
+import { startNutmeg, stepNutmeg } from './nutmeg';
 import { DECEL, NO_INTENT, NORMAL_HANDLING, createPlayer, stepPlayer, type Handling, type Player, type PlayerIntent } from './player';
 import {
   POWERED_S,
@@ -174,6 +175,7 @@ export function placeForKickoff(w: World): void {
   const mid = w.field.depth / 2;
   Object.assign(w.ball, { x: centre, y: BALL_REST_Y, z: mid, vx: 0, vy: 0, vz: 0, spin: 0 });
   delete w.ball.touchedBy;
+  delete w.ball.through;
   const spot = w.match.kickoffTeam === 'home' && w.dog === null && w.maxProfile ? w.maxProfile.kickoffSpot : { back: KICKOFF_DEFENDER_DEPTH, off: 0 };
   for (const p of [w.home, w.away]) {
     const dir = attackDir(p.team);
@@ -286,6 +288,8 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   // A trick press with the stick back is the trick, not a drag-back.
   const started = startTrick(w, homeIntent);
   if (startDragBack(w, homeIntent)) w.ball.touchedBy = 'home';
+  // The computer's nutmeg: its ball goes through a still, square Harrison from here on, until it's clear of him.
+  startNutmeg(w, awayIntent);
   // Winding up with the ball at his feet, he rolls it along with him in depth.
   const carryFromZ = ballAtFeet(home, w.ball) && !ballOutOfPlay(w) ? home.z : null;
   stepOne(home, homeIntent, live, w, dt, waveDir);
@@ -335,8 +339,8 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   const squeeze = steal !== 'stole' && steal !== 'trapped';
   // In a drag-back his sole has the ball, and in a trick the trick has it: only the other player's contacts can take it.
   const contact = (p: Player, other: Player) => {
-    // A player fooled by a trick can't play the ball at all.
-    if (w.wave?.live || (p === home && (home.turnS > 0 || home.trick !== null)) || p.fooled) return quietContact();
+    // A player fooled by a trick can't play the ball at all; a ball going through someone's legs is nobody's to play until it's clear of him.
+    if (w.wave?.live || w.ball.through || (p === home && (home.turnS > 0 || home.trick !== null)) || p.fooled) return quietContact();
     // Harrison, and a player on soft brakes who can't stop short of his own goal, never knock the ball at it near it.
     const guarded = p === home || p.handling.decel < DECEL;
     // A fooled opponent can't contest the ball, so it's never a 50/50 with him.
@@ -364,6 +368,7 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
     if (!held && !punting && !w.wave?.live) keeperSaves(w, from, keeper);
     if (keepers.punt !== null && w.ball.vy <= 0) keepers.punt = null;
   }
+  stepNutmeg(w, dt);
   w.tick++;
   if (w.power && !power.fired && (wasActive || power.started)) {
     // Their keeper saving it, or any keeper having it, ends it as Max playing the ball does.

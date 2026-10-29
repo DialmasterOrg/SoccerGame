@@ -64,8 +64,9 @@ function reachNow(w: World): number {
   return behindMax && maxHasBall(w.away, w.ball) ? STEAL_ROUND_MAX : STEAL_AHEAD;
 }
 
-/** Whether a steal tap now would reach the ball. */
+/** Whether a steal tap now would reach the ball. A ball going through his legs is out of his reach. */
 export function inStealReach(w: World): boolean {
+  if (w.ball.through?.team === 'home') return false;
   return w.ball.y <= BALL_LOW && ballIn(stealZone(w.home, reachNow(w)), w.ball, BALL_R);
 }
 

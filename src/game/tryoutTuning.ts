@@ -17,10 +17,10 @@ const BANDS: Record<'easy' | 'normal', readonly [number, number]> = { easy: [0.7
 /** The ball may sit still in play this long at most, s. */
 const STILL_S = 4;
 
-/** kid: the kid's Normal matches; max: Max's Normal brain at the kid's stats, same seeds and level. */
+/** kid: the kid's Normal matches; max: Max's Normal brain at the kid's stats, same seeds and level; all: the kid's matches on every difficulty, for a rare trait. */
 export interface Personality {
   name: string;
-  check(kid: readonly TryoutTraits[], max: readonly TryoutTraits[]): void;
+  check(kid: readonly TryoutTraits[], max: readonly TryoutTraits[], all: Readonly<Record<Difficulty, readonly TryoutTraits[]>>): void;
 }
 
 export const mean = (xs: readonly number[]): number => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
@@ -78,6 +78,7 @@ export function describeTryout(id: TryoutOpponent, personality: Personality | nu
         personality.check(
           TRYOUT_SEEDS.map(s => play(id, 'normal', s).traits),
           TRYOUT_SEEDS.map(s => maxAs(id, s).traits),
+          Object.fromEntries(DIFFICULTIES.map(d => [d, TRYOUT_SEEDS.map(s => play(id, d, s).traits)])) as Record<Difficulty, TryoutTraits[]>,
         );
       });
     }

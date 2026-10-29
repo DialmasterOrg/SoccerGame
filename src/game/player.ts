@@ -31,6 +31,8 @@ export interface PlayerIntent {
   carry?: boolean;
   /** The computer's fake shot: a wind-up let go with this set is dropped without a kick. Absent for Harrison. */
   feint?: boolean;
+  /** The computer's nutmeg, pressed this tick: the world pokes its ball through the legs of a still, square Harrison. Absent for Harrison. */
+  nutmeg?: boolean;
 }
 
 export const NO_INTENT: Readonly<PlayerIntent> = Object.freeze({

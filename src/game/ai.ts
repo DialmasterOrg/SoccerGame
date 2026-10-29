@@ -13,7 +13,7 @@ export type Difficulty = 'easy' | 'normal' | 'hard';
 export const DIFFICULTIES: readonly Difficulty[] = ['easy', 'normal', 'hard'];
 
 /** How an opponent plays, beyond its numbers: Max all round, each of the Park crew's personalities, Speedy Sam, and the tryouts'. */
-export type Style = 'allRound' | 'blocker' | 'shooter' | 'dribbler' | 'presser' | 'speedster' | 'header' | 'chipper' | 'faker' | 'poacher';
+export type Style = 'allRound' | 'blocker' | 'shooter' | 'dribbler' | 'presser' | 'speedster' | 'header' | 'chipper' | 'faker' | 'poacher' | 'nutmegger';
 
 export interface AiProfile {
   /** Seconds between decisions. */
