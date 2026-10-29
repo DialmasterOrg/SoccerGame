@@ -3,11 +3,10 @@ import { BALL_REST_Y } from './ball';
 import { GRAVITY } from './constants';
 import { inGoalBox, type Goal } from './field';
 import { holdingKeeper, standOffSpot } from './keeper';
-import type { Aim } from './kick';
 import { LADDER_MATCHES, maxStats } from '../meta/ladder';
 import { NO_INTENT, PLAYER_R, type Player, type PlayerIntent } from './player';
 import { runSpeed } from './stats';
-import { DEFEND_COVER, FAKE, POSSESSION_RANGE, RANGE_SHOT, attackDir, chargeHold, defendSpot, fakeMove, goalCentreZ, pressSprint, theirBall } from './styles';
+import { DEFEND_COVER, FAKE, POSSESSION_RANGE, RANGE_SHOT, attackDir, chargeHold, defendSpot, fakeMove, goalCentreZ, pickAim, pressSprint, roomySide, theirBall } from './styles';
 import type { Wave } from './wave';
 import { looseBallPlay, onBallPlay, tickMove, type TryoutMove } from './tryoutMoves';
 import type { World } from './world';
@@ -17,7 +16,7 @@ export type Difficulty = 'easy' | 'normal' | 'hard';
 export const DIFFICULTIES: readonly Difficulty[] = ['easy', 'normal', 'hard'];
 
 /** How an opponent plays, beyond its numbers: Max all round, each of the Park crew's personalities, Speedy Sam, and the tryouts'. */
-export type Style = 'allRound' | 'blocker' | 'shooter' | 'dribbler' | 'presser' | 'speedster' | 'header' | 'chipper';
+export type Style = 'allRound' | 'blocker' | 'shooter' | 'dribbler' | 'presser' | 'speedster' | 'header' | 'chipper' | 'faker';
 
 export interface AiProfile {
   /** Seconds between decisions. */
@@ -76,7 +75,7 @@ export interface AiBrain {
   kickoffHoldS: number | null;
   /** The dribbler's fake under way: side +1 deeper, −1 nearer, the way she leans first; t, how far into it. */
   fake: null | { side: 1 | -1; t: number };
-  /** Time until she may fake again. */
+  /** Time until it may fake again: the dribbler's fake, or Finn's shape to shoot. */
   fakeReadyS: number;
   /** Fakes started this match, for the personality check. */
   fakes: number;
@@ -138,12 +137,6 @@ const TOO_CLOSE_GAP = { from: 35, spread: 25 };
 export const KICKOFF_HOLD_S = 2;
 /** The ball is still on the centre spot within this, px. */
 const ON_SPOT = 0.5;
-/** Where it aims its shots: mostly the far post, then the near post, sometimes straight. */
-const AIM_ODDS: readonly (readonly [Aim, number])[] = [
-  ['far', 1 / 2],
-  ['near', 1 / 3],
-  ['straight', 1 / 6],
-];
 
 export function createBrain(profile: AiProfile): AiBrain {
   return { profile, nextDecisionS: 0, intent: { ...NO_INTENT }, plan: 'chase', chargeLeftS: 0, slideReadyS: 0, backOff: null, wrongFootedS: 0, kickoffHoldS: null, fake: null, fakeReadyS: 0, fakes: 0, move: null, started: {} };
@@ -168,10 +161,6 @@ function steer(me: Player, x: number, z: number): [number, number] {
   const d = Math.hypot(dx, dz);
   return d <= ARRIVE ? [0, 0] : [dx / d, dz / d];
 }
-
-/** The side (+1 deeper, −1 nearer) with more room to pass something standing at depth z. */
-const roomySide = (w: World, z: number, from: number): number =>
-  z === w.field.depth / 2 ? Math.sign(from - z) || 1 : Math.sign(w.field.depth / 2 - z);
 
 /**
  * Bodies are solid: if the opponent stands just ahead on its path, it adds
@@ -266,15 +255,6 @@ export function route(w: World, me: Player, x: number, z: number): { x: number; 
     return corner;
   }
   return { x, z };
-}
-
-function pickAim(w: World): Aim {
-  let r = w.rng();
-  for (const [aim, odds] of AIM_ODDS) {
-    if (r < odds) return aim;
-    r -= odds;
-  }
-  return 'straight';
 }
 
 /**

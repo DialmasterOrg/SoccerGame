@@ -29,6 +29,8 @@ export interface PlayerIntent {
   pace?: number;
   /** The computer's close control: a ball at its feet stays there this tick (the dribbler's fake). Absent for Harrison. */
   carry?: boolean;
+  /** The computer's fake shot: a wind-up let go with this set is dropped without a kick. Absent for Harrison. */
+  feint?: boolean;
 }
 
 export const NO_INTENT: Readonly<PlayerIntent> = Object.freeze({
@@ -524,7 +526,8 @@ export function stepPlayer(
     }
     case 'charging':
       if (!intent.shootHeld) {
-        release(p, 'shot', intent.aim);
+        if (intent.feint) cancelCharge(p);
+        else release(p, 'shot', intent.aim);
       } else {
         addCharge(p, dt, true);
         approach2(p, intent.moveX * windUp, intent.moveZ * windUp, dt, ACCEL, p.handling.decel);

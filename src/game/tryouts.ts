@@ -47,7 +47,13 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
   // Lofty Lola: chips any keeper off his line at the corner away from him, and over a Harrison charging at her. Normal a touch slower.
   // Measured E 0.766, N 0.594, H 0.063 (keepers at level 3).
   lola: profiles(DIFFICULTY, { easy: { style: 'chipper' }, normal: { style: 'chipper', paceFactor: 1 }, hard: { style: 'chipper' } }),
-  finn: profiles(DIFFICULTY),
+  // Fake-Out Finn: shapes to shoot at a Harrison standing in his lane, from further out, and cuts past one who commits.
+  // Normal a touch slower, Hard sharper. Measured E 0.797, N 0.578, H 0.063 (keepers at level 4); Normal shapes 2.56 a match.
+  finn: profiles(DIFFICULTY, {
+    easy: { style: 'faker' },
+    normal: { style: 'faker', paceFactor: 1, shootRange: 200 },
+    hard: { style: 'faker', paceFactor: 1.15, shootRange: 230 },
+  }),
   tia: profiles(CREW_PROFILES.tia),
   priya: profiles(DIFFICULTY),
   niko: profiles(DIFFICULTY),

@@ -346,6 +346,23 @@ describe('stepPlayer: shooting', () => {
     expect(p.kick).toBeNull();
   });
 
+  it('a wind-up let go with feint is dropped: no kick, back on the ground with no charge', () => {
+    const p = harrison();
+    tick(p, { shootHeld: true }, 20);
+    tick(p, { feint: true });
+    expect([p.state, p.charge, p.kick]).toEqual(['ground', 0, null]);
+    tick(p, {}, ticks(0.5));
+    expect(p.kick).toBeNull();
+  });
+
+  it('the same release without feint fires as today', () => {
+    const p = harrison();
+    tick(p, { shootHeld: true }, 20);
+    tick(p, {});
+    expect(p.state).toBe('kicking');
+    expect(p.kick?.kind).toBe('shot');
+  });
+
   it('cancelCharge leaves a kick already in flight alone', () => {
     const p = harrison();
     tick(p, { shootHeld: true }, 5);

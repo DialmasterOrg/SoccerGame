@@ -1,5 +1,6 @@
 import type { Style } from './ai';
 import type { Goal } from './field';
+import type { Aim } from './kick';
 import { PLAYER_R, type Player } from './player';
 import type { World } from './world';
 import { REACH_Z } from './zones';
@@ -12,6 +13,26 @@ import { REACH_Z } from './zones';
 
 export const attackDir = (me: Player): 1 | -1 => (me.team === 'home' ? 1 : -1);
 export const goalCentreZ = (g: Goal): number => (g.z0 + g.z1) / 2;
+
+/** The side (+1 deeper, −1 nearer) with more room to pass something standing at depth z. */
+export const roomySide = (w: World, z: number, from: number): number =>
+  z === w.field.depth / 2 ? Math.sign(from - z) || 1 : Math.sign(w.field.depth / 2 - z);
+
+/** Where it aims its shots: mostly the far post, then the near post, sometimes straight. */
+const AIM_ODDS: readonly (readonly [Aim, number])[] = [
+  ['far', 1 / 2],
+  ['near', 1 / 3],
+  ['straight', 1 / 6],
+];
+
+export function pickAim(w: World): Aim {
+  let r = w.rng();
+  for (const [aim, odds] of AIM_ODDS) {
+    if (r < odds) return aim;
+    r -= odds;
+  }
+  return 'straight';
+}
 
 /** allRound stands this far goal-side of the ball when defending... */
 export const DEFEND_OFFSET = 20;

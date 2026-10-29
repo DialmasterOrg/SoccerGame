@@ -73,6 +73,7 @@ export const TRICK_SCALE: Record<Style, TrickScale> = {
   // The tryouts are fooled like Max.
   header: { stepover: 1, flick: 1 },
   chipper: { stepover: 1, flick: 1 },
+  faker: { stepover: 1, flick: 1 },
 };
 
 /** Biscuit's own window and times. Mutable, for headless sweeps. */
