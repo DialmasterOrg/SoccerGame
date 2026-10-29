@@ -35,7 +35,9 @@ const towardOf = (k: Keeper): 'far' | 'near' => ((k.dive?.dirZ ?? 0) > 0 ? 'far'
 /** What a keeper shows this frame, by his act. */
 export function keeperFrame(k: Keeper, nowS: number): KeeperFrame {
   const { body, profile } = k;
-  if (body.state === 'blown' || body.fooled) return { kind: 'body', name: body.anim.name, frame: body.anim.frame };
+  // Blown, or fooled on his feet, his body's clip shows; a fooled keeper's wrong-way dive shows as a dive.
+  const onFeet = k.act === 'set' || k.act === 'rush';
+  if (body.state === 'blown' || (body.fooled && onFeet)) return { kind: 'body', name: body.anim.name, frame: body.anim.frame };
   switch (k.act) {
     case 'dive': {
       // Launch, then full stretch, over the dive.

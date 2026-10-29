@@ -26,6 +26,12 @@ describe('keeperFrame', () => {
     expect(keeperFrame(k({ act: 'getUp', actT: 0 }), 0)).toMatchObject({ kind: 'pose', name: 'getUp', frame: 0 });
   });
 
+  it('fooled by a stepover, his wrong-way dive shows as a dive, not a frozen run frame', () => {
+    const fooled = k({ act: 'dive', actT: 0, dive: { dirX: 0, dirZ: 1 } });
+    fooled.body.fooled = { kind: 'confused', leftS: 0.5, totalS: 0.7, swayZ: 72 };
+    expect(keeperFrame(fooled, 0)).toEqual({ kind: 'dive', toward: 'far', frame: 0 });
+  });
+
   it('holding he shows the catch first, then the hold', () => {
     expect(keeperFrame(k({ act: 'hold', holding: true, pose: { name: 'catch', leftS: 0.1 } }), 0)).toMatchObject({ name: 'catch' });
     expect(keeperFrame(k({ act: 'hold', holding: true, pose: null }), 0)).toMatchObject({ name: 'hold' });

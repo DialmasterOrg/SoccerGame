@@ -1,6 +1,6 @@
 import { BALL_R } from '../art/ball';
 import { BALL_REST_Y } from './ball';
-import { blowKeeper } from './keeper';
+import { ballOutOfPlay, blowKeeper } from './keeper';
 import { PLAYER_R, blowAway, brace, type Player } from './player';
 import { maxGoal, waveTarget } from './power';
 import type { World } from './world';
@@ -68,7 +68,8 @@ export function stepWave(w: World, dt: number): { braced: boolean; blown: boolea
   }
   const goal = maxGoal(w);
   const pastLine = goal.side === 'right' ? w.ball.x >= goal.lineX : w.ball.x <= goal.lineX;
-  if (pastLine || w.match.phase !== 'playing') {
+  // A ball a keeper has ends it: it never rides his catch or his drop kick.
+  if (pastLine || w.match.phase !== 'playing' || ballOutOfPlay(w)) {
     wave.live = false;
     [wave.endX, wave.endZ] = [w.ball.x, w.ball.z];
     return out;

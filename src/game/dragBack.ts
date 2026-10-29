@@ -1,3 +1,4 @@
+import { ballOutOfPlay } from './keeper';
 import { BALL_REST_Y } from './ball';
 import { canPlace } from './contact';
 import type { PlayerIntent } from './player';
@@ -41,7 +42,7 @@ export function startDragBack(w: World, intent: PlayerIntent): boolean {
   const { home, ball } = w;
   const ready = w.match.phase === 'playing' && home.state === 'ground' && home.y === 0 && home.turnS === 0 && home.stumbleS === 0 && home.trick === null;
   const back = Math.sign(intent.moveX) === -home.facing && Math.abs(intent.moveX) >= STICK_BACK;
-  if (!ready || !back || w.wave?.live || !ballIsHis(w)) return false;
+  if (!ready || !back || w.wave?.live || ballOutOfPlay(w) || !ballIsHis(w)) return false;
   home.turnS = TURN_S;
   home.facing = home.facing === 1 ? -1 : 1;
   Object.assign(ball, { y: BALL_REST_Y, vx: 0, vy: 0, vz: 0, spin: 0 });

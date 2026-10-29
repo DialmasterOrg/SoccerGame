@@ -1,3 +1,4 @@
+import { ballOutOfPlay } from './keeper';
 import { BALL_R } from '../art/ball';
 import { BALL_REST_Y, type Ball } from './ball';
 import { GRAVITY, POST_R } from './constants';
@@ -136,7 +137,8 @@ export function canStartPower(w: World): boolean {
     w.power.activeS === 0 &&
     w.match.phase === 'playing' &&
     w.home.state === 'ground' &&
-    ballInControl(w.home, w.ball)
+    ballInControl(w.home, w.ball) &&
+    !ballOutOfPlay(w)
   );
 }
 
@@ -154,6 +156,7 @@ export function canFireWave(w: World): boolean {
     w.match.phase === 'playing' &&
     w.home.state === 'ground' &&
     ballInControl(w.home, w.ball) &&
+    !ballOutOfPlay(w) &&
     waveClear(w.ball, maxGoal(w))
   );
 }

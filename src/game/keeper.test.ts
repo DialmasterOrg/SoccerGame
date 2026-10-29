@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { DIFFICULTIES } from './ai';
 import { resolveAll } from './bodies';
-import { HOLD_S, KEEPER_TOP_LEVEL, PUNT_STRIKE_S, SET_OFF, keeperLevel, keeperLineup, keeperProfile, quietKeepers, stepKeeper, type Keeper, type KeeperProfile, type KeeperSide } from './keeper';
+import { HOLD_S, KEEPER_TOP_LEVEL, PUNT_STRIKE_S, SET_OFF, keeperLevel, keeperLineup, keeperProfile, parkHeldBall, quietKeepers, startHold, stepKeeper, type Keeper, type KeeperProfile, type KeeperSide } from './keeper';
+import { startDragBack } from './dragBack';
+import { POWERED_S, WAVE_READY_S, canFireWave, canStartPower } from './power';
+import { resolveSteal } from './steal';
+import { startTrick } from './tricks';
+import { fireWave } from './wave';
 import { NO_INTENT, NORMAL_HANDLING, PLAYER_R } from './player';
 import { SCHOOL_STAGE } from './stage';
 import { BASE_STATS } from './stats';
@@ -153,5 +158,64 @@ describe('the hold and the drop kick', () => {
     placeForKickoff(w);
     for (const k of [w.keepers!.home, w.keepers!.away]) expect([k.act, k.holding, k.dive]).toEqual(['set', false, null]);
     expect(w.keepers!.punt).toBeNull();
+  });
+});
+
+describe('a ball a keeper has is out of play for Harrison', () => {
+  /** Harrison on a ball his keeper or theirs has, with his meter full, his tricks, and the ball low at his feet. */
+  function onTheirBall(w: World): void {
+    w.power!.meter = 1;
+    Object.assign(w.home, { x: w.ball.x - 8, z: w.ball.z, facing: 1, vx: 0, vz: 0 });
+  }
+
+  it('caught in a dive, on the grass by his gloves: no power-up, wave, trick, drag-back or steal', () => {
+    const w = keeperWorld({ power: true, tricks: true });
+    runFor(w, 1);
+    const k = w.keepers!.away;
+    Object.assign(k, { act: 'down', actT: 0, holding: true, dive: { dirX: 0, dirZ: 1 } });
+    parkHeldBall(w);
+    onTheirBall(w);
+    expect(canStartPower(w)).toBe(false);
+    expect(startTrick(w, { ...NO_INTENT, trick: 'stepover' })).toBeNull();
+    expect(startDragBack(w, { ...NO_INTENT, moveX: -1 })).toBe(false);
+    w.power!.activeS = POWERED_S - WAVE_READY_S - 0.01;
+    expect(canFireWave(w)).toBe(false);
+    expect(resolveSteal(w, { ...NO_INTENT, steal: true })).toBeNull();
+  });
+
+  it('while a drop kick climbs, nothing Harrison presses plays it', () => {
+    const w = keeperWorld({ power: true, tricks: true });
+    runFor(w, 1);
+    w.keepers!.punt = 'away';
+    onTheirBall(w);
+    expect(canStartPower(w)).toBe(false);
+    expect(startTrick(w, { ...NO_INTENT, trick: 'stepover' })).toBeNull();
+    expect(startDragBack(w, { ...NO_INTENT, moveX: -1 })).toBe(false);
+    expect(resolveSteal(w, { ...NO_INTENT, steal: true })).toBeNull();
+  });
+
+  it("their keeper catching the ball ends Harrison's power-up", () => {
+    const w = keeperWorld({ power: true });
+    runFor(w, 1);
+    w.power!.activeS = POWERED_S;
+    let cancelled = false;
+    shotAt(w, { x: 1180, z: 64 }, 64, 200);
+    runUntil(w, 1, w => {
+      cancelled ||= w.events.power.cancelled;
+      return w.events.keeper.caught === 'away';
+    });
+    expect(cancelled || w.events.power.cancelled).toBe(true);
+    expect(w.power!.activeS).toBe(0);
+  });
+
+  it('a live wave ends the moment a keeper holds the ball', () => {
+    const w = keeperWorld({ power: true });
+    runFor(w, 1);
+    Object.assign(w.home, { x: 300, z: 64, facing: 1 });
+    w.ball.x = 308;
+    w.wave = fireWave(w);
+    startHold(w, w.keepers!.home, quietKeepers(), true);
+    runFor(w, 1 / 60);
+    expect(w.wave?.live ?? false).toBe(false);
   });
 });

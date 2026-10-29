@@ -57,7 +57,7 @@ const profile = (p: KeeperProfile): KeeperProfile => p;
  * from placed corner shots .76/.43/.33 at level 1, .63/.40/.19 at level 8;
  * a patient one-on-one on Normal scores .77; the weakest keeper still lets
  * in .19 of corners (Hard 7, seeds 100-131); no slow roller ever goes in.
- * Scripted matches on Normal (seeds 100-131) average .55 goals a side,
+ * Scripted matches on Normal (seeds 100-131) average .45 goals a side,
  * at most 2. Mutable, so headless sweeps can try other numbers.
  */
 export const KEEPER_LEVELS: Record<Difficulty, { first: KeeperProfile; last: KeeperProfile }> = {
@@ -169,7 +169,7 @@ export const PUNT_STRIKE_S = 0.2;
  * elevationDeg, with backspin so it checks up after landing: without it the
  * bounces carry it on to the far box.
  */
-export const PUNT = { from: -40, spread: 280, z: [24, 104] as const, elevationDeg: 40, spin: -6 };
+export const PUNT = { from: -40, spread: 280, z: [24, 104] as const, elevationDeg: 40, spin: -7 };
 /** Nobody waits closer than this to a keeper holding the ball. */
 export const CROWD_GAP = 40;
 /** Where his boot meets the ball: this far ahead of him, this high. */
@@ -380,4 +380,9 @@ export function blowKeeper(w: World, k: Keeper, dirX: number, dirZ: number): voi
   blowAway(k.body, dirX, dirZ);
   Object.assign(k, { act: 'set', actT: 0, dive: null, holding: false, pose: null });
   if (w.keepers!.punt === k.side) w.keepers!.punt = null;
+}
+
+/** A keeper has the ball, or his drop kick is still climbing: nobody else may play it in any way. */
+export function ballOutOfPlay(w: World): boolean {
+  return holdingKeeper(w) !== null || (w.keepers?.punt ?? null) !== null;
 }

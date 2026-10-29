@@ -1,3 +1,4 @@
+import { ballOutOfPlay } from './keeper';
 import type { Difficulty, Style } from './ai';
 import { BALL_REST_Y } from './ball';
 import { KEEP_OUT_X, canPlace } from './contact';
@@ -208,7 +209,7 @@ export function startTrick(w: World, intent: PlayerIntent): TrickKind | null {
   const { home } = w;
   if (!w.tricks || !intent.trick || w.match.phase !== 'playing') return null;
   const ready = home.state === 'ground' && home.y === 0 && home.turnS === 0 && home.stumbleS === 0 && home.trickCooldownS === 0 && home.trick === null;
-  if (!ready || w.wave?.live || !ballIsHis(w)) return null;
+  if (!ready || w.wave?.live || ballOutOfPlay(w) || !ballIsHis(w)) return null;
   const kind: TrickKind = intent.trick === 'flick' && !facingOwnGoalNear(w) ? 'flick' : 'stepover';
   const side = home.z >= w.field.depth / 2 ? 1 : -1;
   home.trick = { kind, t: 0, side, sold: false, pace: kind === 'stepover' ? STEPOVER.pace : 0, onBall: true };

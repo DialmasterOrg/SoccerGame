@@ -1,5 +1,5 @@
 import { BALL_R } from '../art/ball';
-import { holdingKeeper } from './keeper';
+import { ballOutOfPlay } from './keeper';
 import { DIFFICULTY } from './ai';
 import { BALL_REST_Y, type Ball } from './ball';
 import { SIDE_CLEAR, TOUCH_COOLDOWN_S, TRAP_KEEP, canPlace, keepingOut } from './contact';
@@ -155,7 +155,7 @@ function poke(w: World): void {
 export function resolveSteal(w: World, intent: PlayerIntent): StealOutcome | null {
   const home = w.home;
   const ready = home.state === 'ground' && home.y === 0 && home.stumbleS === 0 && home.stealCooldownS === 0 && home.trick === null;
-  if (!intent.steal || w.match.phase !== 'playing' || w.dog !== null || holdingKeeper(w) !== null || !ready || (w.power?.activeS ?? 0) > 0) return null;
+  if (!intent.steal || w.match.phase !== 'playing' || w.dog !== null || ballOutOfPlay(w) || !ready || (w.power?.activeS ?? 0) > 0) return null;
   home.stealCooldownS = STEAL_COOLDOWN_S;
   if (!inStealReach(w)) {
     // Max's ball only just out of reach is a near miss, not a whiff.

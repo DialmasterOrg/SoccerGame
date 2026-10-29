@@ -7,7 +7,7 @@ import { canPlace, resolveContacts, type ContactEvents } from './contact';
 import { checkPinned, createDog, dropBall, parkBall, quietDog, resetDog, stepDog, vulnerable, type DogEvents, type DogProfile, type DogState } from './dog';
 import { goalScored, type Field } from './field';
 import { startDragBack, stepDragBack } from './dragBack';
-import { createKeepers, parkHeldBall, placeKeepers, quietKeepers, stepKeeper, type KeeperEvents, type KeeperLineup, type Keepers } from './keeper';
+import { ballOutOfPlay, createKeepers, parkHeldBall, placeKeepers, quietKeepers, stepKeeper, type KeeperEvents, type KeeperLineup, type Keepers } from './keeper';
 import { keeperSaves } from './keeperSaves';
 import { thinkKeeper } from './keeperAi';
 import { createMatch, stepMatch, type MatchState, type Team } from './match';
@@ -287,7 +287,7 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   const started = startTrick(w, homeIntent);
   if (startDragBack(w, homeIntent)) w.ball.touchedBy = 'home';
   // Winding up with the ball at his feet, he rolls it along with him in depth.
-  const carryFromZ = ballAtFeet(home, w.ball) ? home.z : null;
+  const carryFromZ = ballAtFeet(home, w.ball) && !ballOutOfPlay(w) ? home.z : null;
   stepOne(home, homeIntent, live, w, dt, waveDir);
   // The dog runs on his own legs; braced or blown away, his body is a player's like Max's.
   const dogBody = w.dog !== null && w.away.state !== 'bracing' && w.away.state !== 'blown';
@@ -366,7 +366,9 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   }
   w.tick++;
   if (w.power && !power.fired && (wasActive || power.started)) {
-    if (w.power.activeS > 0 && powerEnds(w, live, kicks)) w.power.activeS = 0;
+    // Their keeper saving it, or any keeper having it, ends it as Max playing the ball does.
+    const keeperHasIt = keeper.caught === 'away' || keeper.pushed === 'away' || ballOutOfPlay(w);
+    if (w.power.activeS > 0 && (powerEnds(w, live, kicks) || keeperHasIt)) w.power.activeS = 0;
     if (w.power.activeS === 0) power.cancelled = true;
   }
   if (w.power) {

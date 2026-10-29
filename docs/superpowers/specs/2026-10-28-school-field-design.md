@@ -824,13 +824,13 @@ on the way:
   judged chip, or a stepover). No wall: the sharpest keeper still lets
   in .19 of corners (Hard 7). No soft goals: no slow roller ever goes
   in, at either keeper, any level or difficulty. Scripted School
-  matches on Normal average .55 goals a side, at most 2, and the ball
-  never sits still in play for more than 3.3 s. Long shots at level 8
+  matches on Normal average .45 goals a side, at most 2, and the ball
+  never sits still in play for more than 3.6 s. Long shots at level 8
   on Normal and Hard are all saved; corners keep every keeper beatable.
 - **The drop kick** is aimed to first bounce at halfway + his attacking
   direction × (−40 to +240), z 24-104, launched at 40° with its speed
   solved against air drag; measured first bounces land 340-700 from the
-  right keeper (and mirrored). It carries backspin (−6) so it checks up
+  right keeper (and mirrored). It carries backspin (−7) so it checks up
   near halfway; without it the bounces ran on to the far box. Nobody
   plays it while it climbs. While a keeper holds the ball, everyone
   else waits out where his kick comes down, around halfway.
@@ -865,12 +865,38 @@ on the way:
   and GIF on 2026-10-29.** Eddie keeps Harrison's goal; backup A takes
   odd tryouts and backup B even ones and the boss. Four cues by design,
   not by ear: glove, dive, parry, punt.
-- **1733 tests**, typecheck and build green.
+- **The final review** (a fresh reviewer, "with fixes") found two
+  Important issues, both fixed: Harrison could still play a ball a
+  keeper had (power up, fire the wave, start a trick or a drag-back off
+  a ball caught in a dive, and a wave fired off his own keeper's catch
+  rode the drop kick into the far goal); now one rule, `ballOutOfPlay`,
+  keeps a held ball or a climbing drop kick out of everything he does,
+  ends a live wave, and their keeper's save ends his power-up. A keeper
+  fooled by a stepover was drawn frozen in a run frame through his
+  wrong-way dive; his act now wins over the fooled clip. Its third, the
+  whole AI-vs-AI test's stats, is the parent's call.
+- **Deferred from the final review:** the keeper can hover in his
+  rush 0.5 px short of a ball resting 10.5-11 px past his box with no
+  one else near; a blown keeper aimed at a corner can fly round the
+  net or through the side netting (never from where his brain stands
+  him); the high-ball backpedal runs at his full speed, not
+  `BACKPEDAL_SHARE` (unused; chips were measured this way); review-focus
+  tests 1, 3, 4 and 5 pin less than they say (the behaviour was probed
+  and holds); `keepers.strike` isn't cleared on a catch or a drop kick,
+  so plan 3 must clear it before SCORE FROM OUTSIDE THE BOX trusts it;
+  `PUSH_REARM_S * 60` hardcodes the tick rate; a ball caught in a dive
+  by the near board is parked through it for a moment; the keepers'
+  kept intent and push re-arm live in module WeakMaps, not on `Keeper`;
+  `CROWD_GAP` is now only a test bound; the two match tests (both sides
+  score, the still-ball bound) each turn on a goal or two, so a small
+  change can tip them (the drop kick's backspin was set at −7 for both).
+- **1738 tests**, typecheck and build green.
 
 Notes for plans 3-5:
 
 - `KeeperEvents.pushed` is there for SCORE A REBOUND; `keepers.strike.x`
-  and `markings.box` give SCORE FROM OUTSIDE THE BOX.
+  and `markings.box` give SCORE FROM OUTSIDE THE BOX, once the strike is
+  cleared on a catch and a drop kick (see the deferred list).
 - `keeperLooks` gives the boss backup B until Gus.
 - Gus needs a bigger body, which `bodies.ts` doesn't have yet: one
   `PLAYER_R` for everyone.
