@@ -160,9 +160,14 @@ function rush(w: World, k: Keeper): KeeperIntent | null {
   const b = w.ball;
   if (throughOnGoal(w, k)) {
     const at = intoArea(k, b);
-    // As the attacker shapes to shoot or chip, he stops and sets himself where he is.
+    // As the attacker shapes to shoot or chip, he stops coming and sets himself on the angle, never backing off toward his line.
     const shaping = sides(w, k)[0].state === 'charging' || sides(w, k)[0].state === 'chipping';
-    return smother(w, k) ?? { move: shaping ? NO_INTENT : toward(k, at.x, at.z), dive: null };
+    if (shaping) {
+      const spot = setSpot(w, k);
+      const x = pitchward(w.field, k.side) > 0 ? Math.max(k.body.x, spot.x) : Math.min(k.body.x, spot.x);
+      return smother(w, k) ?? { move: toward(k, x, spot.z), dive: null };
+    }
+    return smother(w, k) ?? { move: toward(k, at.x, at.z), dive: null };
   }
   if (maxHasBall(w.home, b) || maxHasBall(w.away, b)) return null;
   const spot = looseSpot(w);

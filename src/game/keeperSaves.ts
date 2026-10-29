@@ -24,7 +24,11 @@ const PUSH_SPREAD = 0.6;
 const PUSH_VY = 80;
 /** A ball this close under the bar he tips over it. */
 const TIP_BELOW_BAR = 8;
-const TIP = { vx: 30, vy: 320 };
+const TIP = { vx: 30, vy: 320, overS: 0.25 };
+/** After pushing a ball away he can't touch it again this soon, so it leaves him. */
+const PUSH_REARM_S = 0.25;
+/** The tick each keeper last pushed the ball away. */
+const lastPush = new WeakMap<Keeper, number>();
 
 const clamp01 = (v: number): number => Math.min(Math.max(v, 0), 1);
 
@@ -84,7 +88,9 @@ function inDiveZone(k: Keeper, b: Pt): number | null {
   const [ux, uz] = [dirX / len, dirZ / len];
   if (b.y > (smothering(k) ? SMOTHER_Y : profile.reachY + BALL_R)) return null;
   const [rx, rz] = [b.x - body.x, b.z - body.z];
-  const along = Math.min(Math.max(rx * ux + rz * uz, 0), profile.diveReach);
+  // A smother slides along the grass: his gloves reach out as he goes, so a ball knocked away as he commits gets past him.
+  const progress = Math.min(1, k.actT / profile.diveS);
+  const along = Math.min(Math.max(rx * ux + rz * uz, 0), profile.diveReach * (smothering(k) ? progress : 1));
   if (Math.hypot(rx - ux * along, rz - uz * along) > BALL_R + 3) return null;
   const travelled = profile.diveTravel * Math.min(1, k.actT / profile.diveS);
   return clamp01((travelled + along) / (profile.diveTravel + profile.diveReach));
@@ -98,10 +104,11 @@ function pushAway(w: World, k: Keeper, ev: KeeperEvents): void {
   const pace = Math.hypot(b.vx, b.vy, b.vz);
   const share = PUSH_SHARE[0] + (PUSH_SHARE[1] - PUSH_SHARE[0]) * w.rng();
   if (b.y >= g.barY - TIP_BELOW_BAR) {
-    // Up over the bar before it reaches the line, a little on toward the goal: onto the roof or the end fence.
-    const t = Math.max(Math.abs(g.lineX - b.x) / TIP.vx, 1 / 60);
+    // Up over the bar before it reaches the line, on toward the goal: onto the roof or the end fence.
+    const vx = Math.max(TIP.vx, Math.abs(g.lineX - b.x) / TIP.overS);
+    const t = Math.max(Math.abs(g.lineX - b.x) / vx, 1 / 60);
     const need = g.barY + g.barThick + BALL_R + 2 - b.y;
-    Object.assign(b, { vx: -out * TIP.vx, vy: Math.max(TIP.vy, need / t + 0.5 * GRAVITY * t), vz: b.vz * 0.3 });
+    Object.assign(b, { vx: -out * vx, vy: Math.max(TIP.vy, need / t + 0.5 * GRAVITY * t), vz: b.vz * 0.3 });
   } else if (k.act === 'dive') {
     const v = pace * share;
     Object.assign(b, { vx: out * v * 0.6, vy: PUSH_VY, vz: Math.sign(k.dive!.dirZ || 1) * v * 0.8 });
@@ -112,6 +119,7 @@ function pushAway(w: World, k: Keeper, ev: KeeperEvents): void {
   b.spin = 0;
   b.touchedBy = k.side;
   ev.pushed = k.side;
+  lastPush.set(k, w.tick);
   if (k.act !== 'dive') k.pose = { name: 'push', leftS: 0.25 };
 }
 
@@ -127,7 +135,8 @@ export function keeperSaves(w: World, from: Pt, ev: KeeperEvents): void {
     }
     // A ball at a dribbler's feet is won only by the smother, never plucked off them standing.
     const atSomeonesFeet = k.act !== 'dive' && (atFeet(w.home, w.ball) || atFeet(w.away, w.ball));
-    const hit = atSomeonesFeet ? null : meets(k, from, w.ball);
+    const rearming = w.tick - (lastPush.get(k) ?? -Infinity) < PUSH_REARM_S * 60;
+    const hit = atSomeonesFeet || rearming ? null : meets(k, from, w.ball);
     if (!hit) {
       blockBall(k.body, w.ball, w.field);
       continue;

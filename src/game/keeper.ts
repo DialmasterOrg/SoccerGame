@@ -49,21 +49,29 @@ const profile = (p: KeeperProfile): KeeperProfile => p;
 
 /**
  * Each difficulty's keeper at the venue's first match (level 1) and its last
- * (KEEPER_TOP_LEVEL); the levels between are straight lines. Mutable, so
- * headless sweeps can try other numbers.
+ * (KEEPER_TOP_LEVEL); the levels between are straight lines. Tuned on
+ * comeOutPx (how far he sets off his line decides most close shots) and
+ * smotherAt; the rest are the plan's starting values. Measured with
+ * keeperScripts' drills (seeds 100-163, 2026-10-29): goals let in from long
+ * shots E/N/H .39/.26/.15 at level 1 (Normal saves .74), .23/0/0 at level 8;
+ * from placed corner shots .76/.43/.33 at level 1, .63/.40/.19 at level 8;
+ * a patient one-on-one on Normal scores .77; the weakest keeper still lets
+ * in .19 of corners (Hard 7, seeds 100-131); no slow roller ever goes in.
+ * Scripted matches on Normal (seeds 100-131) average .55 goals a side,
+ * at most 2. Mutable, so headless sweeps can try other numbers.
  */
 export const KEEPER_LEVELS: Record<Difficulty, { first: KeeperProfile; last: KeeperProfile }> = {
   easy: {
-    first: profile({ reactionS: 0.3, speed: 95, posErrPx: 9, comeOutPx: 14, reachZ: 1, reachY: 40, diveTravel: 6, diveReach: 8, diveS: 0.45, catchSpeed: 320, holdOdds: 0.8, downS: 0.6, getUpS: 0.6, smotherAt: 18 }),
-    last: profile({ reactionS: 0.22, speed: 110, posErrPx: 6, comeOutPx: 18, reachZ: 2, reachY: 42, diveTravel: 8, diveReach: 9, diveS: 0.4, catchSpeed: 380, holdOdds: 0.85, downS: 0.5, getUpS: 0.5, smotherAt: 20 }),
+    first: profile({ reactionS: 0.3, speed: 95, posErrPx: 9, comeOutPx: 16, reachZ: 1, reachY: 40, diveTravel: 6, diveReach: 8, diveS: 0.45, catchSpeed: 320, holdOdds: 0.8, downS: 0.6, getUpS: 0.6, smotherAt: 18 }),
+    last: profile({ reactionS: 0.22, speed: 110, posErrPx: 6, comeOutPx: 16, reachZ: 2, reachY: 42, diveTravel: 8, diveReach: 9, diveS: 0.4, catchSpeed: 380, holdOdds: 0.85, downS: 0.5, getUpS: 0.5, smotherAt: 20 }),
   },
   normal: {
-    first: profile({ reactionS: 0.24, speed: 105, posErrPx: 6, comeOutPx: 18, reachZ: 2, reachY: 42, diveTravel: 8, diveReach: 9, diveS: 0.4, catchSpeed: 360, holdOdds: 0.85, downS: 0.5, getUpS: 0.5, smotherAt: 20 }),
-    last: profile({ reactionS: 0.16, speed: 120, posErrPx: 3, comeOutPx: 24, reachZ: 3, reachY: 44, diveTravel: 10, diveReach: 11, diveS: 0.35, catchSpeed: 440, holdOdds: 0.92, downS: 0.4, getUpS: 0.4, smotherAt: 24 }),
+    first: profile({ reactionS: 0.24, speed: 105, posErrPx: 6, comeOutPx: 21, reachZ: 2, reachY: 42, diveTravel: 8, diveReach: 9, diveS: 0.4, catchSpeed: 360, holdOdds: 0.85, downS: 0.5, getUpS: 0.5, smotherAt: 20 }),
+    last: profile({ reactionS: 0.16, speed: 120, posErrPx: 3, comeOutPx: 19, reachZ: 3, reachY: 44, diveTravel: 10, diveReach: 11, diveS: 0.35, catchSpeed: 440, holdOdds: 0.92, downS: 0.4, getUpS: 0.4, smotherAt: 24 }),
   },
   hard: {
-    first: profile({ reactionS: 0.2, speed: 112, posErrPx: 4, comeOutPx: 22, reachZ: 3, reachY: 44, diveTravel: 9, diveReach: 10, diveS: 0.38, catchSpeed: 400, holdOdds: 0.9, downS: 0.45, getUpS: 0.45, smotherAt: 22 }),
-    last: profile({ reactionS: 0.12, speed: 128, posErrPx: 2, comeOutPx: 28, reachZ: 4, reachY: 46, diveTravel: 11, diveReach: 12, diveS: 0.32, catchSpeed: 480, holdOdds: 0.95, downS: 0.35, getUpS: 0.35, smotherAt: 26 }),
+    first: profile({ reactionS: 0.2, speed: 112, posErrPx: 4, comeOutPx: 21, reachZ: 3, reachY: 44, diveTravel: 9, diveReach: 10, diveS: 0.38, catchSpeed: 400, holdOdds: 0.9, downS: 0.45, getUpS: 0.45, smotherAt: 22 }),
+    last: profile({ reactionS: 0.12, speed: 128, posErrPx: 2, comeOutPx: 17, reachZ: 4, reachY: 46, diveTravel: 11, diveReach: 12, diveS: 0.32, catchSpeed: 480, holdOdds: 0.95, downS: 0.35, getUpS: 0.35, smotherAt: 26 }),
   },
 };
 
@@ -156,8 +164,12 @@ export const HOLD_S = 1.5;
 export const PUNT_S = 0.45;
 /** The ball leaves his boot this far into it. */
 export const PUNT_STRIKE_S = 0.2;
-/** Lands at halfway + dir × (from + rng × spread), z in z, launched at elevationDeg. */
-export const PUNT = { from: -40, spread: 280, z: [24, 104] as const, elevationDeg: 40 };
+/**
+ * Lands at halfway + dir × (from + rng × spread), z in z, launched at
+ * elevationDeg, with backspin so it checks up after landing: without it the
+ * bounces carry it on to the far box.
+ */
+export const PUNT = { from: -40, spread: 280, z: [24, 104] as const, elevationDeg: 40, spin: -6 };
 /** Nobody waits closer than this to a keeper holding the ball. */
 export const CROWD_GAP = 40;
 /** Where his boot meets the ball: this far ahead of him, this high. */
@@ -309,15 +321,15 @@ export function holdingKeeper(w: World): Keeper | null {
   return ks?.home.holding ? ks.home : ks?.away.holding ? ks.away : null;
 }
 
-/** Where a player waits while `k` holds: at least CROWD_GAP from him, on the pitch side. */
+/**
+ * Where a player waits while `k` holds: out where his drop kick will come
+ * down, around halfway, so nobody crowds him (far more than CROWD_GAP off,
+ * on the pitch side) and nobody is left chasing it from his box.
+ */
 export function standOffSpot(w: World, me: Player, k: Keeper): { x: number; z: number } {
   const out = pitchward(w.field, k.side);
-  const [dx, dz] = [me.x - k.body.x, me.z - k.body.z];
-  const d = Math.hypot(dx, dz);
-  // Level with him or goal-side, he goes round to the pitch side.
-  const [ux, uz] = dx * out > 0 && d > 0 ? [dx / d, dz / d] : [out, 0];
-  const r = Math.max(CROWD_GAP, d);
-  return { x: k.body.x + ux * r, z: k.body.z + uz * r };
+  const x = w.field.width / 2 + out * (PUNT.from + PUNT.spread / 2);
+  return { x, z: Math.min(Math.max(me.z, PUNT.z[0]), PUNT.z[1]) };
 }
 
 /** How far a ball launched at `speed` and the punt's elevation from height y0 carries before it first lands, under gravity and drag. */
@@ -357,7 +369,7 @@ function dropKick(w: World, k: Keeper, ev: KeeperEvents): void {
   const speed = puntSpeed(dist, b.y);
   const rad = (PUNT.elevationDeg * Math.PI) / 180;
   const ground = speed * Math.cos(rad);
-  Object.assign(b, { vx: (dx / dist) * ground, vy: speed * Math.sin(rad), vz: (dz / dist) * ground, spin: 0 });
+  Object.assign(b, { vx: (dx / dist) * ground, vy: speed * Math.sin(rad), vz: (dz / dist) * ground, spin: PUNT.spin });
   k.holding = false;
   w.keepers!.punt = k.side;
   ev.punted = k.side;
