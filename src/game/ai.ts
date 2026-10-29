@@ -1,14 +1,11 @@
-import { BALL_R } from '../art/ball';
-import { BALL_REST_Y } from './ball';
-import { GRAVITY } from './constants';
 import { inGoalBox, type Goal } from './field';
 import { holdingKeeper, standOffSpot } from './keeper';
 import { LADDER_MATCHES, maxStats } from '../meta/ladder';
 import { NO_INTENT, PLAYER_R, type Player, type PlayerIntent } from './player';
 import { runSpeed } from './stats';
-import { DEFEND_COVER, FAKE, POSSESSION_RANGE, RANGE_SHOT, attackDir, chargeHold, defendSpot, fakeMove, goalCentreZ, pickAim, pressSprint, roomySide, theirBall } from './styles';
+import { CHASE_OFFSET, DEFEND_COVER, FAKE, POSSESSION_RANGE, RANGE_SHOT, attackDir, chargeHold, defendSpot, fakeMove, goalCentreZ, pickAim, predictBall, pressSprint, roomySide, theirBall } from './styles';
 import type { Wave } from './wave';
-import { looseBallPlay, onBallPlay, tickMove, type TryoutMove } from './tryoutMoves';
+import { cueMove, looseBallPlay, onBallPlay, tickMove, type TryoutMove } from './tryoutMoves';
 import type { World } from './world';
 import { REACH_Z } from './zones';
 
@@ -16,7 +13,7 @@ export type Difficulty = 'easy' | 'normal' | 'hard';
 export const DIFFICULTIES: readonly Difficulty[] = ['easy', 'normal', 'hard'];
 
 /** How an opponent plays, beyond its numbers: Max all round, each of the Park crew's personalities, Speedy Sam, and the tryouts'. */
-export type Style = 'allRound' | 'blocker' | 'shooter' | 'dribbler' | 'presser' | 'speedster' | 'header' | 'chipper' | 'faker';
+export type Style = 'allRound' | 'blocker' | 'shooter' | 'dribbler' | 'presser' | 'speedster' | 'header' | 'chipper' | 'faker' | 'poacher';
 
 export interface AiProfile {
   /** Seconds between decisions. */
@@ -94,8 +91,6 @@ export interface Steer {
 }
 
 const BALL_LOW = 6;
-/** It runs to this far behind a loose ball, so it pushes the ball toward goal. */
-const CHASE_OFFSET = 8;
 const SLIDE_RANGE = 26;
 const SLIDE_COOLDOWN_S = 1.2;
 const HIGH_BALL = 30;
@@ -124,8 +119,6 @@ const ARRIVE = 3;
  * a spot, so from a corner the way on is always clear of the goal.
  */
 const CORNER_CLEARANCE = PLAYER_R + ARRIVE + 1;
-/** How far ahead it leads a rolling ball. */
-const LEAD_S = 0.25;
 /** Facing a wave, it runs at a spot on the beam's line this far ahead of it, so it stays in the lane as it closes. */
 const LANE_LOOKAHEAD = 12;
 /** Backing off from a powered-up Harrison: where it means to stand, how fast it backpedals, and the room it keeps in front of its goal. */
@@ -142,19 +135,6 @@ const ON_SPOT = 0.5;
 
 export function createBrain(profile: AiProfile): AiBrain {
   return { profile, nextDecisionS: 0, intent: { ...NO_INTENT }, plan: 'chase', chargeLeftS: 0, slideReadyS: 0, backOff: null, wrongFootedS: 0, kickoffHoldS: null, fake: null, fakeReadyS: 0, fakes: 0, move: null, started: {} };
-}
-
-
-/** Where a loose ball will be: its landing spot if airborne, a little ahead if rolling. */
-function predictBall(w: World): { x: number; z: number } {
-  const b = w.ball;
-  const drop = b.y - BALL_REST_Y;
-  const airborne = drop > 1 || b.vy > 0;
-  const t = airborne ? (b.vy + Math.sqrt(b.vy * b.vy + 2 * GRAVITY * Math.max(drop, 0))) / GRAVITY : LEAD_S;
-  return {
-    x: Math.min(Math.max(b.x + b.vx * t, w.field.fenceL), w.field.fenceR),
-    z: Math.min(Math.max(b.z + b.vz * t, BALL_R), w.field.depth - BALL_R),
-  };
 }
 
 /** A unit stick direction from `me` toward (x, z), or still once there. */
@@ -568,11 +548,14 @@ export function think(brain: AiBrain, w: World, me: Player, them: Player, dt: nu
   // A fake ends early if the opponent plays her ball, she loses it, or play stops: her close control never undoes his touch.
   if (brain.fake && (playedIt(w, them) || !atFeet(w, me) || w.match.phase !== 'playing')) endFake(brain);
   // A move ends the tick play changes: play stops, Harrison powers up or fires, a keeper has the ball, it's fooled or robbed.
-  if (brain.move && moveInterrupted(w, me, them)) {
+  const interrupted = moveInterrupted(w, me, them);
+  if (brain.move && interrupted) {
     brain.move = null;
     brain.intent = { ...NO_INTENT };
     brain.nextDecisionS = 0;
   }
+  // And one can start the tick something happens, whatever the decision clock says: Priya follows in a shot.
+  if (!interrupted) cueMove(brain, w, me, them);
   // Waiting for Harrison's kickoff, Max means to hold his spot once play starts.
   if (me.team === 'away' && w.match.phase === 'kickoff') brain.kickoffHoldS = w.match.kickoffTeam === them.team ? 0 : null;
   let released = false;

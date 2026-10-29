@@ -10,6 +10,7 @@ import { NORMAL_HANDLING, NO_INTENT, PLAYER_R, type PlayerIntent } from './playe
 import { BALL_R } from '../art/ball';
 import { SCHOOL_STAGE } from './stage';
 import { chargeTime, type Stats } from './stats';
+import { maxHasBall } from './steal';
 import { FAKE } from './styles';
 import { TRYOUT_ORDER, TRYOUT_PROFILES, TRYOUT_STATS, type TryoutOpponent } from './tryouts';
 import { createWorld, stepWorld, type World } from './world';
@@ -80,6 +81,8 @@ export interface TryoutTraits extends Traits {
   fakesToShot: number;
   /** Its fakes run their whole course with the ball at its feet within its fakeShot of the line: the ones that end in a shot. */
   fakesFinished: number;
+  /** Mean distance from its own goal line while Harrison has the ball in open play in its half, px: where the poacher lingers. */
+  halfDepth: number;
 }
 
 export interface TryoutMatch extends MaxMatch {
@@ -116,11 +119,12 @@ const strayed = (w: World): boolean =>
 /** traitRecorder's traits, plus the School's: headers, chips, rebounds, where its shots go and what's in their way, and bodies where none may stand. */
 function schoolRecorder(w: World) {
   const base = traitRecorder(w);
-  const attacks = w.field.goals[0]!;
+  const [attacks, own] = [w.field.goals[0]!, w.field.goals[1]!];
   const shotLines: number[] = [];
   let [headers, chips, chipGoals, reboundTouches, shotsInLine, windUps, strayTicks, fakesToShot, fakesFinished] = [0, 0, 0, 0, 0, 0, 0, 0, 0];
   let lastKick: string | null = null;
   let [sinceHomePushS, sinceFakeS, fakeT] = [Infinity, Infinity, null as number | null];
+  let [halfSum, halfTicks] = [0, 0];
   return {
     tick(w: World, away: PlayerIntent, was: World['away']['state'], brain: AiBrain): void {
       base.tick(w, away, was);
@@ -148,8 +152,12 @@ function schoolRecorder(w: World) {
         if (sinceFakeS <= FAKE_TO_SHOT_S) [fakesToShot, sinceFakeS] = [fakesToShot + 1, Infinity];
       }
       if (strayed(w)) strayTicks++;
+      if (w.match.phase === 'playing' && maxHasBall(w.home, w.ball) && w.ball.x > w.field.width / 2) {
+        halfSum += Math.abs(own.lineX - w.away.x);
+        halfTicks++;
+      }
     },
-    traits: (brain: AiBrain): TryoutTraits => ({ ...base.traits(brain), headers, chips, chipGoals, reboundTouches, shotLines, shotsInLine, windUps, strayTicks, moves: { ...brain.started }, fakesToShot, fakesFinished }),
+    traits: (brain: AiBrain): TryoutTraits => ({ ...base.traits(brain), headers, chips, chipGoals, reboundTouches, shotLines, shotsInLine, windUps, strayTicks, moves: { ...brain.started }, fakesToShot, fakesFinished, halfDepth: halfTicks ? halfSum / halfTicks : 0 }),
   };
 }
 

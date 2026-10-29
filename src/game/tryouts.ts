@@ -61,7 +61,14 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
     normal: { shootRange: 150, paceFactor: 1, fakeShot: 220 },
     hard: { shootRange: 180, paceFactor: 1.15, cleanSteal: 0.45, fakeShot: 220 },
   }),
-  priya: profiles(DIFFICULTY),
+  // Poacher Priya: follows her shots and his keeper's pushes in, and lingers upfield while Harrison attacks. Normal shoots from closer in, nearer
+  // the rebound; Hard quicker and sharper. Measured E 0.875, N 0.563, H 0.078 (keepers at level 6); Normal 1.64 rebound touches a match vs Max's
+  // brain's 1.20, and 433 px from her goal line while Harrison has the ball in her half vs 348.
+  priya: profiles(DIFFICULTY, {
+    easy: { style: 'poacher' },
+    normal: { style: 'poacher', shootRange: 140 },
+    hard: { style: 'poacher', paceFactor: 1.3, reactionS: 0.07, aimErrorDeg: 1 },
+  }),
   niko: profiles(DIFFICULTY),
   paige: profiles(DIFFICULTY),
 };

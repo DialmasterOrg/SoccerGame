@@ -1,7 +1,11 @@
+import { BALL_R } from '../art/ball';
 import type { Style } from './ai';
+import { BALL_REST_Y } from './ball';
+import { GRAVITY } from './constants';
 import type { Goal } from './field';
 import type { Aim } from './kick';
 import { PLAYER_R, type Player } from './player';
+import { POACH } from './priya';
 import type { World } from './world';
 import { REACH_Z } from './zones';
 
@@ -34,6 +38,23 @@ export function pickAim(w: World): Aim {
   return 'straight';
 }
 
+/** It runs to this far behind a loose ball, so it pushes the ball toward goal. */
+export const CHASE_OFFSET = 8;
+/** How far ahead it leads a rolling ball. */
+const LEAD_S = 0.25;
+
+/** Where a loose ball will be: its landing spot if airborne, a little ahead if rolling. */
+export function predictBall(w: World): { x: number; z: number } {
+  const b = w.ball;
+  const drop = b.y - BALL_REST_Y;
+  const airborne = drop > 1 || b.vy > 0;
+  const t = airborne ? (b.vy + Math.sqrt(b.vy * b.vy + 2 * GRAVITY * Math.max(drop, 0))) / GRAVITY : LEAD_S;
+  return {
+    x: Math.min(Math.max(b.x + b.vx * t, w.field.fenceL), w.field.fenceR),
+    z: Math.min(Math.max(b.z + b.vz * t, BALL_R), w.field.depth - BALL_R),
+  };
+}
+
 /** allRound stands this far goal-side of the ball when defending... */
 export const DEFEND_OFFSET = 20;
 /** ...and this fraction of the way across from the ball toward its own goal's centre. */
@@ -58,6 +79,12 @@ export function defendSpot(style: Style, w: World, me: Player, defending: Goal):
   const centre = goalCentreZ(defending);
   // The presser and the speedster come straight at the ball, from their side of it.
   if (style === 'presser' || style === 'speedster') return { x: ball.x - dir * PRESS_OFFSET, z: ball.z };
+  // The poacher stands as Max does, but lingers upfield for the counter: never more than lingerX into her own half.
+  if (style === 'poacher') {
+    const spot = defendSpot('allRound', w, me, defending);
+    const limit = w.field.width / 2 - dir * POACH.lingerX;
+    return { x: dir > 0 ? Math.max(spot.x, limit) : Math.min(spot.x, limit), z: spot.z };
+  }
   if (style !== 'blocker') return { x: ball.x - dir * DEFEND_OFFSET, z: ball.z + (centre - ball.z) * DEFEND_COVER };
   // Distances measured from the ball back toward his own goal line.
   const toLine = (defending.lineX - ball.x) * -dir;
@@ -77,13 +104,18 @@ export const POSSESSION_RANGE = 16;
  * going for it. allRound: any ball within POSSESSION_RANGE of them, as
  * today. The blocker: a ball ahead of them on their line, up to a dribble
  * touch away, so he holds his spot while they dribble at him, but goes for
- * a ball lying beside or behind them that they can't play.
+ * a ball lying beside or behind them that they can't play. The poacher:
+ * allRound's, or that dribble touch while it runs on ahead of them, so she
+ * holds her spot upfield while they dribble, but goes for a ball sitting
+ * still beside them.
  */
 export function theirBall(style: Style, w: World, them: Player): boolean {
   const ball = w.ball;
-  if (style !== 'blocker') return Math.hypot(ball.x - them.x, ball.z - them.z) <= POSSESSION_RANGE;
+  const near = Math.hypot(ball.x - them.x, ball.z - them.z) <= POSSESSION_RANGE;
+  if (style !== 'blocker' && style !== 'poacher') return near;
   const ahead = (ball.x - them.x) * them.facing;
-  return ahead >= 0 && ahead <= BLOCKER.touchAhead && Math.abs(ball.z - them.z) <= BLOCKER.touchSide;
+  const touch = ahead >= 0 && ahead <= BLOCKER.touchAhead && Math.abs(ball.z - them.z) <= BLOCKER.touchSide;
+  return style === 'blocker' ? touch : near || (touch && ball.vx * them.facing > 0);
 }
 
 /** allRound holds a shot this long and up to this much longer, s, as Max always has. */

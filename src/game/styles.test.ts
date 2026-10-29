@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { DIFFICULTY } from './ai';
 import { BALL_REST_Y } from './ball';
 import { CREW_PROFILES, CREW_STATS } from './crew';
-import { BLOCKER, CHARGE_MIN_S, SHOOTER_CHARGE, chargeHold, defendSpot, pressSprint } from './styles';
+import { POACH } from './priya';
+import { BLOCKER, CHARGE_MIN_S, POSSESSION_RANGE, SHOOTER_CHARGE, chargeHold, defendSpot, pressSprint, theirBall } from './styles';
 import { BASE_STATS } from './stats';
+import { setBall } from './testKeepers';
+import { kidWorld } from './testTryouts';
 import { createWorld, type World } from './world';
 
 /** Harrison on the ball at (x, 20), running right at the away goal; Brick (away) defends it. */
@@ -81,5 +84,37 @@ describe('the presser', () => {
     expect(pressSprint('presser', 30, 0.2)).toBe(false);
     expect(pressSprint('allRound', 30, 0.9)).toBe(false);
     expect(pressSprint('allRound', 130, 0.9)).toBe(true);
+  });
+});
+
+describe('the poacher', () => {
+  /** Harrison on the ball at the School `out` px from Priya's goal line, running at it; Priya 120 px goal-side of him. */
+  function attackingPriya(out: number): World {
+    const { w } = kidWorld('priya');
+    const x = ownGoal(w).lineX - out;
+    Object.assign(w.home, { x: x - 8, z: 40, vx: 120, facing: 1 });
+    setBall(w, { x, z: 40, vx: 120 });
+    Object.assign(w.away, { x: x + 120, z: 52, facing: -1 });
+    return w;
+  }
+
+  it('lingers upfield: with Harrison on the ball near her goal, she stands no more than lingerX into her own half', () => {
+    const w = attackingPriya(100);
+    expect(defendSpot('poacher', w, w.away, ownGoal(w)).x).toBeLessThanOrEqual(w.field.width / 2 + POACH.lingerX);
+  });
+
+  it("a dribble touch running on ahead of Harrison is still his to her, so she holds her spot; a ball sitting still there isn't", () => {
+    const w = attackingPriya(400);
+    w.ball.x = w.home.x + BLOCKER.touchAhead - 4;
+    expect(Math.hypot(w.ball.x - w.home.x, w.ball.z - w.home.z)).toBeGreaterThan(POSSESSION_RANGE);
+    expect(theirBall('poacher', w, w.home)).toBe(true);
+    Object.assign(w.ball, { vx: 0, vz: 0 });
+    expect(theirBall('poacher', w, w.home)).toBe(false);
+  });
+
+  it("with the ball in Harrison's half her spot is allRound's", () => {
+    const w = attackingPriya(900);
+    expect(w.ball.x).toBeLessThan(w.field.width / 2);
+    expect(defendSpot('poacher', w, w.away, ownGoal(w))).toEqual(defendSpot('allRound', w, w.away, ownGoal(w)));
   });
 });

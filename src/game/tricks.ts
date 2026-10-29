@@ -74,6 +74,7 @@ export const TRICK_SCALE: Record<Style, TrickScale> = {
   header: { stepover: 1, flick: 1 },
   chipper: { stepover: 1, flick: 1 },
   faker: { stepover: 1, flick: 1 },
+  poacher: { stepover: 1, flick: 1 },
 };
 
 /** Biscuit's own window and times. Mutable, for headless sweeps. */
