@@ -70,6 +70,8 @@ export const TRICK_SCALE: Record<Style, TrickScale> = {
   dribbler: { stepover: 0.6, flick: 0.6 },
   presser: { stepover: 1.5, flick: 1.5 },
   speedster: { stepover: 1, flick: 1 },
+  // The tryouts are fooled like Max.
+  header: { stepover: 1, flick: 1 },
 };
 
 /** Biscuit's own window and times. Mutable, for headless sweeps. */

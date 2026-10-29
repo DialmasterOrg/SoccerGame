@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { seeded } from '../engine/random';
-import { DIFFICULTIES, DIFFICULTY, KICKOFF_HOLD_S, createBrain, think, type AiBrain, type AiProfile } from './ai';
+import { DIFFICULTIES, DIFFICULTY, KICKOFF_HOLD_S, createBrain, steerFor, think, type AiBrain, type AiProfile } from './ai';
+import { kidWorld, stepKid } from './testTryouts';
+import { looseBallPlay, onBallPlay } from './tryoutMoves';
 import { BALL_REST_Y } from './ball';
 import { inGoalBox, roofSpan } from './field';
 import { SCHOOL_STAGE, type Stage } from './stage';
@@ -20,7 +22,7 @@ import { STEPOVER, TRICK_DIFFICULTY } from './tricks';
 import { ballAtFeet } from './zones';
 import { CROWD_GAP, keeperLineup, type KeeperLineup } from './keeper';
 import { harrisonStats } from './maxScripts';
-import { keeperWorld, runFor, runUntil, shotAt } from './testKeepers';
+import { keeperWorld, runFor, runUntil, setBall, shotAt } from './testKeepers';
 
 const STEP = 1 / 60;
 
@@ -1171,5 +1173,53 @@ describe('a keeper holding the ball', () => {
     for (let i = 0; i < 60; i++) stepWorld(w, NO_INTENT, think(brain, w, w.away, w.home, 1 / 60), 1 / 60);
     expect(Math.hypot(w.away.x - k.body.x, w.away.z - k.body.z)).toBeGreaterThanOrEqual(CROWD_GAP - 1);
     expect(brain.plan).toBe('wait');
+  });
+});
+
+describe("the tryouts' personalities", () => {
+  /** Header Hank with his head move under way, under a ball coming down to him. */
+  function heading(power: boolean): { w: World; brain: AiBrain } {
+    const { w, brain } = kidWorld('hank', { power });
+    Object.assign(w.home, { x: 250, z: 124 });
+    Object.assign(w.away, { x: 640, z: 64, facing: -1 });
+    setBall(w, { x: 560, z: 64, y: 90, vx: 40, vy: 150 });
+    for (let i = 0; i < 30 && brain.move?.kind !== 'head'; i++) stepKid(w, brain, STEP);
+    expect(brain.move?.kind).toBe('head');
+    return { w, brain };
+  }
+
+  it('a move ends on the tick play changes: a goal, a power-up, a held ball, a clean steal (Review Focus 4)', () => {
+    const changes: [string, (w: World) => void][] = [
+      ['goal', w => (w.match.phase = 'goal')],
+      ['powered up', w => (w.power!.activeS = 1)],
+      ['a keeper holds it', w => (w.keepers!.away.holding = true)],
+      ['robbed', w => (w.events.steal = 'stole')],
+    ];
+    for (const [name, change] of changes) {
+      const { w, brain } = heading(name === 'powered up');
+      change(w);
+      const intent = think(brain, w, w.away, w.home, STEP);
+      expect(brain.move, name).toBeNull();
+      expect(intent.jump, name).toBe(false);
+    }
+  });
+
+  it("today's styles never use the hooks, and draw nothing from the world's rng", () => {
+    for (const style of ['allRound', 'blocker', 'shooter', 'dribbler', 'presser', 'speedster'] as const) {
+      for (const atFeet of [true, false]) {
+        const { w } = kidWorld('max');
+        const brain = createBrain({ ...DIFFICULTY.normal, style });
+        Object.assign(w.away, { x: 640, z: 64, facing: -1 });
+        Object.assign(w.home, { x: 560, z: 64 });
+        setBall(w, atFeet ? { x: 632, z: 64 } : { x: 700, z: 40, y: 60, vx: -50, vy: 100 });
+        let draws = 0;
+        const rng = w.rng;
+        w.rng = () => (draws++, rng());
+        const steer = steerFor(brain, w, w.away, w.home);
+        expect(onBallPlay(brain, w, w.away, w.home, steer), style).toBeNull();
+        expect(looseBallPlay(brain, w, w.away, w.home, steer), style).toBeNull();
+        expect(draws, style).toBe(0);
+      }
+    }
   });
 });

@@ -9,14 +9,15 @@ import { NO_INTENT, PLAYER_R, type Player, type PlayerIntent } from './player';
 import { runSpeed } from './stats';
 import { DEFEND_COVER, FAKE, POSSESSION_RANGE, RANGE_SHOT, attackDir, chargeHold, defendSpot, fakeMove, goalCentreZ, pressSprint, theirBall } from './styles';
 import type { Wave } from './wave';
+import { looseBallPlay, onBallPlay, tickMove, type TryoutMove } from './tryoutMoves';
 import type { World } from './world';
 import { REACH_Z } from './zones';
 
 export type Difficulty = 'easy' | 'normal' | 'hard';
 export const DIFFICULTIES: readonly Difficulty[] = ['easy', 'normal', 'hard'];
 
-/** How an opponent plays, beyond its numbers: Max all round, each of the Park crew's personalities, and Speedy Sam. */
-export type Style = 'allRound' | 'blocker' | 'shooter' | 'dribbler' | 'presser' | 'speedster';
+/** How an opponent plays, beyond its numbers: Max all round, each of the Park crew's personalities, Speedy Sam, and the tryouts'. */
+export type Style = 'allRound' | 'blocker' | 'shooter' | 'dribbler' | 'presser' | 'speedster' | 'header';
 
 export interface AiProfile {
   /** Seconds between decisions. */
@@ -79,6 +80,16 @@ export interface AiBrain {
   fakeReadyS: number;
   /** Fakes started this match, for the personality check. */
   fakes: number;
+  /** A tryout kid's own move under way, played out tick by tick; null when there's none. */
+  move: TryoutMove | null;
+  /** Moves started this match, by kind, for the personality checks. */
+  started: Partial<Record<TryoutMove['kind'], number>>;
+}
+
+/** decide's way to a spot, round goals and the opponent, at this decision's sprint and pace: handed to a kid's own play. */
+export interface Steer {
+  base: PlayerIntent;
+  to(x: number, z: number, aimZ?: number): PlayerIntent;
 }
 
 const BALL_LOW = 6;
@@ -135,7 +146,7 @@ const AIM_ODDS: readonly (readonly [Aim, number])[] = [
 ];
 
 export function createBrain(profile: AiProfile): AiBrain {
-  return { profile, nextDecisionS: 0, intent: { ...NO_INTENT }, plan: 'chase', chargeLeftS: 0, slideReadyS: 0, backOff: null, wrongFootedS: 0, kickoffHoldS: null, fake: null, fakeReadyS: 0, fakes: 0 };
+  return { profile, nextDecisionS: 0, intent: { ...NO_INTENT }, plan: 'chase', chargeLeftS: 0, slideReadyS: 0, backOff: null, wrongFootedS: 0, kickoffHoldS: null, fake: null, fakeReadyS: 0, fakes: 0, move: null, started: {} };
 }
 
 
@@ -318,6 +329,23 @@ function faceWave(brain: AiBrain, w: World, me: Player, wave: Wave): void {
   brain.intent = { ...NO_INTENT, moveX: moveX || toward, moveZ };
 }
 
+/** The way to a spot this decision: sprinting as its style does for the ball's distance, at its pace, round goals and the opponent. */
+export function steerFor(brain: AiBrain, w: World, me: Player, them: Player): Steer {
+  const dist = Math.hypot(w.ball.x - me.x, w.ball.z - me.z);
+  const base: PlayerIntent = { ...NO_INTENT, sprint: pressSprint(brain.profile.style, dist, me.stamina), pace: brain.profile.paceFactor };
+  return {
+    base,
+    to(x, z, aimZ = z) {
+      const spot = outOfGoals(w, x, z);
+      const next = route(w, me, spot.x, spot.z);
+      // Rounding a goal, it passes the opponent on the side of the corner it's heading for.
+      const sideZ = next.x === spot.x && next.z === spot.z ? aimZ : next.z;
+      const [moveX, moveZ] = goRound(w, me, them, steer(me, next.x, next.z), sideZ);
+      return { ...base, moveX, moveZ };
+    },
+  };
+}
+
 function decide(brain: AiBrain, w: World, me: Player, them: Player): void {
   const { profile } = brain;
   const dir = attackDir(me);
@@ -326,18 +354,11 @@ function decide(brain: AiBrain, w: World, me: Player, them: Player): void {
   const ahead = (ball.x - me.x) * dir;
   const inLine = Math.abs(ball.z - me.z) <= REACH_Z;
   const dist = Math.hypot(ball.x - me.x, ball.z - me.z);
-  const sprint = pressSprint(profile.style, dist, me.stamina);
-  const intent: PlayerIntent = { ...NO_INTENT, sprint, pace: profile.paceFactor };
+  const steering = steerFor(brain, w, me, them);
+  const intent = steering.base;
+  const moveTo = steering.to;
   const attacking = w.field.goals.find(g => g.side === (dir > 0 ? 'right' : 'left'))!;
   const defending = w.field.goals.find(g => g !== attacking)!;
-  const moveTo = (x: number, z: number, aimZ = z): PlayerIntent => {
-    const spot = outOfGoals(w, x, z);
-    const next = route(w, me, spot.x, spot.z);
-    // Rounding a goal, it passes the opponent on the side of the corner it's heading for.
-    const sideZ = next.x === spot.x && next.z === spot.z ? aimZ : next.z;
-    const [moveX, moveZ] = goRound(w, me, them, steer(me, next.x, next.z), sideZ);
-    return { ...intent, moveX, moveZ };
-  };
   const toGoal = (attacking.lineX - me.x) * dir;
   const speedster = profile.style === 'speedster';
 
@@ -352,6 +373,12 @@ function decide(brain: AiBrain, w: World, me: Player, them: Player): void {
       brain.plan = 'dribble';
       const passZ = them.z + (Math.sign(me.z - them.z) || roomySide(w, them.z, me.z)) * KNOCK_PAST.side;
       brain.intent = moveTo(them.x + dir * KNOCK_PAST.beyond, Math.min(Math.max(passZ, PLAYER_R), w.field.depth - PLAYER_R));
+      return;
+    }
+    // A tryout kid's own play with the ball, if it has one now.
+    const own = onBallPlay(brain, w, me, them, steering);
+    if (own) {
+      brain.intent = own;
       return;
     }
     // Blocked by one waiting in his lane, the speedster may try his weak shot from range instead of running into him.
@@ -412,6 +439,12 @@ function decide(brain: AiBrain, w: World, me: Player, them: Player): void {
     return;
   }
 
+  // A tryout kid's own play for a loose ball, if it has one now.
+  const loose = looseBallPlay(brain, w, me, them, steering);
+  if (loose) {
+    brain.intent = loose;
+    return;
+  }
   // Loose ball: head it if it's overhead, otherwise get behind it. The speedster only heads one he faces upfield: turned the other way, it would go at his own goal.
   const headsUpfield = !speedster || Math.sign(ball.x - me.x) === dir;
   if (ball.y > HIGH_BALL && Math.abs(ball.x - me.x) <= HIGH_BALL_RANGE && inLine && headsUpfield) {
@@ -456,6 +489,13 @@ function fakeTick(brain: AiBrain, w: World, me: Player, dir: 1 | -1): boolean {
   // She keeps facing the goal she attacks, so the ball stays in front of her as she eases back.
   brain.intent = { ...NO_INTENT, ...move, faceX: dir, carry: true };
   return true;
+}
+
+/** Whatever a kid's move was, it's gone once play stops, Harrison powers up or his wave is live, a keeper holds the ball, or it's fooled or robbed. */
+function moveInterrupted(w: World, me: Player, them: Player): boolean {
+  const powered = them.team === 'home' && ((w.power?.activeS ?? 0) > 0 || w.wave?.live === true);
+  const robbed = me.team === 'away' && w.events.steal === 'stole';
+  return w.match.phase !== 'playing' || powered || holdingKeeper(w) !== null || me.fooled !== null || robbed;
 }
 
 /** The ball at its feet: low, just ahead of it, on its line. */
@@ -529,6 +569,12 @@ export function think(brain: AiBrain, w: World, me: Player, them: Player, dt: nu
   }
   // A fake ends early if the opponent plays her ball, she loses it, or play stops: her close control never undoes his touch.
   if (brain.fake && (playedIt(w, them) || !atFeet(w, me) || w.match.phase !== 'playing')) endFake(brain);
+  // A move ends the tick play changes: play stops, Harrison powers up or fires, a keeper has the ball, it's fooled or robbed.
+  if (brain.move && moveInterrupted(w, me, them)) {
+    brain.move = null;
+    brain.intent = { ...NO_INTENT };
+    brain.nextDecisionS = 0;
+  }
   // Waiting for Harrison's kickoff, Max means to hold his spot once play starts.
   if (me.team === 'away' && w.match.phase === 'kickoff') brain.kickoffHoldS = w.match.kickoffTeam === them.team ? 0 : null;
   let released = false;
@@ -578,6 +624,9 @@ export function think(brain: AiBrain, w: World, me: Player, them: Player, dt: nu
     brain.intent = { ...NO_INTENT, faceX: Math.sign(w.ball.x - me.x) >= 0 ? 1 : -1 };
   } else if (brain.fake && fakeTick(brain, w, me, attackDir(me))) {
     // Faking: she plays it out tick by tick, as the back-off does.
+    brain.nextDecisionS = brain.profile.reactionS;
+  } else if (brain.move && tickMove(brain, w, me, them, dt, steerFor(brain, w, me, them))) {
+    // A tryout kid's move, played out tick by tick as the fake is; once it's over it decides afresh this tick.
     brain.nextDecisionS = brain.profile.reactionS;
   } else if (!released && brain.nextDecisionS <= 1e-9) {
     // A decision on the release tick could start a new charge and swallow the shot, so it waits a tick.

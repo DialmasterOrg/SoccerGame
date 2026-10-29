@@ -38,7 +38,12 @@ const profiles = (from: Record<Difficulty, AiProfile>, dials: Partial<Record<Dif
 export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfile>> = {
   // School Max: Max's own dials, a touch less pace on Normal. Measured E 0.813, N 0.594, H 0.063 (keepers at level 1).
   max: profiles(DIFFICULTY, { normal: { paceFactor: 1.02 } }),
-  hank: profiles(DIFFICULTY),
+  // Header Hank: wins the ball in the air, so Normal is a touch gentler on the ground. Measured E 0.828, N 0.578, H 0.047 (keepers at level 2).
+  hank: profiles(DIFFICULTY, {
+    easy: { style: 'header' },
+    normal: { style: 'header', paceFactor: 1, aimErrorDeg: 7, aggression: 0.45, cleanSteal: 0.8 },
+    hard: { style: 'header' },
+  }),
   lola: profiles(DIFFICULTY),
   finn: profiles(DIFFICULTY),
   tia: profiles(CREW_PROFILES.tia),

@@ -12,6 +12,7 @@ import { SCHOOL_STAGE } from './stage';
 import { chargeTime, type Stats } from './stats';
 import { TRYOUT_ORDER, TRYOUT_PROFILES, TRYOUT_STATS, type TryoutOpponent } from './tryouts';
 import { createWorld, stepWorld, type World } from './world';
+import type { TryoutMove } from './tryoutMoves';
 import { ballAtFeet } from './zones';
 
 /**
@@ -72,6 +73,8 @@ export interface TryoutTraits extends Traits {
   windUps: number;
   /** Ticks an outfield body stood in a goal or behind a net. */
   strayTicks: number;
+  /** Its own moves started, by kind: a copy of its brain's count. */
+  moves: Partial<Record<TryoutMove['kind'], number>>;
 }
 
 export interface TryoutMatch extends MaxMatch {
@@ -132,7 +135,7 @@ function schoolRecorder(w: World) {
       }
       if (strayed(w)) strayTicks++;
     },
-    traits: (brain: AiBrain): TryoutTraits => ({ ...base.traits(brain), headers, chips, chipGoals, reboundTouches, shotLines, shotsInLine, windUps, strayTicks }),
+    traits: (brain: AiBrain): TryoutTraits => ({ ...base.traits(brain), headers, chips, chipGoals, reboundTouches, shotLines, shotsInLine, windUps, strayTicks, moves: { ...brain.started } }),
   };
 }
 
