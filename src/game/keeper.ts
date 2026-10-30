@@ -10,6 +10,7 @@ import type { Team } from './match';
 import { NO_INTENT, PLAYER_R, blowAway, createPlayer, stepPlayer, type Player, type PlayerIntent } from './player';
 import { BASE_STATS, runSpeed } from './stats';
 import type { World } from './world';
+import type { GusRules } from './gus';
 
 export type KeeperSide = 'home' | 'away'; // whose keeper: 'home' is Harrison's, in the left goal
 export type KeeperAct = 'set' | 'rush' | 'dive' | 'down' | 'getUp' | 'hold' | 'kick';
@@ -25,6 +26,8 @@ export interface KeeperProfile {
   comeOutPx: number;
   /** His gloves beyond his body, either side in depth, standing. */
   reachZ: number;
+  /** His reach in depth beyond his body for a low ball (centre under LOW_Y): reachZ for every level keeper. */
+  lowReachZ: number;
   /** The highest he catches or punches, ball centre, px. */
   reachY: number;
   /** How far his body goes in a dive. */
@@ -33,6 +36,8 @@ export interface KeeperProfile {
   diveReach: number;
   /** How long the dive lasts. */
   diveS: number;
+  /** A dive's gloves reach a low ball only over this long: 0 for every level keeper. */
+  getDownS: number;
   /** Shots up to this pace he holds easily. */
   catchSpeed: number;
   /** His odds of holding one at that pace. */
@@ -67,16 +72,16 @@ const profile = (p: KeeperProfile): KeeperProfile => p;
  */
 export const KEEPER_LEVELS: Record<Difficulty, { first: KeeperProfile; last: KeeperProfile }> = {
   easy: {
-    first: profile({ reactionS: 0.34, speed: 92, posErrPx: 10, comeOutPx: 15, reachZ: 1, reachY: 40, diveTravel: 6, diveReach: 7, diveS: 0.47, catchSpeed: 310, holdOdds: 0.78, downS: 0.62, getUpS: 0.62, smotherAt: 18 }),
-    last: profile({ reactionS: 0.24, speed: 106, posErrPx: 7, comeOutPx: 15, reachZ: 1, reachY: 41, diveTravel: 7, diveReach: 8, diveS: 0.42, catchSpeed: 360, holdOdds: 0.83, downS: 0.52, getUpS: 0.52, smotherAt: 20 }),
+    first: profile({ reactionS: 0.34, speed: 92, posErrPx: 10, comeOutPx: 15, reachZ: 1, lowReachZ: 1, reachY: 40, diveTravel: 6, diveReach: 7, diveS: 0.47, getDownS: 0, catchSpeed: 310, holdOdds: 0.78, downS: 0.62, getUpS: 0.62, smotherAt: 18 }),
+    last: profile({ reactionS: 0.24, speed: 106, posErrPx: 7, comeOutPx: 15, reachZ: 1, lowReachZ: 1, reachY: 41, diveTravel: 7, diveReach: 8, diveS: 0.42, getDownS: 0, catchSpeed: 360, holdOdds: 0.83, downS: 0.52, getUpS: 0.52, smotherAt: 20 }),
   },
   normal: {
-    first: profile({ reactionS: 0.27, speed: 100, posErrPx: 7, comeOutPx: 17, reachZ: 1, reachY: 41, diveTravel: 7, diveReach: 8, diveS: 0.42, catchSpeed: 340, holdOdds: 0.82, downS: 0.55, getUpS: 0.55, smotherAt: 20 }),
-    last: profile({ reactionS: 0.19, speed: 115, posErrPx: 4, comeOutPx: 18, reachZ: 2, reachY: 43, diveTravel: 9, diveReach: 10, diveS: 0.37, catchSpeed: 420, holdOdds: 0.9, downS: 0.42, getUpS: 0.42, smotherAt: 24 }),
+    first: profile({ reactionS: 0.27, speed: 100, posErrPx: 7, comeOutPx: 17, reachZ: 1, lowReachZ: 1, reachY: 41, diveTravel: 7, diveReach: 8, diveS: 0.42, getDownS: 0, catchSpeed: 340, holdOdds: 0.82, downS: 0.55, getUpS: 0.55, smotherAt: 20 }),
+    last: profile({ reactionS: 0.19, speed: 115, posErrPx: 4, comeOutPx: 18, reachZ: 2, lowReachZ: 2, reachY: 43, diveTravel: 9, diveReach: 10, diveS: 0.37, getDownS: 0, catchSpeed: 420, holdOdds: 0.9, downS: 0.42, getUpS: 0.42, smotherAt: 24 }),
   },
   hard: {
-    first: profile({ reactionS: 0.22, speed: 108, posErrPx: 5, comeOutPx: 20, reachZ: 2, reachY: 43, diveTravel: 8, diveReach: 9, diveS: 0.4, catchSpeed: 380, holdOdds: 0.88, downS: 0.48, getUpS: 0.48, smotherAt: 22 }),
-    last: profile({ reactionS: 0.14, speed: 124, posErrPx: 3, comeOutPx: 18, reachZ: 3, reachY: 45, diveTravel: 10, diveReach: 11, diveS: 0.34, catchSpeed: 460, holdOdds: 0.94, downS: 0.38, getUpS: 0.38, smotherAt: 26 }),
+    first: profile({ reactionS: 0.22, speed: 108, posErrPx: 5, comeOutPx: 20, reachZ: 2, lowReachZ: 2, reachY: 43, diveTravel: 8, diveReach: 9, diveS: 0.4, getDownS: 0, catchSpeed: 380, holdOdds: 0.88, downS: 0.48, getUpS: 0.48, smotherAt: 22 }),
+    last: profile({ reactionS: 0.14, speed: 124, posErrPx: 3, comeOutPx: 18, reachZ: 3, lowReachZ: 3, reachY: 45, diveTravel: 10, diveReach: 11, diveS: 0.34, getDownS: 0, catchSpeed: 460, holdOdds: 0.94, downS: 0.38, getUpS: 0.38, smotherAt: 26 }),
   },
 };
 
@@ -95,6 +100,8 @@ export function keeperProfile(level: number, d: Difficulty): KeeperProfile {
 export interface KeeperLineup {
   home: KeeperProfile;
   away: KeeperProfile;
+  /** Their keeper is Goalie Gus: his body and his rules. */
+  gus?: GusRules;
 }
 
 /** Harrison's keeper at Normal, theirs at the difficulty, both at `level`. */
@@ -132,6 +139,8 @@ export interface Keeper {
   seenV: { vx: number; vz: number };
   /** A standing catch or push, shown for a moment. */
   pose: { name: 'catch' | 'push'; leftS: number } | null;
+  /** Goalie Gus's size and rules; null for every other keeper. */
+  gus: GusRules | null;
 }
 
 export interface Keepers {
@@ -159,7 +168,7 @@ export interface KeeperIntent {
 
 /** px in front of the goal line, beyond his radius, when set. */
 export const SET_OFF = 3;
-/** A ball caught in a dive lies this far along it from his centre, by his gloves. */
+/** A ball caught in a dive lies this far along it from his centre, by his gloves (Gus's rules have his own). */
 const DIVE_BALL_PX = 10;
 /** A standing catch or push shows this long. */
 const POSE_S = 0.25;
@@ -180,7 +189,7 @@ export const PUNT_STRIKE_S = 0.2;
 export const PUNT = { from: -190, spread: 180, z: [24, 104] as const, elevationDeg: 40, spin: -7 };
 /** Nobody waits closer than this to a keeper holding the ball. */
 export const CROWD_GAP = 40;
-/** Where his boot meets the ball: this far ahead of him, this high. */
+/** Where his boot meets the ball: this far ahead of him, this high (Gus's rules have his own). */
 const BOOT = { x: 8, y: 6 };
 
 export function keeperGoal(field: Field, side: KeeperSide): Goal {
@@ -190,16 +199,18 @@ export function keeperGoal(field: Field, side: KeeperSide): Goal {
 /** Toward the pitch from his goal. */
 export const pitchward = (field: Field, side: KeeperSide): 1 | -1 => (keeperGoal(field, side).side === 'left' ? 1 : -1);
 
-function createKeeper(field: Field, side: KeeperSide, profile: KeeperProfile): Keeper {
+function createKeeper(field: Field, side: KeeperSide, profile: KeeperProfile, gus: GusRules | null): Keeper {
   const g = keeperGoal(field, side);
   const dir = pitchward(field, side);
-  const body = createPlayer(side, BASE_STATS, g.lineX + dir * (PLAYER_R + SET_OFF), dir, (g.z0 + g.z1) / 2);
+  const body = createPlayer(side, BASE_STATS, g.lineX + dir * ((gus?.radius ?? PLAYER_R) + SET_OFF), dir, (g.z0 + g.z1) / 2);
   body.area = penaltyArea(field, g);
-  return { side, body, profile, act: 'set', actT: 0, dive: null, holding: false, readS: 0, errZ: 0, seenV: { vx: 0, vz: 0 }, pose: null };
+  if (gus) Object.assign(body, { radius: gus.radius, height: gus.height });
+  return { side, body, profile, act: 'set', actT: 0, dive: null, holding: false, readS: 0, errZ: 0, seenV: { vx: 0, vz: 0 }, pose: null, gus };
 }
 
+/** Harrison's keeper is never Gus; theirs is when the lineup says so. */
 export function createKeepers(field: Field, lineup: KeeperLineup): Keepers {
-  return { home: createKeeper(field, 'home', lineup.home), away: createKeeper(field, 'away', lineup.away), punt: null, strike: null };
+  return { home: createKeeper(field, 'home', lineup.home, null), away: createKeeper(field, 'away', lineup.away, lineup.gus ?? null), punt: null, strike: null };
 }
 
 /** Kickoff: each set on his goal's centre line SET_OFF in front, facing the pitch; every act, hold, dive and punt cleared. */
@@ -207,7 +218,7 @@ export function placeKeepers(w: World): void {
   const ks = w.keepers;
   if (!ks) return;
   for (const k of [ks.home, ks.away]) {
-    const fresh = createKeeper(w.field, k.side, k.profile);
+    const fresh = createKeeper(w.field, k.side, k.profile, k.gus);
     Object.assign(k.body, fresh.body, { stamina: k.body.stamina });
     delete k.body.inNet;
     Object.assign(k, { act: 'set', actT: 0, dive: null, holding: false, readS: 0, errZ: 0, seenV: { vx: 0, vz: 0 }, pose: null });
@@ -289,14 +300,15 @@ export function stepKeeper(w: World, k: Keeper, intent: KeeperIntent, live: bool
 /** Where the ball he holds sits: at his gloves on his feet, on the grass by them after a dive. */
 function heldSpot(k: Keeper): { x: number; y: number; z: number } {
   const { body } = k;
+  const [hands, boot, diveBallPx] = k.gus ? [k.gus.hands, k.gus.boot, k.gus.diveBallPx] : [KEEPER_HANDS, BOOT, DIVE_BALL_PX];
   if (k.act === 'dive' || k.act === 'down' || k.act === 'getUp') {
     const { dirX, dirZ } = k.dive ?? { dirX: 0, dirZ: 0 };
     const len = Math.hypot(dirX, dirZ) || 1;
-    return { x: body.x + (dirX / len) * DIVE_BALL_PX, y: BALL_REST_Y, z: body.z + (dirZ / len) * DIVE_BALL_PX };
+    return { x: body.x + (dirX / len) * diveBallPx, y: BALL_REST_Y, z: body.z + (dirZ / len) * diveBallPx };
   }
   // The drop: from his gloves down to his boot.
   const u = k.act === 'kick' ? Math.min(1, k.actT / PUNT_STRIKE_S) : 0;
-  return { x: body.x + body.facing * (KEEPER_HANDS.x + (BOOT.x - KEEPER_HANDS.x) * u), y: KEEPER_HANDS.y + (BOOT.y - KEEPER_HANDS.y) * u, z: body.z };
+  return { x: body.x + body.facing * (hands.x + (boot.x - hands.x) * u), y: hands.y + (boot.y - hands.y) * u, z: body.z };
 }
 
 /** A caught ball, still, where he holds it. */

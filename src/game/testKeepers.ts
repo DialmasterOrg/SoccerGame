@@ -1,5 +1,6 @@
 import { DIFFICULTY, type Difficulty } from './ai';
 import { BALL_REST_Y, type Ball } from './ball';
+import { gusLineup } from './gus';
 import { keeperLineup } from './keeper';
 import { NO_INTENT, NORMAL_HANDLING, type PlayerIntent } from './player';
 import { SCHOOL_STAGE } from './stage';
@@ -9,8 +10,11 @@ import { createWorld, stepWorld, type World } from './world';
 
 const DT = 1 / 60;
 
-/** A School world in play with both keepers set: Harrison at (900, 20) and Max at (380, 108), standing; the ball at rest on the centre spot. */
-export function keeperWorld(o: { level?: number; difficulty?: Difficulty; seed?: number; power?: boolean; tricks?: boolean } = {}): World {
+/**
+ * A School world in play with both keepers set: Harrison at (900, 20) and Max at (380, 108), standing; the ball at rest on the centre spot.
+ * With `gus`, their keeper is Goalie Gus at the difficulty and Harrison's is Eddie at tryout 8's Normal keeper (`level` is ignored).
+ */
+export function keeperWorld(o: { level?: number; difficulty?: Difficulty; seed?: number; power?: boolean; tricks?: boolean; gus?: boolean } = {}): World {
   const d = o.difficulty ?? 'normal';
   const w = createWorld(
     BASE_STATS,
@@ -23,7 +27,7 @@ export function keeperWorld(o: { level?: number; difficulty?: Difficulty; seed?:
     NORMAL_HANDLING,
     o.tricks ? trickSetup(d, 'max') : null,
     SCHOOL_STAGE,
-    keeperLineup(o.level ?? 1, d),
+    o.gus ? gusLineup(d) : keeperLineup(o.level ?? 1, d),
   );
   Object.assign(w.home, { x: 900, z: 20 });
   Object.assign(w.away, { x: 380, z: 108 });

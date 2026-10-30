@@ -3,6 +3,7 @@ import { DIFFICULTIES } from './ai';
 import { resolveAll } from './bodies';
 import { HOLD_S, KEEPER_TOP_LEVEL, PUNT_STRIKE_S, SET_OFF, keeperLevel, keeperLineup, keeperProfile, parkHeldBall, quietKeepers, startHold, stepKeeper, type Keeper, type KeeperProfile, type KeeperSide, type Strike } from './keeper';
 import { startDragBack } from './dragBack';
+import { GUS_PROFILES } from './gus';
 import { POWERED_S, WAVE_READY_S, canFireWave, canStartPower } from './power';
 import { resolveSteal } from './steal';
 import { startTrick } from './tricks';
@@ -15,7 +16,7 @@ import { createWorld, placeForKickoff, type World } from './world';
 import { REACH_Z } from './zones';
 
 const BETTER: Partial<Record<keyof KeeperProfile, 1 | -1>> = {
-  reactionS: -1, speed: 1, posErrPx: -1, reachZ: 1, reachY: 1, diveTravel: 1, diveReach: 1, diveS: -1, catchSpeed: 1, holdOdds: 1, downS: -1, getUpS: -1,
+  reactionS: -1, speed: 1, posErrPx: -1, reachZ: 1, lowReachZ: 1, reachY: 1, diveTravel: 1, diveReach: 1, diveS: -1, getDownS: -1, catchSpeed: 1, holdOdds: 1, downS: -1, getUpS: -1,
 };
 
 describe('keeper profiles', () => {
@@ -27,6 +28,23 @@ describe('keeper profiles', () => {
         expect(n, `${dial} at ${l}`).toBeLessThanOrEqual(h!);
       }
       for (const d of DIFFICULTIES) expect(keeperProfile(1, d)[dial] * sign, `${dial} ${d}`).toBeLessThanOrEqual(keeperProfile(KEEPER_TOP_LEVEL, d)[dial] * sign);
+    }
+  });
+
+  it('every level keeper gets down to a low ball as to any: lowReachZ is his reachZ, getDownS 0', () => {
+    for (const d of DIFFICULTIES) {
+      for (let l = 1; l <= KEEPER_TOP_LEVEL; l++) {
+        const p = keeperProfile(l, d);
+        expect([p.lowReachZ, p.getDownS], `${d} ${l}`).toEqual([p.reachZ, 0]);
+      }
+    }
+  });
+
+  it("Gus's profiles get sharper from Easy to Normal to Hard", () => {
+    for (const [dial, sign] of Object.entries(BETTER) as [keyof KeeperProfile, 1 | -1][]) {
+      const [e, n, h] = DIFFICULTIES.map(d => GUS_PROFILES[d][dial] * sign);
+      expect(e, dial).toBeLessThanOrEqual(n!);
+      expect(n, dial).toBeLessThanOrEqual(h!);
     }
   });
 

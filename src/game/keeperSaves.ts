@@ -13,6 +13,8 @@ export const SOFT_SPEED = 220;
 export const HOLD = { pace: 0.8, reach: 0.4, perfect: 0.25, close: 0.2, closeX: 120 };
 /** A standing keeper's zone runs this far beyond his body and the ball along the pitch. */
 export const ZONE_AHEAD = 3;
+/** A ball whose centre is under this, px, is low: a keeper has to get down to it. */
+export const LOW_Y = 14;
 /** A smother only reaches a ball this low. */
 const SMOTHER_Y = 12;
 /** Path samples per px the ball moved this tick, so no shot tunnels through his zone. */
@@ -77,8 +79,9 @@ function meets(k: Keeper, from: Pt, to: Pt): { at: Pt; reach: number } | null {
 function inStandingZone(k: Keeper, b: Pt): number | null {
   const { body, profile } = k;
   const [dz, r] = [Math.abs(b.z - body.z), radiusOf(body)];
-  if (dz > r + profile.reachZ + BALL_R || Math.abs(b.x - body.x) > r + BALL_R + ZONE_AHEAD || b.y > profile.reachY + BALL_R) return null;
-  return clamp01(dz / (r + profile.reachZ));
+  const reachZ = b.y < LOW_Y ? profile.lowReachZ : profile.reachZ;
+  if (dz > r + reachZ + BALL_R || Math.abs(b.x - body.x) > r + BALL_R + ZONE_AHEAD || b.y > profile.reachY + BALL_R) return null;
+  return clamp01(dz / (r + reachZ));
 }
 
 function inDiveZone(k: Keeper, b: Pt): number | null {
@@ -89,8 +92,10 @@ function inDiveZone(k: Keeper, b: Pt): number | null {
   if (b.y > (smothering(k) ? SMOTHER_Y : profile.reachY + BALL_R)) return null;
   const [rx, rz] = [b.x - body.x, b.z - body.z];
   // A smother slides along the grass: his gloves reach out as he goes, so a ball knocked away as he commits gets past him.
+  // A keeper slow to get down (getDownS) reaches a low ball along his dive only as he gets down to it.
   const progress = Math.min(1, k.actT / profile.diveS);
-  const along = Math.min(Math.max(rx * ux + rz * uz, 0), profile.diveReach * (smothering(k) ? progress : 1));
+  const gettingDown = !smothering(k) && b.y < LOW_Y && profile.getDownS > 0 ? Math.min(1, k.actT / profile.getDownS) : 1;
+  const along = Math.min(Math.max(rx * ux + rz * uz, 0), profile.diveReach * (smothering(k) ? progress : gettingDown));
   if (Math.hypot(rx - ux * along, rz - uz * along) > BALL_R + 3) return null;
   const travelled = profile.diveTravel * Math.min(1, k.actT / profile.diveS);
   return clamp01((travelled + along) / (profile.diveTravel + profile.diveReach));

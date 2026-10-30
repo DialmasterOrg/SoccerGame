@@ -7,7 +7,7 @@ import { onTarget } from './power';
 import { SPRINT_MULTIPLIER, runSpeed, touchPush } from './stats';
 import { maxHasBall } from './steal';
 import { REACH_Z } from './zones';
-import { ZONE_AHEAD, atFeet } from './keeperSaves';
+import { LOW_Y, ZONE_AHEAD, atFeet } from './keeperSaves';
 import type { World } from './world';
 
 /** When and where the ball crosses his x-plane. */
@@ -86,7 +86,8 @@ function answer(w: World, k: Keeper, read: ShotRead): KeeperIntent {
     const lineX = keeperGoal(w.field, k.side).lineX + pitchward(w.field, k.side) * (radiusOf(body) + SET_OFF);
     return { move: toward(k, lineX, body.z), dive: null };
   }
-  const gap = Math.max(0, Math.abs(read.z - body.z) - (radiusOf(body) + profile.reachZ));
+  const reachZ = read.y < LOW_Y ? profile.lowReachZ : profile.reachZ;
+  const gap = Math.max(0, Math.abs(read.z - body.z) - (radiusOf(body) + reachZ));
   if (gap <= profile.speed * read.t) return { move: toward(k, body.x, read.z), dive: null };
   return { move: NO_INTENT, dive: { dirX: 0, dirZ: Math.sign(read.z - body.z) } };
 }
