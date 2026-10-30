@@ -7,7 +7,8 @@ import { GUS, GUS_PROFILES } from './gus';
 import { KEEPER_TOP_LEVEL, SET_OFF, keeperProfile, placeKeepers, quietKeepers, standOffSpot, startHold, type Keeper, type KeeperAct } from './keeper';
 import { LOW_Y, keeperSaves } from './keeperSaves';
 import { NO_INTENT, PLAYER_R, heightOf, radiusOf } from './player';
-import { POWERED_S, WAVE_READY_S, canFireWave } from './power';
+import { POWERED_S, WAVE_READY_S, canFireWave, waveTarget } from './power';
+import type { Aim } from './kick';
 import { keeperWorld, runFor, runUntil, setBall, shotAt } from './testKeepers';
 import { fireWave } from './wave';
 import { placeForKickoff, stepWorld, type World } from './world';
@@ -300,6 +301,43 @@ describe('the brace: set, he stops the Energy Wave', () => {
     startHold(w, gus(w), quietKeepers(), true);
     Object.assign(w.home, { x: w.ball.x - 8, z: w.ball.z });
     expect(canFireWave(w)).toBe(false);
+  });
+
+  /** Gus in `act`, `gap` px along the beam from a wave fired at (bx, bz) for `aim`, kept in his box. */
+  function angledWave(bx: number, bz: number, aim: Aim, gap: number, act: KeeperAct): World {
+    const w = gusWorld({ power: true });
+    runFor(w, 0.5);
+    const k = gus(w);
+    Object.assign(w.away, { x: 500, z: 120 });
+    Object.assign(w.home, { x: 900, z: 20 });
+    const g = w.field.goals[1]!;
+    const [dx, dz] = [g.lineX - bx, waveTarget(g, aim, { x: bx, z: bz }) - bz];
+    const d = Math.hypot(dx, dz);
+    const a = k.body.area!;
+    Object.assign(k.body, { x: Math.min(Math.max(bx + (dx / d) * gap, a.x0), a.x1), z: Math.min(Math.max(bz + (dz / d) * gap, a.z0), a.z1), vx: 0, vz: 0 });
+    Object.assign(k, { act, actT: 0.05, dive: act === 'rush' ? null : { dirX: 0, dirZ: Math.sign(bz - k.body.z) || 1 } });
+    setBall(w, { x: bx, z: bz });
+    w.home.kick = { kind: 'wave', aim, active: false, charge: 1, overchargeS: 0 };
+    w.wave = fireWave(w);
+    w.home.kick = null;
+    return w;
+  }
+
+  it('blown in from an angle, he never flies round a post to land beside his net (Review Focus 2)', () => {
+    const g = keeperWorld().field.goals[1]!;
+    const cases: [number, number, Aim, number, KeeperAct][] = [[1215, 60, 'near', 32, 'rush'], [1215, 60, 'near', 32, 'getUp'], [1215, 68, 'far', 32, 'rush']];
+    for (const bx of [1180, 1200, 1215])
+      for (const bz of [20, 40, 60, 68, 88, 108])
+        for (const aim of ['near', 'far', 'straight'] as const)
+          for (const gap of [20, 32, 44]) for (const act of ['rush', 'getUp', 'dive'] as const) cases.push([bx, bz, aim, gap, act]);
+    for (const c of cases) {
+      const w = angledWave(...c);
+      for (let i = 0; i < 90; i++) {
+        stepWorld(w, NO_INTENT, NO_INTENT, 1 / 60);
+        const b = gus(w).body;
+        if (b.x > g.lineX) expect([b.z >= g.z0, b.z <= g.z1], `${c.join(' ')} tick ${i}: (${b.x.toFixed(1)}, ${b.z.toFixed(1)})`).toEqual([true, true]);
+      }
+    }
   });
 
   it('blown into his net, his big body fits inside it and walks out', () => {

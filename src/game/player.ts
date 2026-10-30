@@ -1,6 +1,6 @@
 import { CLIPS, SHOOT_CHARGE_FRAME, SHOOT_STRIKE_FRAME, SKID_FRAME_HOLD, SLIDE_HOLD_FRAME, type AnimName } from '../art/body/animations';
 import { GRAVITY } from './constants';
-import { BACKYARD, playerSpan, type Area, type Field } from './field';
+import { BACKYARD, crossesIntoGoal, playerSpan, type Area, type Field } from './field';
 import { TAP_CHARGE, type Aim } from './kick';
 import type { TrickKind } from './tricks';
 import { SPRINT_MULTIPLIER, chargeTime, jumpVelocity, runSpeed, staminaDrain, staminaRegen, type Stats } from './stats';
@@ -594,8 +594,18 @@ export function stepPlayer(
 
   const [minX, maxX] = playerSpan(field);
   const r = radiusOf(p);
+  const from = { x: p.x, z: p.z };
   p.x = Math.min(Math.max(p.x + p.vx * dt, minX + r), maxX - r);
   p.z = Math.min(Math.max(p.z + p.vz * dt, r), field.depth - r);
+  // A keeper flying along the beam whose centre crosses his goal line by the mouth is caught by the net there,
+  // even when one tick's flight would carry him past a post's edge and out beside it.
+  if (p.area && p.state === 'blown' && !p.inNet) {
+    const g = field.goals.find(g => crossesIntoGoal(g, from, p, r));
+    if (g) {
+      p.inNet = true;
+      p.z = Math.min(Math.max(p.z, g.z0 + r), g.z1 - r);
+    }
+  }
   updateStamina(p, sprinting, dt);
 
   const anim = chooseAnim(p, sprinting, skidding(p, intent));

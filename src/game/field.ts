@@ -75,6 +75,15 @@ export function roofSpan(field: Field, g: Goal): [x0: number, x1: number] {
   return g.side === 'right' ? [g.lineX, field.fenceR] : [field.fenceL, g.lineX];
 }
 
+/** Where a body moving from `from` to `to` crosses g's line into the goal, if its centre does so within `r` of the mouth; else null. */
+export function crossesIntoGoal(g: Goal, from: { x: number; z: number }, to: { x: number; z: number }, r: number): { z: number } | null {
+  const out = g.side === 'right' ? -1 : 1;
+  const [before, after] = [(from.x - g.lineX) * out, (to.x - g.lineX) * out];
+  if (!(before >= 0 && after < 0)) return null;
+  const z = from.z + ((to.z - from.z) * before) / (before - after);
+  return z >= g.z0 - r && z <= g.z1 + r ? { z } : null;
+}
+
 /** Whether (x, z) is inside a goal: between its line and net back, between its posts, grown by margin. */
 export function inGoalBox(g: Goal, x: number, z: number, margin = 0): boolean {
   const x0 = Math.min(g.lineX, g.backX) - margin;
