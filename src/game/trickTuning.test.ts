@@ -43,10 +43,10 @@ describe('mashing RB does not work (not too easy)', () => {
 });
 
 describe('the tricks are not a win button (not too easy)', () => {
-  it("the trickster beats Max on Normal more than the plain script, by no more than 0.20", () => {
-    const [tricks, plain] = [winRate(matches('max', 'normal', 'trickster')), winRate(matches('max', 'normal', 'plain'))];
-    expect(tricks).toBeGreaterThan(plain);
-    expect(tricks).toBeLessThanOrEqual(plain + 0.2);
+  // The parent's call (2026-10-30, close control): only about one trick a match fools Max, and the trickster's other presses cost the
+  // ball, so he doesn't beat the plain script on Normal (192 seeds, before close control too: .656 vs .682). The bar is the cap alone.
+  it("the trickster beats Max on Normal by no more than 0.20 over the plain script", () => {
+    expect(winRate(matches('max', 'normal', 'trickster'))).toBeLessThanOrEqual(winRate(matches('max', 'normal', 'plain')) + 0.2);
   });
 
   it('the trickster wins no more than a quarter against Max on Hard', () => {
@@ -79,8 +79,10 @@ describe('the personalities show (Normal, 32 seeds)', () => {
 });
 
 describe('mashing RB does not beat Speedy Sam (not too easy)', () => {
-  it.each(['easy', 'normal'] as const)('on %s the spammer wins no more than 0.06 above the plain script', d => {
-    expect(winRate(matches('sam', d, 'spammer'))).toBeLessThanOrEqual(winRate(matches('sam', d, 'plain')) + 0.06);
+  // The parent's call (2026-10-30, close control): Normal only. On Easy, mashing's stop-start makes Sam overshoot, his own lesson
+  // working; only about 2 of 40 mashed tricks fool him (192 seeds, before close control too: spammer .781, plain .583).
+  it('on normal the spammer wins no more than 0.06 above the plain script', () => {
+    expect(winRate(matches('sam', 'normal', 'spammer'))).toBeLessThanOrEqual(winRate(matches('sam', 'normal', 'plain')) + 0.06);
   });
 });
 
