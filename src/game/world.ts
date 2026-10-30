@@ -3,6 +3,7 @@ import { seeded, type Rng } from '../engine/random';
 import type { AiProfile } from './ai';
 import { BALL_REST_Y, stepBall, type Ball, type BallEvents } from './ball';
 import { resolveAll, resolveBodies } from './bodies';
+import { stepTurnTouch, turnWithBall, type TurnOutcome } from './closeControl';
 import { canPlace, resolveContacts, type ContactEvents } from './contact';
 import { checkPinned, createDog, dropBall, parkBall, quietDog, resetDog, stepDog, vulnerable, type DogEvents, type DogProfile, type DogState } from './dog';
 import { goalScored, type Field } from './field';
@@ -60,7 +61,7 @@ export interface WorldEvents {
   /** What the keepers did this tick. All quiet without them. */
   keeper: KeeperEvents;
   /** Harrison's turn with the ball this tick; null without one. */
-  turn: 'turned' | 'heavy' | null;
+  turn: TurnOutcome | null;
 }
 
 export interface World {
@@ -256,7 +257,7 @@ function powerEnds(w: World, live: boolean, [, away]: ContactEvents[]): boolean 
 function dogContacts(w: World, dog: DogState, ev: DogEvents, steal: boolean): ContactEvents[] {
   let home = quietContact();
   const carried = dog.carrying;
-  if (!w.wave?.live && w.home.turnS === 0 && w.home.trick === null && (!carried || vulnerable(dog))) {
+  if (!w.wave?.live && w.home.turnS === 0 && w.home.turnTouch === null && w.home.trick === null && (!carried || vulnerable(dog))) {
     if (carried) w.ball.y = BALL_REST_Y;
     home = resolveContacts(w.home, w.away, w.ball, w.aimErrorDeg.home, w.rng, w.field, { trips: false, squeeze: false });
     const jab = steal && dog.jinkS > 0 && w.home.state === 'ground' && ballIn(stealZone(w.home), w.ball, BALL_R);
@@ -296,6 +297,8 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   // A trick press with the stick back is the trick, not a drag-back.
   const started = startTrick(w, homeIntent);
   if (startDragBack(w, homeIntent)) w.ball.touchedBy = 'home';
+  // Turning with the ball his, his touch takes it onto his new line, or a heavy one gives it away.
+  const turn = turnWithBall(w, homeIntent);
   // The computer's nutmeg: its ball goes through a still, square Harrison from here on, until it's clear of him.
   startNutmeg(w, awayIntent);
   // Winding up with the ball at his feet, he rolls it along with him in depth.
@@ -329,6 +332,7 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   const steal = resolveSteal(w, homeIntent);
   if (steal === 'stole' || steal === 'poked' || steal === 'trapped') w.ball.touchedBy = 'home';
   stepDragBack(w, dt);
+  stepTurnTouch(w, dt);
   const trick = { ...stepTrick(w, dt), started };
   // Wrong-footed by a clean steal, he can't be fooled either: the world can't see his brain, so it's wise for that beat.
   if (steal === 'stole') w.away.wiseS = Math.max(w.away.wiseS, w.maxProfile?.wrongFootedS ?? 0);
@@ -346,10 +350,10 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   // The second player to act on the ball has the last word, so take turns going first.
   // A ball just trapped at his feet isn't a 50/50 this tick, so the squirt can't undo the trap at once.
   const squeeze = steal !== 'stole' && steal !== 'trapped';
-  // In a drag-back his sole has the ball, and in a trick the trick has it: only the other player's contacts can take it.
+  // In a drag-back or a turn his sole has the ball, and in a trick the trick has it: only the other player's contacts can take it.
   const contact = (p: Player, other: Player) => {
     // A player fooled by a trick can't play the ball at all; a ball going through someone's legs is nobody's to play until it's clear of him.
-    if (w.wave?.live || w.ball.through || (p === home && (home.turnS > 0 || home.trick !== null)) || p.fooled) return quietContact();
+    if (w.wave?.live || w.ball.through || (p === home && (home.turnS > 0 || home.trick !== null || home.turnTouch !== null)) || p.fooled) return quietContact();
     // Harrison, and a player on soft brakes who can't stop short of his own goal, never knock the ball at it near it.
     const guarded = p === home || p.handling.decel < DECEL;
     // A fooled opponent can't contest the ball, so it's never a 50/50 with him.
@@ -366,6 +370,8 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
     const second = homeFirst ? contact(w.away, home) : contact(home, w.away);
     kicks = homeFirst ? [first, second] : [second, first];
   }
+  // His turn with the ball is a touch: for the meter, his kick's end, and the sound.
+  if (turn) kicks[0] = { ...(kicks[0] ?? quietContact()), touched: true };
   // A ball Harrison blocks, or that comes to rest at his feet, is his: the other side's long touch no longer claims it.
   const resting = Math.hypot(w.ball.vx, w.ball.vz) < BALL_RESTING;
   if (kicks[0]?.blocked || (resting && ballAtFeet(home, w.ball))) w.ball.touchedBy = 'home';
@@ -404,7 +410,7 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
     if (goal === 'home' && STYLE_KINDS.has(w.power.lastKind)) addMeter(w.power, 'styleGoal');
     w.power.lastKind = null;
   }
-  w.events = { kicks, ball, goal, power, dog, steal, trick, keeper, turn: null };
+  w.events = { kicks, ball, goal, power, dog, steal, trick, keeper, turn };
   if (resetForKickoff) {
     placeForKickoff(w);
     w.wave = null;

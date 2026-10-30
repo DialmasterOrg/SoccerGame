@@ -220,6 +220,8 @@ export function startTrick(w: World, intent: PlayerIntent): TrickKind | null {
   const kind: TrickKind = intent.trick === 'flick' && !facingOwnGoalNear(w) ? 'flick' : 'stepover';
   const side = home.z >= w.field.depth / 2 ? 1 : -1;
   home.trick = { kind, t: 0, side, sold: false, pace: kind === 'stepover' ? STEPOVER.pace : 0, onBall: true };
+  // The trick carries the ball; afterwards his line falls back to his facing.
+  home.dribbleLine = null;
   w.ball.touchedBy = 'home';
   return kind;
 }

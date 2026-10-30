@@ -10,7 +10,7 @@ import { POWERED_S, type PowerKit } from './power';
 import { BASE_STATS, runSpeed, type Stats } from './stats';
 import { FOOT_SPOT } from './steal';
 import { trickSetup, type HumanOpponentId } from './opponents';
-import { FLICK, STEPOVER, TRICK_COOLDOWN_S, TRICK_DIFFICULTY, WISE_S, squaredUp, type TrickSetup } from './tricks';
+import { FLICK, STEPOVER, TRICK_COOLDOWN_S, TRICK_DIFFICULTY, WISE_S, squaredUp, startTrick, type TrickSetup } from './tricks';
 import { fireWave } from './wave';
 import { createWorld, stepWorld, type World } from './world';
 import { keeperWorld, runFor, runUntil, setBall } from './testKeepers';
@@ -529,5 +529,14 @@ describe('tricks against a keeper', () => {
     runUntil(w, 0.4, w => w.keepers!.away.body.fooled !== null);
     runUntil(w, 2, w => w.keepers!.away.body.fooled === null);
     expect(w.keepers!.away.body.wiseS).toBeGreaterThan(WISE_S - 0.1);
+  });
+});
+
+describe('tricks and the dribble line', () => {
+  it('starting a trick clears his dribble line', () => {
+    const w = stage();
+    w.home.dribbleLine = { x: 0, z: 1 };
+    expect(startTrick(w, { ...NO_INTENT, trick: 'stepover' })).toBe('stepover');
+    expect(w.home.dribbleLine).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GRAVITY } from './constants';
-import { BASE_STATS, chargeTime, jumpVelocity, maxShotSpeed, runSpeed, staminaDrain, staminaRegen, touchPush } from './stats';
+import { BASE_STATS, chargeTime, jumpVelocity, maxShotSpeed, runSpeed, staminaDrain, staminaRegen, touchPush, turnRisk } from './stats';
 
 describe('stats', () => {
   it('stat curves hit their level 1 and 10 targets', () => {
@@ -12,6 +12,12 @@ describe('stats', () => {
     expect(chargeTime({ ...BASE_STATS, power: 10 })).toBeCloseTo(0.6);
     expect(touchPush(BASE_STATS)).toBe(60);
     expect(touchPush({ ...BASE_STATS, control: 10 })).toBe(25);
+  });
+
+  it('turnRisk: a hard cut at a run gives the ball away a quarter of the time at Control 1, 6% at 10, linear between', () => {
+    expect(turnRisk(BASE_STATS)).toBeCloseTo(0.25, 9);
+    expect(turnRisk({ ...BASE_STATS, control: 10 })).toBeCloseTo(0.06, 9);
+    expect(turnRisk({ ...BASE_STATS, control: 5.5 })).toBeCloseTo(0.155, 9);
   });
 
   it('a max-stat jump clears about 1.2× his height', () => {

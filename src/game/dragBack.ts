@@ -19,18 +19,22 @@ export const TURN_S = 0.2;
 /** The ball is his to turn up to this far ahead of him along his facing: where a dribbled ball runs between touches, as for a power-up... */
 export const DRAG_REACH = POWER_REACH;
 /** ...and this far either side of his line. */
-const DRAG_SIDE = REACH_Z + 3;
+export const DRAG_SIDE = REACH_Z + 3;
 const BALL_LOW = BALL_REST_Y + 3;
 /** The stick must push at least this hard back the other way. */
-const STICK_BACK = 0.5;
+export const STICK_BACK = 0.5;
 
-/** The ball is Harrison's to turn or trick with: low, just ahead of him, in his lane, and not at the opponent's feet nor in the dog's mouth. */
-export function ballIsHis(w: World): boolean {
+/** The ball is Harrison's along `line` (a unit vector): low, just ahead of him along it, near it, and not at the opponent's feet nor in the dog's mouth. */
+export function ballIsHisAlong(w: World, line: { x: number; z: number }): boolean {
   const { home, ball } = w;
-  const ahead = (ball.x - home.x) * home.facing;
-  const his = ball.y <= BALL_LOW && ahead >= 0 && ahead <= DRAG_REACH && Math.abs(ball.z - home.z) <= DRAG_SIDE;
+  const [dx, dz] = [ball.x - home.x, ball.z - home.z];
+  const ahead = dx * line.x + dz * line.z;
+  const his = ball.y <= BALL_LOW && ahead >= 0 && ahead <= DRAG_REACH && Math.abs(dx * line.z - dz * line.x) <= DRAG_SIDE;
   return his && !w.dog?.carrying && !(w.dog === null && maxHasBall(w.away, ball));
 }
+
+/** The ball is Harrison's to turn or trick with: low, just ahead of him, in his lane, and not at the opponent's feet nor in the dog's mouth. */
+export const ballIsHis = (w: World): boolean => ballIsHisAlong(w, { x: w.home.facing, z: 0 });
 
 /**
  * Starts a drag-back when he's on his feet in play, not already turning or

@@ -35,6 +35,8 @@ export const maxShotSpeed = (s: Stats): number => curve(s.power, 430, 640);
 export const chargeTime = (s: Stats): number => curve(s.power, 0.9, 0.6);
 /** How hard a dribble touch pushes the ball ahead of him, px/s: better control keeps it closer. */
 export const touchPush = (s: Stats): number => curve(s.control, 60, 25);
+/** The chance a hard (90°) cut with the ball at a run gives it away: better control keeps it more often. */
+export const turnRisk = (s: Stats): number => curve(s.control, 0.25, 0.06);
 /** Sprint spent per second: a full bar lasts 2 s at level 1, 4 s at level 10. */
 export const staminaDrain = (s: Stats): number => curve(s.stamina, 0.5, 0.25);
 /** Sprint won back per second, not sprinting. */
