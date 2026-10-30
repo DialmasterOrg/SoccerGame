@@ -31,9 +31,9 @@ const crewProfiles = (id: CrewId, dials: Record<Difficulty, Dials>): Record<Diff
 export const CREW_PROFILES: Record<CrewId, Record<Difficulty, AiProfile>> = {
   // Big Brick: hardly slides. Measured E 0.828, N 0.594, H 0.031; defends 85 px deeper than Max, a third of his slides.
   brick: crewProfiles('brick', {
-    // Close control (2026-10-30): Easy reactionS 0.22 → 0.215, Normal cleanSteal 0.75 → 0.66; measured after E 0.859, N 0.688, H 0.031.
-    easy: { aggression: 0.1, shootRange: 190, reactionS: 0.215 },
-    normal: { aggression: 0.2, shootRange: 200, paceFactor: 1.05, cleanSteal: 0.66 },
+    // Close control (2026-10-30): Easy reactionS 0.22 → 0.2 and cleanSteal 0.9 → 0.85, Normal paceFactor 1.05 → 1.06 and cleanSteal 0.75 → 0.6.
+    easy: { aggression: 0.1, shootRange: 190, reactionS: 0.2, cleanSteal: 0.85 },
+    normal: { aggression: 0.2, shootRange: 200, paceFactor: 1.06, cleanSteal: 0.6 },
     hard: { aggression: 0.4, shootRange: 210, paceFactor: 1.2, cleanSteal: 0.4, reactionS: 0.08 },
   }),
   // Boomer Leo: shoots from around halfway, with a full wind-up. Measured E 0.859, N 0.625, H 0.063; his shots start 81 px further out than Max's.
