@@ -81,15 +81,20 @@ export function gusLineup(d: Difficulty): KeeperLineup {
 export const GUS_PARTNER_STATS: Readonly<Stats> = { speed: 3, power: 3, jump: 2, control: 3, stamina: 1 };
 
 /**
- * The all-round dials, a touch slower (paceFactor 0.85 / 0.95 / 0.95), and on Normal
+ * The all-round dials, a touch slower (paceFactor 0.85 / 0.97 / 1.05), and on Normal
  * and Hard harder to rob (cleanSteal 0.5 / 0.4), so Harrison has to work
- * for the ball he has most of the match. Tuned with GUS_PROFILES (see there).
+ * for the ball he has most of the match. Tuned with GUS_PROFILES (see there),
+ * and retuned for close control (2026-10-30): the worker / blaster now win
+ * E 0.813 / 0.391, N 0.625 / 0.125, H 0.406 / 0.063.
  * Mutable, so headless sweeps can try other numbers.
  */
 export const GUS_PARTNER_PROFILES: Record<Difficulty, AiProfile> = profiles(ALL_ROUND, {
-  easy: { paceFactor: 0.85, cleanSteal: 0.9 },
-  normal: { paceFactor: 0.95, cleanSteal: 0.5 },
-  hard: { paceFactor: 0.95, cleanSteal: 0.4 },
+  // Close control (2026-10-30): Easy reactionS 0.22 → 0.2 (the worker beats the blaster by 0.3 again).
+  easy: { paceFactor: 0.85, cleanSteal: 0.9, reactionS: 0.2 },
+  // Close control (2026-10-30): Normal paceFactor 0.95 → 0.97, reactionS 0.16 → 0.17.
+  normal: { paceFactor: 0.97, cleanSteal: 0.5, reactionS: 0.17 },
+  // Close control (2026-10-30): Hard paceFactor 0.95 → 1.05.
+  hard: { paceFactor: 1.05, cleanSteal: 0.4 },
 });
 
 type LineupMatch = Pick<CareerMatch, 'kind' | 'rung' | 'opponent'>;
