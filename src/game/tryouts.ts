@@ -37,7 +37,7 @@ export const profiles = (from: Record<Difficulty, AiProfile>, dials: Partial<Rec
  */
 export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfile>> = {
   // School Max: the all-round dials, a touch less pace on Normal. Measured E 0.813, N 0.594, H 0.063 (keepers at level 1).
-  // Close control (2026-10-30): Easy paceFactor 1 → 1.02, Hard 1.1 → 1.14; measured after E 0.859, N 0.609, H 0.094.
+  // Close control (2026-10-30): Easy paceFactor 1 → 1.02, Hard 1.1 → 1.14; measured after E 0.750, N 0.594, H 0.031.
   max: profiles(ALL_ROUND, { easy: { paceFactor: 1.02 }, normal: { paceFactor: 1.02 }, hard: { paceFactor: 1.14 } }),
   // Header Hank: wins the ball in the air, so Normal is a touch gentler on the ground. Measured E 0.828, N 0.578, H 0.047 (keepers at level 2).
   hank: profiles(ALL_ROUND, {
@@ -59,14 +59,14 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
   finn: profiles(ALL_ROUND, {
     easy: { style: 'faker' },
     normal: { style: 'faker', paceFactor: 1, shootRange: 200 },
-    // Close control (2026-10-30): Hard reactionS 0.1 → 0.08; measured after E 0.875, N 0.594, H 0.078.
+    // Close control (2026-10-30): Hard reactionS 0.1 → 0.08; measured after E 0.844, N 0.609, H 0.063.
     hard: { style: 'faker', paceFactor: 1.15, shootRange: 230, reactionS: 0.08 },
   }),
   // School Tia: the Park's dribbler, shooting from further out, and her fake ends in a shot from 220 px in. Normal a touch slower, Hard sharper.
   // Measured E 0.828, N 0.563, H 0.063 (keepers at level 5); 11.2 fakes a match on Normal, and each one she finishes near goal ends in a shot.
   tia: profiles(CREW_PROFILES.tia, {
     easy: { shootRange: 150, fakeShot: 220 },
-    // Close control (2026-10-30): Normal reactionS 0.16 → 0.14, Hard paceFactor 1.15 → 1.2; measured after E 0.859, N 0.672, H 0.078.
+    // Close control (2026-10-30): Normal reactionS 0.16 → 0.14, Hard paceFactor 1.15 → 1.2; measured after E 0.828, N 0.578, H 0.078.
     normal: { shootRange: 150, paceFactor: 1, fakeShot: 220, reactionS: 0.14 },
     hard: { shootRange: 180, paceFactor: 1.2, cleanSteal: 0.45, fakeShot: 220 },
   }),
