@@ -9,6 +9,7 @@ import { SCHOOL_STAGE } from './stage';
 import { BASE_STATS, runSpeed, touchPush, type Stats } from './stats';
 import { FOOT_SPOT } from './steal';
 import type { Wave } from './wave';
+import { keeperWorld } from './testKeepers';
 import { createWorld, stepWorld, type World } from './world';
 
 const STEP = 1 / 60;
@@ -107,7 +108,6 @@ describe('turning with the ball', () => {
     expect(Math.max(...steps)).toBeLessThanOrEqual(2 * settled);
   });
 
-  it("a heavy touch squirts off nearer his old line, faster than a touch, and he can't touch it for a beat", () => {
   // The final review (2026-10-30): dribbling at his own goal near it, a cut out was a turn touch, and a heavy one squirted the ball on
   // along his old line into his own net (48 of 744 staged heavies at the Backyard). The shield has that ball, as it did before.
   it("dribbling at his own goal near it, a cut out is left to the shield: no turn touch, so no heavy one at his net", () => {
@@ -140,6 +140,7 @@ describe('turning with the ball', () => {
     expect([rolling.home.turnTouch, rolling.home.turnS]).toEqual([null, 0]);
   });
 
+  it("a heavy touch squirts off nearer his old line, faster than a touch, and he can't touch it for a beat", () => {
     const w = dribbling();
     w.touchRng = HEAVY_ROLL;
     const speed = Math.hypot(w.home.vx, w.home.vz);

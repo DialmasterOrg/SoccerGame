@@ -93,7 +93,7 @@ export function stepDragBack(w: World, dt: number): void {
   const dir = home.turnDir ?? { x: home.facing, z: 0 };
   const target = { x: home.x + dir.x * FOOT_SPOT, z: home.z + dir.z * FOOT_SPOT };
   const played = ball.vx !== 0 || ball.vz !== 0 || ball.vy !== 0 || ball.y > BALL_LOW;
-  if (home.state !== 'ground' || played || !canPlace(ball, target.x, target.z, field)) {
+  if (home.state !== 'ground' || played || ballOutOfPlay(w) || !canPlace(ball, target.x, target.z, field)) {
     home.turnS = 0;
     return;
   }

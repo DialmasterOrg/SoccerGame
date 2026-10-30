@@ -100,7 +100,7 @@ export function stepTurnTouch(w: World, dt: number): void {
   const target = { x: home.x + turn.x * FOOT_SPOT, z: home.z + turn.z * FOOT_SPOT };
   const played = ball.vx !== 0 || ball.vz !== 0 || ball.vy !== 0 || ball.y > BALL_LOW;
   const busy = home.state !== 'ground' || home.trick !== null || home.turnS > 0;
-  if (w.match.phase !== 'playing' || busy || played || !canPlace(ball, target.x, target.z, field)) {
+  if (w.match.phase !== 'playing' || busy || played || ballOutOfPlay(w) || !canPlace(ball, target.x, target.z, field)) {
     home.turnTouch = null;
     return;
   }
