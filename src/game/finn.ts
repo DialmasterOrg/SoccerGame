@@ -1,7 +1,7 @@
 import type { AiBrain } from './ai';
 import { NO_INTENT, type Player, type PlayerIntent } from './player';
 import { maxHasBall } from './steal';
-import { attackDir, pickAim, roomySide } from './styles';
+import { attackDir, pickAim, playedIt, roomySide } from './styles';
 import { startMove, type TryoutMove } from './tryoutMoves';
 import type { World } from './world';
 
@@ -51,7 +51,7 @@ export function shapePlay(brain: AiBrain, w: World, me: Player, them: Player): P
   const dir = attackDir(me);
   const [ahead, side, out] = [(them.x - me.x) * dir, them.z - me.z, toGoal(w, me)];
   if (ahead <= 0 || ahead > SHAPE.trigger || Math.abs(side) > SHAPE.lane || out <= 0 || out > brain.profile.shootRange + SHAPE.trigger) return null;
-  const move: ShapeMove = { kind: 'shape', t: 0, side: roomySide(w, them.z, me.z) as 1 | -1, cutAtS: null, aim: pickAim(w) };
+  const move: ShapeMove = { kind: 'shape', t: 0, side: roomySide(w, them.z, me.z) as 1 | -1, cutAtS: null, aim: pickAim(w), dropped: false };
   startMove(brain, move);
   brain.plan = 'dribble';
   return shapeTick(brain, move, w, me, them);
@@ -60,10 +60,14 @@ export function shapePlay(brain: AiBrain, w: World, me: Player, them: Player): P
 /**
  * One tick of his shape. Winding up, planted with the ball held at his feet,
  * he watches Harrison; then lets it go, for real or as a feint and the cut.
- * Null once it's over.
+ * Should Harrison play his ball, the shape is over and a wind-up is dropped
+ * without a kick: his close control never undoes Harrison's play, as Tia's
+ * and Paige's don't. Null once it's over.
  */
 export function shapeTick(brain: AiBrain, move: ShapeMove, w: World, me: Player, them: Player): PlayerIntent | null {
   const dir = attackDir(me);
+  if (playedIt(w, them)) move.dropped = true;
+  if (move.dropped) return me.state === 'charging' ? { ...NO_INTENT, faceX: dir, feint: true } : over(brain);
   const windingUp = me.state === 'charging' || move.t === 0;
   if (move.cutAtS === null && move.t < SHAPE.holdS && commits(w, me, them)) {
     move.cutAtS = move.t + SHAPE.readS;

@@ -3,7 +3,7 @@ import { openCorner } from './aiming';
 import { NO_INTENT, PLAYER_R, type Player, type PlayerIntent } from './player';
 import { chargeTime } from './stats';
 import { maxHasBall } from './steal';
-import { CHASE_OFFSET, attackDir, predictBall } from './styles';
+import { CHASE_OFFSET, attackDir, playedIt, predictBall } from './styles';
 import { startMove, type TryoutMove } from './tryoutMoves';
 import type { World } from './world';
 
@@ -38,9 +38,15 @@ export function followCue(brain: AiBrain, w: World, me: Player, them: Player): v
   brain.plan = 'chase';
 }
 
-/** Her pounce: winding up with the ball held at her feet, then let go at the open corner, and the swing seen through. */
-function pounceTick(move: FollowMove, w: World, me: Player): PlayerIntent | null {
+/**
+ * Her pounce: winding up with the ball held at her feet, then let go at the
+ * open corner, and the swing seen through. Should Harrison play her ball as
+ * she winds up, she drops it without a kick: her close control never undoes
+ * his play, as Paige's doesn't.
+ */
+function pounceTick(move: FollowMove, w: World, me: Player, them: Player): PlayerIntent | null {
   const dir = attackDir(me);
+  if (playedIt(w, them)) return me.state === 'charging' ? { ...NO_INTENT, faceX: dir, feint: true } : null;
   const into = move.t - move.pounceAtS!;
   if (into < POUNCE_CHARGE * chargeTime(me.stats)) {
     const windingUp = into === 0 || me.state === 'charging';
@@ -51,7 +57,7 @@ function pounceTick(move: FollowMove, w: World, me: Player): PlayerIntent | null
 
 /** One tick of following in: sprint to where the loose ball will be, and pounce on it near goal; null once it's over. */
 export function followTick(move: FollowMove, w: World, me: Player, them: Player, steer: Steer): PlayerIntent | null {
-  if (move.pounceAtS !== null) return pounceTick(move, w, me);
+  if (move.pounceAtS !== null) return pounceTick(move, w, me, them);
   if (move.t > POACH.followS || maxHasBall(them, w.ball)) return null;
   const dir = attackDir(me);
   // The ball at her feet, were she facing the goal she attacks: she turns onto it as she winds up.
@@ -59,7 +65,7 @@ export function followTick(move: FollowMove, w: World, me: Player, them: Player,
     const out = toGoal(w, me);
     if (out <= 0 || out > POACH.pounceRange) return null;
     [move.pounceAtS, move.aim] = [move.t, openCorner(w, me)];
-    return pounceTick(move, w, me);
+    return pounceTick(move, w, me, them);
   }
   const at = predictBall(w);
   const behindX = Math.min(Math.max(at.x - dir * CHASE_OFFSET, w.field.fenceL + PLAYER_R), w.field.fenceR - PLAYER_R);

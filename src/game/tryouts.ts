@@ -48,7 +48,7 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
   // Measured E 0.766, N 0.594, H 0.063 (keepers at level 3).
   lola: profiles(DIFFICULTY, { easy: { style: 'chipper' }, normal: { style: 'chipper', paceFactor: 1 }, hard: { style: 'chipper' } }),
   // Fake-Out Finn: shapes to shoot at a Harrison standing in his lane, from further out, and cuts past one who commits.
-  // Normal a touch slower, Hard sharper. Measured E 0.797, N 0.578, H 0.063 (keepers at level 4); Normal shapes 2.56 a match.
+  // Normal a touch slower, Hard sharper. Measured E 0.781, N 0.531, H 0.047 (keepers at level 4); Normal shapes 2.61 a match.
   finn: profiles(DIFFICULTY, {
     easy: { style: 'faker' },
     normal: { style: 'faker', paceFactor: 1, shootRange: 200 },
@@ -62,8 +62,8 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
     hard: { shootRange: 180, paceFactor: 1.15, cleanSteal: 0.45, fakeShot: 220 },
   }),
   // Poacher Priya: follows her shots and his keeper's pushes in, and lingers upfield while Harrison attacks. Normal shoots from closer in, nearer
-  // the rebound; Hard quicker and sharper. Measured E 0.875, N 0.563, H 0.078 (keepers at level 6); Normal 1.64 rebound touches a match vs Max's
-  // brain's 1.20, and 433 px from her goal line while Harrison has the ball in her half vs 348.
+  // the rebound; Hard quicker and sharper. Measured E 0.875, N 0.578, H 0.078 (keepers at level 6); Normal 1.55 rebound touches a match vs Max's
+  // brain's 1.20, and 431 px from her goal line while Harrison has the ball in her half vs 348.
   priya: profiles(DIFFICULTY, {
     easy: { style: 'poacher' },
     normal: { style: 'poacher', shootRange: 140 },

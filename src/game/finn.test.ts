@@ -10,6 +10,8 @@ const STEP = 1 / 60;
 const VARIANTS = [...Array(16)].map((_, i) => i);
 /** The ball counts as still when it moves less than this in a tick. */
 const STILL_PX = 0.05;
+/** How far ahead of Finn a slide he cuts past starts, px: within his shape's trigger. */
+const SLIDE_FROM = 65;
 
 /** Finn on the ball 150 px out from Harrison's goal line, facing it; Harrison standing still `ahead` px ahead of him in his lane, facing him. */
 function shapeUp(i: number, ahead: number, asMax = false): { w: World; brain: AiBrain } {
@@ -77,14 +79,15 @@ describe('Fake-Out Finn', () => {
     }
   });
 
-  it('a slide is cut past: he keeps the ball and gets by, far more often than Max', () => {
+  it('a slide from range is cut past: he keeps the ball and gets by, far more often than Max', () => {
+    // From here his read and cut take the ball out of the slide's path; from closer in the slide reaches it first, and it's Harrison's.
     const slide = { chipHeld: true };
     const finn = VARIANTS.filter(i => {
-      const { w, brain } = shapeUp(i, 50);
+      const { w, brain } = shapeUp(i, SLIDE_FROM);
       return cutPast(w, brain, slide);
     }).length;
     const max = VARIANTS.filter(i => {
-      const { w, brain } = shapeUp(i, 50, true);
+      const { w, brain } = shapeUp(i, SLIDE_FROM, true);
       return cutPast(w, brain, slide);
     }).length;
     expect(finn).toBeGreaterThanOrEqual(12);
@@ -105,6 +108,46 @@ describe('Fake-Out Finn', () => {
       if (maxHasBall(w.away, w.ball) && w.away.x < w.home.x) past++;
     }
     expect(past).toBeGreaterThanOrEqual(12);
+  });
+
+  it("a slide that reaches his ball is Harrison's: Finn's close control never takes it back", () => {
+    let [reached, kept] = [0, 0];
+    for (const i of VARIANTS) {
+      const { w, brain } = shapeUp(i, 35);
+      if (!windsUpWithin(w, brain, 1)) continue;
+      stepKid(w, brain, 0.15);
+      stepKid(w, brain, STEP, { ...NO_INTENT, faceX: 1, chipHeld: true });
+      let tackled = w.events.kicks[0]?.tackledBall ?? false;
+      for (let k = 0; k < 0.5 / STEP && !tackled; k++) {
+        stepKid(w, brain, STEP);
+        tackled = w.events.kicks[0]?.tackledBall ?? false;
+      }
+      if (!tackled) continue;
+      reached++;
+      stepKid(w, brain, 0.3);
+      if (maxHasBall(w.away, w.ball)) kept++;
+    }
+    expect(reached).toBeGreaterThanOrEqual(12);
+    expect(kept).toBeLessThanOrEqual(reached / 4);
+  });
+
+  it("a poke at his wind-up is Harrison's too", () => {
+    let [poked, kept] = [0, 0];
+    for (const ahead of [22, 26])
+      for (const i of VARIANTS) {
+        const { w, brain } = shapeUp(i, ahead);
+        // No clean steals: every tap that reaches the ball pokes it.
+        w.maxProfile = { ...w.maxProfile!, cleanSteal: 0 };
+        if (!windsUpWithin(w, brain, 1)) continue;
+        stepKid(w, brain, 0.15);
+        stepKid(w, brain, STEP, { ...NO_INTENT, faceX: 1, steal: true });
+        if (w.events.steal !== 'poked') continue;
+        poked++;
+        stepKid(w, brain, 0.3);
+        if (maxHasBall(w.away, w.ball)) kept++;
+      }
+    expect(poked).toBeGreaterThanOrEqual(8);
+    expect(kept).toBeLessThanOrEqual(poked / 4);
   });
 
   it('he never fakes the keeper: with Harrison behind him, every wind-up ends in a shot', () => {

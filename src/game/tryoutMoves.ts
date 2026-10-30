@@ -13,7 +13,7 @@ import type { World } from './world';
 export type TryoutMove =
   | { kind: 'head'; t: number; at: { x: number; z: number }; jumpInS: number; jumped: boolean; aim: Aim }
   | { kind: 'chip'; t: number; charge: number; error: number; judged: boolean; pressed: boolean; aim: Aim }
-  | { kind: 'shape'; t: number; side: 1 | -1; cutAtS: number | null; aim: Aim }
+  | { kind: 'shape'; t: number; side: 1 | -1; cutAtS: number | null; aim: Aim; dropped: boolean }
   | { kind: 'follow'; t: number; pounceAtS: number | null; aim: Aim }
   | { kind: 'nutmeg'; t: number; side: 1 | -1 }
   | { kind: 'set'; t: number; aim: Aim }
