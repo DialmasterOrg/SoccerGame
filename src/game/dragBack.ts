@@ -36,19 +36,47 @@ export function ballIsHisAlong(w: World, line: { x: number; z: number }): boolea
 /** The ball is Harrison's to turn or trick with: low, just ahead of him, in his lane, and not at the opponent's feet nor in the dog's mouth. */
 export const ballIsHis = (w: World): boolean => ballIsHisAlong(w, { x: w.home.facing, z: 0 });
 
+/** He must be running faster than this to turn round in depth, px/s. */
+const RUNNING = 20;
+
+/**
+ * The way a turn-round goes: the stick's way, when he's running with the
+ * ball his along his dribble's line and the stick pushes back against
+ * that line by STICK_BACK or more. Null otherwise.
+ */
+function roundTo(w: World, intent: PlayerIntent): { x: number; z: number } | null {
+  const { home } = w;
+  const len = Math.hypot(intent.moveX, intent.moveZ);
+  if (len === 0 || Math.hypot(home.vx, home.vz) <= RUNNING || w.ball.touchedBy !== 'home') return null;
+  const line = home.dribbleLine ?? { x: home.facing, z: 0 };
+  const n = { x: intent.moveX / len, z: intent.moveZ / len };
+  return n.x * line.x + n.z * line.z <= -STICK_BACK && ballIsHisAlong(w, line) ? n : null;
+}
+
 /**
  * Starts a drag-back when he's on his feet in play, not already turning or
  * stumbling, the stick pushes back against the way he faces, and the ball
  * is his: low, just ahead of him, and not at Max's feet nor in the dog's
- * mouth. He faces the new way at once and the ball stops.
+ * mouth. He faces the new way at once and the ball stops. Failing that,
+ * running with the ball and pulling the stick back against his dribble's
+ * line in any other way (up or down the screen, a back diagonal) turns him
+ * round the same way, his facing left to the stick.
  */
 export function startDragBack(w: World, intent: PlayerIntent): boolean {
   const { home, ball } = w;
   const ready = w.match.phase === 'playing' && home.state === 'ground' && home.y === 0 && home.turnS === 0 && home.stumbleS === 0 && home.trick === null;
+  if (!ready || w.wave?.live || ballOutOfPlay(w)) return false;
   const back = Math.sign(intent.moveX) === -home.facing && Math.abs(intent.moveX) >= STICK_BACK;
-  if (!ready || !back || w.wave?.live || ballOutOfPlay(w) || !ballIsHis(w)) return false;
+  if (back && ballIsHis(w)) {
+    home.facing = home.facing === 1 ? -1 : 1;
+    home.turnDir = { x: home.facing, z: 0 };
+  } else {
+    const to = roundTo(w, intent);
+    if (!to) return false;
+    home.turnDir = to;
+  }
   home.turnS = TURN_S;
-  home.facing = home.facing === 1 ? -1 : 1;
+  home.dribbleLine = home.turnDir;
   Object.assign(ball, { y: BALL_REST_Y, vx: 0, vy: 0, vz: 0, spin: 0 });
   return true;
 }
@@ -62,7 +90,8 @@ export function startDragBack(w: World, intent: PlayerIntent): boolean {
 export function stepDragBack(w: World, dt: number): void {
   const { home, ball, field } = w;
   if (home.turnS === 0) return;
-  const target = { x: home.x + home.facing * FOOT_SPOT, z: home.z };
+  const dir = home.turnDir ?? { x: home.facing, z: 0 };
+  const target = { x: home.x + dir.x * FOOT_SPOT, z: home.z + dir.z * FOOT_SPOT };
   const played = ball.vx !== 0 || ball.vz !== 0 || ball.vy !== 0 || ball.y > BALL_LOW;
   if (home.state !== 'ground' || played || !canPlace(ball, target.x, target.z, field)) {
     home.turnS = 0;

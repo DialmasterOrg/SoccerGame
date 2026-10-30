@@ -4,6 +4,8 @@ import { BACKYARD, inGoalBox } from './field';
 import { BALL_R } from '../art/ball';
 import { DIFFICULTY } from './ai';
 import { TURN_S, startDragBack } from './dragBack';
+import { SCHOOL_STAGE } from './stage';
+import { FOOT_SPOT } from './steal';
 import { NO_INTENT, NORMAL_HANDLING, type PlayerIntent } from './player';
 import { BASE_STATS } from './stats';
 import { createWorld, stepWorld, type World } from './world';
@@ -156,5 +158,64 @@ describe('the drag-back', () => {
     stepWorld(w, run(-1), NO_INTENT, STEP);
     expect(w.home.turnS).toBe(0);
     expect(w.ball.x).toBe(at);
+  });
+});
+
+/** A School world in play: Harrison dribbling up the screen from (300, 40) for `ticks`, so his dribble's line is up it. */
+function upTheScreen(ticks = 20): World {
+  const w = createWorld(BASE_STATS, BASE_STATS, 1, { home: 0, away: 0 }, null, null, DIFFICULTY.normal, undefined, null, SCHOOL_STAGE);
+  w.match.phase = 'playing';
+  Object.assign(w.home, { x: 300, z: 40, facing: 1 });
+  Object.assign(w.away, { x: w.field.width - 30, z: 10 });
+  Object.assign(w.ball, { x: 300, y: BALL_REST_Y, z: 48, vx: 0, vy: 0, vz: 0, touchedBy: 'home' });
+  w.touchRng = () => 0.999;
+  for (let i = 0; i < ticks; i++) stepWorld(w, { ...NO_INTENT, moveZ: 1 }, NO_INTENT, STEP);
+  expect(w.home.dribbleLine).toEqual({ x: 0, z: 1 });
+  return w;
+}
+
+/** Steps with `intent` until his turn-round is over; returns whether one ran. */
+function turnRound(w: World, intent: PlayerIntent): boolean {
+  stepWorld(w, intent, NO_INTENT, STEP);
+  const started = w.home.turnS > 0;
+  for (let i = 0; i < 30 && w.home.turnS > 0; i++) stepWorld(w, intent, NO_INTENT, STEP);
+  return started;
+}
+
+describe('turning round in any direction', () => {
+  it('running up the screen, pulling the stick down turns him round with the ball', () => {
+    const w = upTheScreen();
+    expect(turnRound(w, { ...NO_INTENT, moveZ: -1 })).toBe(true);
+    expect(Math.abs(w.ball.x - w.home.x)).toBeLessThan(1);
+    expect(w.ball.z - w.home.z).toBeCloseTo(-FOOT_SPOT, 0);
+    expect(w.home.facing).toBe(1);
+    expect(w.home.dribbleLine).toEqual({ x: 0, z: -1 });
+  });
+
+  it('a back-diagonal pull turns him round too', () => {
+    const w = upTheScreen();
+    const [x, z] = [0.6, -0.8];
+    expect(turnRound(w, { ...NO_INTENT, moveX: x, moveZ: z })).toBe(true);
+    expect(w.ball.x - w.home.x).toBeCloseTo(x * FOOT_SPOT, 0);
+    expect(w.ball.z - w.home.z).toBeCloseTo(z * FOOT_SPOT, 0);
+  });
+
+  it("pulling back along the pitch is today's drag-back, now with its direction", () => {
+    const w = stage({ x: 300, facing: 1, bx: 310 });
+    expect(startDragBack(w, run(-1))).toBe(true);
+    expect(w.home.turnDir).toEqual({ x: -1, z: 0 });
+    expect(w.home.dribbleLine).toEqual({ x: -1, z: 0 });
+  });
+
+  it('a 110° cut is a turn touch, not a turn-round', () => {
+    const w = upTheScreen();
+    const cut = { ...NO_INTENT, moveX: 0.94, moveZ: -0.34 };
+    let turn = null;
+    for (let i = 0; i < 12 && !turn; i++) {
+      stepWorld(w, cut, NO_INTENT, STEP);
+      expect(w.home.turnS).toBe(0);
+      turn = w.events.turn;
+    }
+    expect(turn).toBe('turned');
   });
 });
