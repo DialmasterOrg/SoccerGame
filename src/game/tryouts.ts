@@ -42,8 +42,9 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
   // Header Hank: wins the ball in the air, so Normal is a touch gentler on the ground. Measured E 0.828, N 0.578, H 0.047 (keepers at level 2).
   hank: profiles(ALL_ROUND, {
     easy: { style: 'header' },
-    normal: { style: 'header', paceFactor: 1, aimErrorDeg: 7, aggression: 0.45, cleanSteal: 0.8 },
-    hard: { style: 'header' },
+    // Close control (2026-10-30): Normal cleanSteal 0.8 → 0.75 (his headers), Hard 0.55 → 0.45; measured after E 0.844, N 0.563, H 0.063.
+    normal: { style: 'header', paceFactor: 1, aimErrorDeg: 7, aggression: 0.45, cleanSteal: 0.75 },
+    hard: { style: 'header', cleanSteal: 0.45 },
   }),
   // Lofty Lola: chips any keeper off his line at the corner away from him, and over a Harrison charging at her. Normal a touch slower.
   // Measured E 0.766, N 0.594, H 0.063 (keepers at level 3).
