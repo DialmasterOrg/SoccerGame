@@ -38,9 +38,11 @@ export const CREW_PROFILES: Record<CrewId, Record<Difficulty, AiProfile>> = {
   }),
   // Boomer Leo: shoots from around halfway, with a full wind-up. Measured E 0.859, N 0.625, H 0.063; his shots start 81 px further out than Max's.
   leo: crewProfiles('leo', {
-    easy: { shootRange: 300 },
-    normal: { shootRange: 360, cleanSteal: 0.65, reactionS: 0.14, paceFactor: 1.06 },
-    hard: { shootRange: 380, cleanSteal: 0.45, paceFactor: 1.15, reactionS: 0.08 },
+    // Close control (2026-10-30): Easy cleanSteal 0.9 → 0.7, Normal paceFactor 1.06 → 1.05 (his long shots), Hard paceFactor 1.15 → 1.18;
+    // measured after E 0.891, N 0.672, H 0.078.
+    easy: { shootRange: 300, cleanSteal: 0.7 },
+    normal: { shootRange: 360, cleanSteal: 0.65, reactionS: 0.14, paceFactor: 1.05 },
+    hard: { shootRange: 380, cleanSteal: 0.45, paceFactor: 1.18, reactionS: 0.08 },
   }),
   // Tricky Tia: fakes anyone standing in her path, shoots only from close in. Measured E 0.766, N 0.594, H 0.000; 10.3 fakes a match.
   tia: crewProfiles('tia', {
