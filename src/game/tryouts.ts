@@ -48,9 +48,9 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
   }),
   // Lofty Lola: chips any keeper off his line at the corner away from him, and over a Harrison charging at her. Normal a touch slower.
   // Measured E 0.766, N 0.594, H 0.063 (keepers at level 3).
-  // Close control (2026-10-30): Easy cleanSteal 0.9 → 0.85, Normal 0.75 → 0.71; measured after E 0.891, N 0.688, H 0.047.
+  // Close control (2026-10-30): Easy cleanSteal 0.9 → 0.75 and reactionS 0.22 → 0.17, Normal cleanSteal 0.75 → 0.71.
   lola: profiles(ALL_ROUND, {
-    easy: { style: 'chipper', cleanSteal: 0.85 },
+    easy: { style: 'chipper', cleanSteal: 0.75, reactionS: 0.17 },
     normal: { style: 'chipper', paceFactor: 1, cleanSteal: 0.71 },
     hard: { style: 'chipper' },
   }),
