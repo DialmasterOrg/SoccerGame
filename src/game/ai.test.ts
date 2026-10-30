@@ -1269,3 +1269,36 @@ describe("the tryouts' personalities", () => {
     expect(Math.hypot(intent.moveX, intent.moveZ)).toBeCloseTo(1);
   });
 });
+
+// Close control's re-measure (2026-10-30) reached three of these: a ball wedged in a pocket behind a goal line, by a fence or a
+// wall, with a player who means to play it standing over it, or pressing into the fence to get goal-side of it.
+describe('a ball wedged in a pocket behind a goal line', () => {
+  const pocket = (o: { home: [number, number]; away: [number, number]; ball: [number, number]; stage?: Stage; awayProfile?: AiProfile; awayStats?: Stats }) => {
+    const w = createWorld(BASE_STATS, o.awayStats ?? BASE_STATS, 1, { home: 0, away: 0 }, null, null, o.awayProfile ?? DIFFICULTY.normal, o.awayProfile ? SAM_HANDLING : NORMAL_HANDLING, null, o.stage);
+    w.match.phase = 'playing';
+    Object.assign(w.home, { x: o.home[0], z: o.home[1], vx: 0, vz: 0, facing: 1 });
+    Object.assign(w.away, { x: o.away[0], z: o.away[1], vx: 0, vz: 0, facing: -1 });
+    Object.assign(w.ball, { x: o.ball[0], y: BALL_REST_Y, z: o.ball[1], vx: 0, vy: 0, vz: 0 });
+    return w;
+  };
+  const moving = (i: PlayerIntent) => Math.hypot(i.moveX, i.moveZ) > 0.5;
+
+  it('by his own goal, against the end fence just behind him, he still goes for it rather than stand over it', () => {
+    const w = pocket({ home: [9, 13], away: [33, 18.3], ball: [8.8, 11.5] });
+    expect(moving(think(brainFor(), w, w.home, w.away, STEP))).toBe(true);
+  });
+
+  it('behind the line he attacks, against the far wall within his reach, he still runs into it', () => {
+    const w = pocket({ home: [1271, 103], away: [1221, 105], ball: [1271.2, 105.4], stage: SCHOOL_STAGE });
+    const i = think(brainFor(), w, w.home, w.away, STEP);
+    expect(moving(i)).toBe(true);
+    expect(i.moveZ).toBeGreaterThan(0);
+  });
+
+  it('behind his own goal line, the speedster on the wrong side of it goes at the ball, not into the fence', () => {
+    const w = pocket({ home: [625, 13], away: [631, 5], ball: [632.8, 14.9], awayProfile: SAM_PROFILES.normal, awayStats: SAM_STATS });
+    const i = think(createBrain(SAM_PROFILES.normal), w, w.away, w.home, STEP);
+    expect(moving(i)).toBe(true);
+    expect(i.moveZ).toBeGreaterThan(0.5);
+  });
+});

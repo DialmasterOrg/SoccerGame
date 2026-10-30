@@ -105,6 +105,8 @@ export interface AiBrain {
 export interface Steer {
   base: PlayerIntent;
   to(x: number, z: number, aimZ?: number): PlayerIntent;
+  /** As `to`, for a ball it means to play: it never stops short, so a ball wedged within its reach still gets touched. */
+  into(x: number, z: number): PlayerIntent;
 }
 
 const BALL_LOW = 6;
@@ -154,11 +156,11 @@ export function createBrain(profile: AiProfile): AiBrain {
   return { profile, nextDecisionS: 0, intent: { ...NO_INTENT }, plan: 'chase', chargeLeftS: 0, slideReadyS: 0, backOff: null, wrongFootedS: 0, kickoffHoldS: null, fake: null, fakeReadyS: 0, fakes: 0, move: null, started: {} };
 }
 
-/** A unit stick direction from `me` toward (x, z), or still once there. */
-function steer(me: Player, x: number, z: number): [number, number] {
+/** A unit stick direction from `me` toward (x, z), or still once there (within `arrive`). */
+function steer(me: Player, x: number, z: number, arrive = ARRIVE): [number, number] {
   const [dx, dz] = [x - me.x, z - me.z];
   const d = Math.hypot(dx, dz);
-  return d <= ARRIVE ? [0, 0] : [dx / d, dz / d];
+  return d <= arrive ? [0, 0] : [dx / d, dz / d];
 }
 
 /**
@@ -314,17 +316,15 @@ function faceWave(brain: AiBrain, w: World, me: Player, wave: Wave): void {
 export function steerFor(brain: AiBrain, w: World, me: Player, them: Player): Steer {
   const dist = Math.hypot(w.ball.x - me.x, w.ball.z - me.z);
   const base: PlayerIntent = { ...NO_INTENT, sprint: pressSprint(brain.profile.style, dist, me.stamina), pace: brain.profile.paceFactor };
-  return {
-    base,
-    to(x, z, aimZ = z) {
-      const spot = outOfGoals(w, x, z);
-      const next = route(w, me, spot.x, spot.z);
-      // Rounding a goal, it passes the opponent on the side of the corner it's heading for.
-      const sideZ = next.x === spot.x && next.z === spot.z ? aimZ : next.z;
-      const [moveX, moveZ] = goRound(w, me, them, steer(me, next.x, next.z), sideZ);
-      return { ...base, moveX, moveZ };
-    },
+  const go = (x: number, z: number, aimZ: number, arrive: number): PlayerIntent => {
+    const spot = outOfGoals(w, x, z);
+    const next = route(w, me, spot.x, spot.z);
+    // Rounding a goal, it passes the opponent on the side of the corner it's heading for.
+    const sideZ = next.x === spot.x && next.z === spot.z ? aimZ : next.z;
+    const [moveX, moveZ] = goRound(w, me, them, steer(me, next.x, next.z, arrive), sideZ);
+    return { ...base, moveX, moveZ };
   };
+  return { base, to: (x, z, aimZ = z) => go(x, z, aimZ, ARRIVE), into: (x, z) => go(x, z, z, 0) };
 }
 
 function decide(brain: AiBrain, w: World, me: Player, them: Player): void {
@@ -381,7 +381,7 @@ function decide(brain: AiBrain, w: World, me: Player, them: Player): void {
     // Behind the line it attacks, the ball is in a pocket beside the goal with no room to get round it:
     // run into it, so it is touched or popped back out toward the pitch.
     const behindLine = (attacking.lineX - ball.x) * dir < 0;
-    brain.intent = behindLine ? moveTo(ball.x, ball.z) : moveTo(attacking.lineX, goalCentreZ(attacking));
+    brain.intent = behindLine ? steering.into(ball.x, ball.z) : moveTo(attacking.lineX, goalCentreZ(attacking));
     return;
   }
 
@@ -396,7 +396,10 @@ function decide(brain: AiBrain, w: World, me: Player, them: Player): void {
     brain.plan = 'defend';
     // The speedster coming back from behind it goes round, never through it: his long touch, or a slide, would send it at his own goal.
     if (speedster && wrongSide) {
-      brain.intent = moveTo(defendSpot(profile.style, w, me, defending).x, besideZ);
+      const roundX = defendSpot(profile.style, w, me, defending).x;
+      // Against a fence there's no room to go round it: he goes at the ball from where he is.
+      const fenced = roundX < w.field.fenceL + PLAYER_R || roundX > w.field.fenceR - PLAYER_R;
+      brain.intent = fenced ? steering.into(ball.x, ball.z) : moveTo(roundX, besideZ);
       return;
     }
     const facingBall = Math.sign(ball.x - me.x) === me.facing;
@@ -436,7 +439,7 @@ function decide(brain: AiBrain, w: World, me: Player, them: Player): void {
   const behindX = at.x - dir * CHASE_OFFSET;
   // Against a fence there's no room to get behind the ball: play it from where it is.
   if (behindX < w.field.fenceL + PLAYER_R || behindX > w.field.fenceR - PLAYER_R) {
-    brain.intent = moveTo(at.x, at.z);
+    brain.intent = steering.into(at.x, at.z);
     return;
   }
   brain.intent = moveTo(behindX, wrongSide ? besideZ : at.z, at.z);
