@@ -257,6 +257,12 @@ describe('think', () => {
     });
   });
 
+  it("Max's dials are the all-round ones, a touch quicker on Easy and Hard (close control, 2026-10-30)", () => {
+    expect(DIFFICULTY.easy).toEqual({ ...ALL_ROUND.easy, paceFactor: 1.02 });
+    expect(DIFFICULTY.normal).toEqual(ALL_ROUND.normal);
+    expect(DIFFICULTY.hard).toEqual({ ...ALL_ROUND.hard, paceFactor: 1.13 });
+  });
+
   it('a whole simulated match between two AIs finishes with a result and no exceptions', () => {
     const w = createWorld(BASE_STATS, BASE_STATS, 11, { home: 6, away: 6 });
     const home = brainFor();
