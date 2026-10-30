@@ -1116,3 +1116,245 @@ shot saved, which felt too hard to score on. The keepers' targets above
   one-on-one on Normal .94 at level 1. No slow roller ever goes in;
   scripted Normal matches average .63 goals a side, at most 2. The
   Normal corner band is now .65-.9.
+
+## As built: plan 4
+
+Built on 2026-10-29, Tasks 1–10 in one inline run (`main` has carried
+Tasks 1–9 since the parent's push at 7a09e3e, so Harrison could play the
+School; Paige is on the branch). Checked in the browser on frames drawn by
+the real scenes, and in the live loop: each tryout's panel on the venue
+screen draws that kid's face; the VS cards for tryouts 2, 5 and 8 draw the
+kid, Hank's taller sprite included (45 rows to everyone else's 43); every
+new kid's tryout plays at exactly 3× with uniform 3×3 blocks and the HUD
+reading `HARRISON 0-0 HANK` (and so on); and Harrison in WHITE against Hank
+puts Hank in black on the VS card and in the match. The choices this spec
+left to the builder, and what changed on the way:
+
+- **Who plays each tryout.** `TRYOUT_ORDER` is Max, Hank, Lola, Finn,
+  Tia, Priya, Niko, Paige; every tryout's keepers play at its number's
+  level (`keeperLevel` of the catalog match, 1–8). Stats as built
+  (`TRYOUT_STATS`, Speed/Power/Jump/Control, Stamina 1 for all): Max
+  5/5/3/4, Hank 4/4/7/3, Lola 5/5/3/6, Finn 7/5/3/5, Tia 6/4/3/8, Priya
+  8/5/3/6, Niko 6/5/3/9, Paige 6/9/3/6. `opponentStats` and the AI
+  profile lookups take the match's venue, so Max at tryout 1 and Tia at
+  tryout 5 are their School selves, and a difficulty change in Options
+  mid-tryout keeps the School profile at the new difficulty.
+- **The measuring harness** (`tryoutScripts.ts`, `tryoutTuning.ts`). Every
+  kid is measured on seeds 100–163 against a frozen scripted School
+  Harrison one level up on every stat (`harrisonStatsFor`), with keepers.
+  The script is the Park's, with his brain's charges placed at the open
+  corner and one follow-up per keeper push (his kickoff shot stays
+  unaimed). `describeTryout` pins each kid's E/N/H band and a personality
+  check against Max's brain at the kid's stats; `TryoutTraits` counts
+  headers, chips, chip goals, rebound touches, shot lines and shots in
+  his line, wind-ups, strays, moves, fakes (and those run to their end),
+  fake-to-shots, nutmegs (and unfair ones), and depth while he has the
+  ball in her half. A personality check can read every difficulty's
+  traits at once (`all`) for rare events.
+- **The hooks the kids share** (`tryoutMoves.ts`): one `TryoutMove` per
+  kid at a time on `AiBrain.move`, started with `startMove`, played by
+  `onBallPlay` (the ball at the kid's feet), `looseBallPlay` (a loose
+  ball), `cueMove` (a one-tick cue, checked every tick: Priya's only) and
+  `tickMove` (a move in progress). Outside play, a powered-up Harrison,
+  a keeper's catch, a goal or his clean steal ends the move that tick and
+  the kid decides afresh. Shared helpers moved unchanged from `ai.ts` to
+  `styles.ts` (`pickAim`, `roomySide`, `predictBall`, `CHASE_OFFSET`,
+  `playedIt`); `ai.ts` gained `startCharge` (Max's charge).
+- **Header Hank** (`hank.ts`, `HEADING` headY 37, rise 0.6, range 160,
+  reachS 1.2). He meets a high ball with his head 0.6 of the way up his
+  jump: at the apex the spot lies about 80 px before the landing and is
+  never reachable. He goes when he can sprint to the spot before
+  Harrison, runs at the pace that puts him under it at contact, and holds
+  his facing and aim through the jump. Measured E .828 N .578 H .047
+  (keepers level 2); on Normal 6.45 headers a match against Max's
+  brain's 2.91 at his stats.
+- **Lofty Lola** (`lola.ts`, `LOFT`). She chips the corner away from the
+  keeper (`openCorner`), judged along that line (`judgedChip` gained an
+  aim): straight chips at a keeper 25 px out scored 3 in 16, the open
+  corner 11 in 16. A keeper counts as off his line from 8 px (the spec's
+  12 never fired: tryout 3's keeper stands about 9 px out). Over a
+  Harrison charging at her she chips the weakest charge that clears his
+  head where they meet, from up to 260 px ahead. A chip needs the ball
+  settled at her feet first (she gathers for up to 1 s). Measured E .766
+  N .594 H .063 (level 3); Normal 2.05 chips a match to Max's brain's .92,
+  and 11 chip goals over the 64 seeds to its 2.
+- **Fake-Out Finn** (`finn.ts`, `SHAPE` trigger 70, lane 14, holdS .45,
+  lunge 60, cutS .3, cooldownS 1.5). He shapes only at a Harrison on his
+  feet in his lane, planted, the ball held at his feet; a Harrison who
+  commits (a slide, a steal, a lunge) is cut past at a sprint, then he
+  straightens at wind-up pace so Max's charge can take over without the
+  ball running off. Should Harrison play the ball first (a slide or poke
+  that reaches it), the shape is over and his wind-up is dropped without
+  a kick: his cut beats a slide from about 65–70 px, and a slide from
+  closer in wins the ball. Measured E .781 N .531 H .047 (level 4);
+  Normal 2.61 shapes a match, Max's brain none.
+- **Tricky Tia** (the Park's dribbler, `fakeShot` 220). A fake that runs
+  its course with the ball at her feet within 220 px of the line ends in
+  a shot (`startCharge`). Measured E .828 N .563 H .063 (level 5), 11.2
+  fakes a match on Normal.
+- **Poacher Priya** (`priya.ts`, `POACH` lingerX 160, followS 2,
+  pounceRange 160). Any kick of hers toward goal, and his keeper's push,
+  start a follow-in on that tick: a sprint to the predicted ball, then a
+  planted pounce at half her charge time, at the open corner, dropped
+  without a kick should Harrison play the ball first. She lingers upfield
+  while he attacks, and reads his dribble touch as still his. Measured E
+  .875 N .578 H .078 (level 6); on Normal 1.55 rebound touches a match to
+  Max's brain's 1.20, first to 37 of 74 pushes to its 28 of 76, and 431
+  px from her line while he has the ball in her half to 348.
+- **Nutmeg Niko** (`niko.ts`, `nutmeg.ts`). The world rule: a press of
+  `PlayerIntent.nutmeg` at a Harrison standing still (under 8 px/s) and
+  square, with the ball and Harrison within 26 px ahead and 4 px of his
+  lane, sends the ball at 150 px/s along the push (`Ball.through`, with
+  its direction). Both outfield players' contacts are quiet while it goes
+  through; keepers play it as usual. The flag ends once the ball is past
+  him, after 0.4 s, or at any kickoff. Niko then runs round him on the
+  roomier side (`ROUND`, at most 1 s) and Max's chase collects it.
+  Measured E .813 N .547 H .047 (level 7); 1, 1 and 8 nutmegs over the 64
+  E/N/H matches, Max's brain none, and none unfair in all 192.
+- **Pinpoint Paige** (`paige.ts`, `SNIPE` setS .3, charge .78, lookS 1.2).
+  In range she sets (planted, 0.3 s), looks for a clear line to the open
+  corner (up to 1.2 s), and snipes: a planted wind-up with the ball held
+  at her feet, let go at 0.78 of her charge time. She only shoots at a
+  corner within the steepest aim (`MAX_AIM_SLOPE`), carrying the ball
+  toward the middle first, and away from Harrison's body when he blocks
+  the look. When she can't set (his touch, or a spent look) she dribbles
+  on at goal rather than taking Max's charge. A touch, kick, tackle, poke
+  or trap of his ends her set, look or wind-up that tick. Measured E .797
+  N .609 H .031 (level 8); on Normal her shots on target cross 4.5 px from
+  the post to Max's brain's 15.7, and none of her 133 wind-ups starts with
+  Harrison in her line (Max's brain: 87 of 676).
+- **School Max** plays Max's own dials, Normal at pace 1.02. Measured E
+  .813 N .594 H .063 (level 1).
+- **The kits.** Hank SNOW (white, ink shorts and trim), Lola SUN
+  (yellow), Finn NIGHT (black, ink), Priya OLIVE, Niko COCOA (brown, in white
+  boots: dark ones took his frames to 14 colours), Paige PLUM (purple). Finn's
+  hair is a sandy blond (`goldDark`/`hairTip`/`energyGoldLight`): the
+  plain hair ramp read as bald on tan skin. A kid changes into black or
+  white whenever Harrison's kit shares their family (white with Hank,
+  black or black-gold with Finn, gold with Lola, purple with Paige); no
+  kit uses a keeper top's colours, and no gold kit plays an even tryout.
+- **A latent fix in `ai.ts`.** `goRound` divided by zero when a player
+  heading straight across in depth met the opponent just ahead with the
+  preferred sidestep exactly opposite: NaN positions froze a Normal match
+  for 30 s (seed 127, found by Paige). That side is now skipped; only the
+  case that produced NaN changes.
+- **Each stronger than the last: logged, not pinned.** One fixed School
+  Harrison at `harrisonStatsFor(TRYOUT_STATS.max)`, each kid at their
+  tryout's keeper level, Normal, seeds 100–163, his win rate (after the
+  review's fix): Max .594, Hank .766, Lola .500, Finn .375, Tia .469,
+  Priya .500, Niko .453, Paige .484. **Not monotone.** Hank (Speed 4, Control 3) is easier than Max
+  for a Harrison who doesn't grow; Finn (Speed 7) is the toughest. In the
+  career Harrison grows between tryouts, and every kid's own band is
+  measured a level above them.
+- **For the parent: what shows rarely in scripted play.**
+  - Tia's fake-shot: only 23 of 350 fakes run their course against the
+    script's steal taps (63% broken up inside the 0.25 s lean), so about
+    one fake-shot in 16 Normal matches. It shows against a Harrison who
+    waits, not one who taps into her lean.
+  - Priya's poaching is modest: first to about half his keeper's
+    pushes (Max's brain: 37%). Her lingering shows clearly.
+  - Finn's cut beats a slide only from about 65–70 px. Before the final
+    review his close control snapped a tackled ball back to his feet;
+    now a slide from closer in wins it, as against Max. A faster read
+    (0.04 s) only widens his window to 60 px and makes Hard too hard;
+    a longer trigger or a knocked cut would be a re-tune.
+  - Lola chips any keeper once she's in range with Harrison out of her
+    lane: a School keeper set about 9 px out already counts as off his
+    line.
+  - Niko's nutmeg needs a Harrison who stands still and square in his
+    path: about one in 64 Normal matches against the script, which is the
+    lesson.
+  - Paige's calls beyond the plan: her charge is 0.78, not 0.88, which
+    sat inside the sweet spot and made every snipe PERFECT (×1.15 pace,
+    the callout over her every shot, and her aim error void); she only
+    shoots a corner within the steepest aim; she never takes Max's charge
+    in range; and his poke in her wind-up makes her drop it.
+- **The rulings** (each with its cost in the plan's ledger), in short:
+  - *Harness.* School Max's Normal brain is the yardstick at each kid's
+    stats; the script's kickoff shot stays unaimed and follow-ups reuse
+    his charge once per push; shot lines count driven shots only;
+    tryoutMatch's keepers play at the catalog match's level.
+  - *Art.* Ink, not black, for the darkest shades (the outline-contrast
+    rule); Niko's white boots; Finn blonder than "sandy".
+  - *Hank.* His drop-kick test stages a real punt; `HEADING.rise`; the
+    move lasts through his jump; moves end outside play and the kid
+    decides afresh; `kidWorld` takes `power`.
+  - *Lola.* Personality measured against Max's brain's own chips (his
+    pressed slide is a chip); the judged over-chip; the open-corner chip;
+    `keeperOff` 8; chips gather the ball first, re-judge late, and an
+    over-full charge goes at full (a 21.7 s stall, fixed); gather intents
+    face her goal (a 42 s stall, fixed).
+  - *Finn.* Planted with `carry` through the shape; straightens at
+    wind-up pace; `aim` drawn once; `fakeReadyS` shared as his cooldown;
+    shapes only at a Harrison on the ground; the near-miss steal reads as
+    'missed'.
+  - *Tia.* The personality measures fake-shots on the fakes that run
+    their course (`fakesFinished`); the fake-shot starts inside `fakeTick`
+    at the fake's end through `startCharge`.
+  - *Priya.* The `cueMove` hook; her own pounce wind-up; "her own shot"
+    is any kick at goal; `theirBall('poacher')`; personality re-ruled to
+    rebound touches ≥ 1.25× Max's brain's and depth in her half (+80).
+  - *Niko.* `Ball.through.dir`; `startNutmeg` at the top of `stepWorld`;
+    both outfield contacts quiet while it goes through; a steal tap at a
+    through ball reaches nothing; a stumbling Harrison counts as still;
+    the run round's dials; personality re-ruled to staged tests plus
+    ≥ 3 nutmegs over all 192 matches, none unfair.
+  - *Paige.* A third move, the snipe; she reads the ball as if facing
+    the goal she attacks; corners only within reach; never Max's charge
+    in range; her moves end the tick he plays her ball; charge 0.78; the
+    `goRound` NaN fix.
+  - *After the review.* Finn's and Priya's moves end the tick he plays
+    their ball, as Paige's do (Finn's shape gains `dropped`); Finn's
+    slide test is staged from 65 px, where his cut fairly beats a slide;
+    `readS` stays 0.08.
+- **The art and the parent's verdict.** The tryouts sheet (all six kids)
+  went to the parent alone and was **approved on 2026-10-29** ("I approve
+  all the proposed art from this session"). Niko's nutmeg GIF (the real
+  match scene at tryout 7) went to the parent alone the same day; **their
+  look at it is pending.** The browser walk's stills (venue panels, VS
+  cards 2/5/8, tryouts 2–8 in play, the change kit) went to the parent
+  alone on 2026-10-29: **"All the stills look good."**
+- **The final review** (a fresh reviewer on the most capable model, with
+  about 1,500 headless matches against Harrisons the script never plays:
+  idle, steal and slide spam, chasing, marking, waiting square in the
+  kid's path, parked in his own goal mouth): "ready to merge with
+  fixes", nothing Critical, Review Focus 1–5 holding under stress, and
+  the Backyard and Park code paths unchanged. Its one Important was
+  fixed with tests: Finn's shape and Priya's pounce held the ball at
+  their feet the tick after Harrison's slide or poke reached it, so his
+  tackle was undone (16 of 16 kept); now they drop it, as Paige does.
+  Its minors are deferred: Priya can put a few shots into the side
+  netting from beside the post against a Harrison who stands off (Max's
+  brain does too; both fixes tried cost her rebound measure); Lola's
+  wide over-chip range also switches her keeper chip off with Harrison
+  in her lane, and her "never on his line" guard never fires in play;
+  the NaN test's name claims a sidestep it no longer makes; no test of
+  a `through` ball expiring short of him, a weak keeper-save nutmeg
+  test, and no test across kids that a carry never undoes his play;
+  import cycles (`styles` to `priya`, the kids and `tryoutMoves`,
+  `tryoutScripts` to `scenes/goalFacts`); "the goal I attack" looked up
+  about eight times; `fakeReadyS` serving three kids; `judgedChip` at
+  about 2 ms a call. Its declined-to-judge list was ruled on: a Harrison
+  standing by a still ball near his own goal can stall play for 30 s or
+  more, which Max's brain does too (a later look); the kits stand as
+  the parent approved them; the uneven order stands as logged; the
+  rest are physics or probe artifacts.
+- **1960 tests** (1820 at plan 3's end), typecheck and build green. The
+  Backyard and the Park measure number for number as before the plan
+  (Task 1's baseline, re-run after every task and after the review's
+  fix).
+
+Notes for plan 5 (Goalie Gus):
+
+- Gus's slot plays School Max (rung-1 stats, keepers at the top level)
+  until plan 5 gives `school-boss` its opponent.
+- Help has no vertical-fit test (THE MATCH's eleven lines end at row
+  139, 23 above the footer), and plan 5 adds Gus's line after Sam's.
+- Hooks Gus can reuse: `TryoutMove` plus `startMove`, `onBallPlay`,
+  `looseBallPlay`, `cueMove` and `tickMove`; `kidWorld`/`stepKid` for
+  staged tests; `describeTryout` with a personality and `all`;
+  `tryoutMatch` and the frozen School script; `playedIt`, `predictBall`,
+  `openCorner` and `judgedChip`. `TryoutTraits` already counts what a
+  keeper-captain would need measured (shot lines, rebound touches,
+  goals), and `GoalRecord.outsideBox`/`rebound` are recorded in every
+  match.
