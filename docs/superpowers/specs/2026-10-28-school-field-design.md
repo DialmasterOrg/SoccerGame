@@ -1358,3 +1358,145 @@ Notes for plan 5 (Goalie Gus):
   keeper-captain would need measured (shot lines, rebound touches,
   goals), and `GoalRecord.outsideBox`/`rebound` are recorded in every
   match.
+
+## As built: plan 5
+
+Built on 2026-10-29 over two inline sessions (Tasks 1–3, then 4–8), with
+Task 6 stopped once for the parent's word. Checked in the browser on
+frames drawn by the real scenes, and in the live loop: the venue screen
+draws Gus's face in the boss node and the panel; his VS card reads THE
+SCHOOL BOSS / HARRISON VS GOALIE GUS / BONUS: PUT 3 PAST GUS, adds `TIP:
+KEEP IT LOW. MAKE HIM DIVE.` after one loss, and draws Gus himself below
+it; his match plays at exactly 3× (every sampled 3×3 block uniform) with
+the HUD reading `HARRISON 0-0 GUS`; Harrison in PURPLE puts MO in white;
+a set Gus braces the wave, the beam ending at his gloves; Results reads
+`GUS BEATEN! YOU MADE THE TEAM!` and the Hub `STATE: COMING SOON`. The
+choices this spec left to the builder, and what changed on the way:
+
+- **Bodies of any size** (`player.ts` `radiusOf`/`heightOf`). A player
+  may carry its own `radius` and `height`; every rule that asks where a
+  body is or what it touches reads them (the body pairs, the goals and
+  boxes, contacts, the beam, the keepers' reach and saves). Only Gus
+  sets them (radius 7, height 53; everyone else 5 and 40), so the
+  Backyard, the Park and the tryouts measure number for number as
+  before.
+- **His art** (`art/keepers/gus.ts`). A 63×72 frame on anchor (31, 69):
+  he stands 54 rows inside his outline against Harrison's 41. Ginger
+  crop, freckles, wide grin; a cyan top (a new ramp: the palette cap
+  went from 79 to 82); white trim; the Locker Room's gold armband; white
+  gloves 5 px across; charcoal and slate boots, so every frame keeps to
+  14 colours. A `clap` pose (3 frames, apart then together).
+- **Gus in goal** (`gus.ts`). `GusRules` (radius, height, hands, boot,
+  dive ball, punt) rides on `Keeper.gus`; every keeper gained two dials,
+  `lowReachZ` (reach in depth for a ball under `LOW_Y` = 14) and
+  `getDownS` (a dive's gloves reach a low ball only over this long), and
+  the level keepers take values that change nothing (= `reachZ`, 0).
+  He's slow up after a dive and comes out big; his set spot is his
+  radius further out.
+- **His drop kick and the brace.** His kick first lands 160–360 px into
+  Harrison's half (x 280–480); players wait at x 380 while he holds. Until
+  anyone plays it or a keeper saves it (`Keepers.gusPunt`), the keeper it
+  reaches always holds it: over 192 kicks, none scored, and Eddie
+  collected every one that reached his box (15 died with backspin on its
+  edge and he walked out for them). It plays `boom`. Set, on his feet,
+  not fooled, facing the beam and no further out than his set spot takes
+  him, Gus catches the Energy Wave (`bracesWave`, `catchWave`): the brace
+  cue, his catch, his clap, his hold and his drop kick follow. Anything
+  else and he's blown into his net like any keeper, and his bigger body
+  stays inside it and walks out.
+- **His match.** `school-boss` plays `opponent: 'gus'`. The outfield body
+  is BACKUP MO (Speed 3, Power 3, Jump 2, Control 3, Stamina 1) on Max's
+  brain, in his berry keeper top and gloves, purple for clashes; the HUD
+  says GUS. `lineupFor` gives Gus at the difficulty and Eddie at tryout
+  8's Normal keeper; a difficulty change mid-match gives Gus his own
+  profile at the new difficulty and keeps his rules, body and act. His
+  hold opens with a silent clap after any catch pose; keeper shadows grow
+  with the radius (9 and 20 under Gus).
+- **Tuning** (`gusScripts.ts`, `gusTuning.test.ts`, `gusDrills.test.ts`,
+  seeds 100–163, Harrison at `harrisonStatsFor(paige)` = 7/10/4/7). The
+  blaster is the Park script shooting from 320 px, every shot held full
+  for 0.25 s; the worker is the frozen School script shooting from inside
+  110 px at 0.45 of his charge, chipping Gus once he's 24 px out or
+  stepping over him from 68 px, by a seeded draw. Measured: the worker
+  wins E .781 N .641 H .422, the blaster E .375 N .141 H .016; on Normal
+  the worker's goals are all low, 5 come from following up a push, he has
+  the ball 85% of the time and MO scores .20 a match; no goal ever came
+  from Gus's kick; the longest the ball sat still was 3.5 s. Drills
+  against Gus: the high drill is saved 64 of 64 on every difficulty; low
+  corners go in E .667 N .490 H .260; a one-on-one stepping over him E
+  .94 N .88; no slow roller goes in. Gus's dials (E / N / H): reaction
+  0.1 / 0.08 / 0.08 s, standing reach 5 / 10 / 10, low reach 0 / 0 / 1,
+  dive reach 18 / 20 / 22, get-down 0.3 / 0.26 / 0.22 s, hold odds .9 /
+  1 / 1, down and getting up 1.2 / 1 / 0.9 s each, smother from 22 px;
+  the rest as first written. MO's pace .85 / .95 / .95 and clean-steal
+  odds .9 / .5 / .4.
+- **The card, the tip, the sting and Help.** `gusSting` is the boss
+  sting a fourth lower with two glove thumps; the other bosses keep
+  theirs. Help's THE MATCH page ends `GOALIE GUS FILLS THE GOAL. HE CAN
+  EVEN STOP THE WAVE.`; `helpLineYs` drives the page and a fit test (every
+  page ends at least 2 rows above its footer). Gus's top row on the card
+  is row 102, 8 rows under the tip; his face is 13 wide (26 in the 28
+  node).
+- **Rulings made on the parent's behalf** (all recorded in the build's
+  ledger):
+  - *Art.* The size test measures the rows inside the outline; an
+    even-width shin (only Gus's) ends 1 px short of the ankle.
+  - *In goal.* The plan's first table saved no high top-corner shot and
+    held only about .77 of straight ones, so Normal and Hard started
+    with more dive reach, catch pace and hold odds (since retuned); the
+    staged stepover starts at 68 px (from 60 he smothers first).
+  - *Drop kick and brace.* "Eddie holds one that reaches him" is checked
+    over 8 s (he collects a kick that dies on the edge of his box); the
+    brace allows 0.5 px past his set band for his easing; the brace's
+    catch sounds the brace, not a glove.
+  - *His match.* The clap is a keeper pose set in `keeper.ts` (one bit of
+    state: after a standing catch it follows the catch pose).
+  - *Tuning.* The staged chip and stepover tests give Gus one tick to
+    come out first. Three changes **the parent approved after Task 6
+    stopped** (2026-10-29, "I like all your suggestions"): the high drill
+    holds its shot full for 0.25–0.5 s from 90–150 px, because a full
+    shot is back on the grass about 145 px out and the plan's drill
+    reached Gus 3–10 px up; "no wall" judges the one-on-one on its
+    stepover, since by design Gus catches the drill's chip and smothers
+    its round; and the tuning's still check skips the scripted Harrison
+    standing by his own still ball in his own half (the stall plan 4's
+    review found). Task 3's staged lesson tests then moved Normal's hold
+    odds back to 1 and its get-down to 0.26.
+- **Flagged to the parent:** Gus reads a shot faster than any keeper
+  (0.08 s against the sharpest level keeper's 0.14), so his lesson rests
+  on getting down, not on reading the shot; MO is a touch faster than the
+  plan's call on Normal (.95, not .9) and harder to rob; on Hard the
+  drill's stepover never beats him (his longer dive smothers it), though
+  the worker still wins .42 of Hard matches.
+- **The art and the parent's verdicts.** Gus's sheet went to the parent
+  alone and was **approved on 2026-10-29** with every ruling of Tasks
+  1–3 ("Everything is approved."). The GIF (`gus-save.gif`: a high shot
+  he catches, claps and drop-kicks, then a low shot past his slow dive)
+  and the browser walk's stills went to the parent alone on 2026-10-29;
+  **their look is pending.**
+- **The release review** (a fresh reviewer on the most capable model
+  over everything not yet on `main`: Paige, plan 4's review fix and
+  Gus; about 2,500 headless matches against Harrisons the scripts never
+  play, plus 10,080 staged drop kicks, 6,048 angled waves and 40,000
+  squeeze cases): "ready to merge with one fix", nothing Critical. In
+  wave spam a set Gus braced 2,442 times and never otherwise; no goal
+  ever came from his untouched kick; Review Focus 1, 3, 4 and 5 held,
+  and the Backyard and the Park measured as before. Its one Important
+  was fixed with a test: a wave from a steep angle could carry Gus past
+  a post's edge between ticks, so he lay beside his net, behind the
+  line, until the kickoff (about 1 wave in 3,900). Now the net catches
+  a flying keeper wherever his centre crosses the goal line within his
+  radius of the mouth. Its minors are deferred: after a brace the
+  meter's last kick stays the wave until someone plays the ball (no
+  path reaches a goal without that); a doc comment in `cues.ts` sits
+  above the boss sting's voices instead of the cue table; the stall
+  with Harrison parked by his own near post (plan 4's) is more frequent
+  against a Hard Gus (20 of 48 matches stall over 10 s, Max's brain 10);
+  `lineupFor` lives in the Gus module. Its declined-to-judge list was
+  ruled on: a keeper overlapping a post as he enters his net, three-body
+  pileups, the Hard drill's creeping stepover (a timed stepover or flick
+  beats a Hard Gus in play), the brace's skid scrape, the partner
+  chasing Gus's kick, and Easy Gus's slow restart all stand.
+- **2048 tests** (1960 at plan 4's end), typecheck and build green. The
+  Backyard and the Park measure number for number as before the plan
+  (re-run after Tasks 1, 3, 4, 6 and 8 and after the review's fix).
