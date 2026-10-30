@@ -75,8 +75,9 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
   // brain's 1.20, and 431 px from her goal line while Harrison has the ball in her half vs 348.
   priya: profiles(ALL_ROUND, {
     easy: { style: 'poacher' },
-    normal: { style: 'poacher', shootRange: 140 },
-    hard: { style: 'poacher', paceFactor: 1.3, reactionS: 0.07, aimErrorDeg: 1 },
+    // Close control (2026-10-30): Normal paceFactor 1.03 → 1.05, Hard cleanSteal 0.55 → 0.45; measured after E 0.875, N 0.672, H 0.078.
+    normal: { style: 'poacher', shootRange: 140, paceFactor: 1.05 },
+    hard: { style: 'poacher', paceFactor: 1.3, reactionS: 0.07, aimErrorDeg: 1, cleanSteal: 0.45 },
   }),
   // Nutmeg Niko: pokes the ball through a Harrison standing still and square in his lane, and runs round him. Easy slower and slower to
   // react, Normal a touch slower and easier to rob, Hard quicker and shooting from further out. Measured E 0.813, N 0.547, H 0.047
