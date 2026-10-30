@@ -2,7 +2,7 @@ import { BALL_R } from '../art/ball';
 import { BALL_REST_Y } from './ball';
 import { GRAVITY } from './constants';
 import { keeperGoal, pitchward, SET_OFF, type Keeper, type KeeperIntent } from './keeper';
-import { NO_INTENT, PLAYER_R, type Player, type PlayerIntent } from './player';
+import { NO_INTENT, radiusOf, type Player, type PlayerIntent } from './player';
 import { onTarget } from './power';
 import { SPRINT_MULTIPLIER, runSpeed, touchPush } from './stats';
 import { maxHasBall } from './steal';
@@ -42,10 +42,11 @@ export function setSpot(w: World, k: Keeper): { x: number; z: number } {
   const cz = (g.z0 + g.z1) / 2;
   const d = Math.hypot(w.ball.x - g.lineX, w.ball.z - cz);
   const closeness = clamp01((NARROW.far - d) / (NARROW.far - NARROW.near));
-  const out = PLAYER_R + SET_OFF + k.profile.comeOutPx * closeness;
+  const r = radiusOf(k.body);
+  const out = r + SET_OFF + k.profile.comeOutPx * closeness;
   const z = cz + ((w.ball.z - cz) * out) / Math.max(Math.abs(w.ball.x - g.lineX), out) + k.errZ;
   const area = k.body.area!;
-  return { x: clamp(g.lineX + dir * out, area.x0, area.x1), z: clamp(clamp(z, g.z0 + PLAYER_R, g.z1 - PLAYER_R), area.z0, area.z1) };
+  return { x: clamp(g.lineX + dir * out, area.x0, area.x1), z: clamp(clamp(z, g.z0 + r, g.z1 - r), area.z0, area.z1) };
 }
 
 /** Where a ball on target, coming at his goal, will cross his x-plane, under gravity (no drag, no bounces); null otherwise. */
@@ -82,10 +83,10 @@ function noteFlight(w: World, k: Keeper): void {
 function answer(w: World, k: Keeper, read: ShotRead): KeeperIntent {
   const { body, profile } = k;
   if (read.y - BALL_R > profile.reachY) {
-    const lineX = keeperGoal(w.field, k.side).lineX + pitchward(w.field, k.side) * (PLAYER_R + SET_OFF);
+    const lineX = keeperGoal(w.field, k.side).lineX + pitchward(w.field, k.side) * (radiusOf(body) + SET_OFF);
     return { move: toward(k, lineX, body.z), dive: null };
   }
-  const gap = Math.max(0, Math.abs(read.z - body.z) - (PLAYER_R + profile.reachZ));
+  const gap = Math.max(0, Math.abs(read.z - body.z) - (radiusOf(body) + profile.reachZ));
   if (gap <= profile.speed * read.t) return { move: toward(k, body.x, read.z), dive: null };
   return { move: NO_INTENT, dive: { dirX: 0, dirZ: Math.sign(read.z - body.z) } };
 }
@@ -97,7 +98,8 @@ const inArea = (k: Keeper, p: { x: number; z: number }): boolean => {
 /** Within his gloves' reach from somewhere in his box: his body stays in it, his standing zone reaches a little beyond. */
 const inReach = (k: Keeper, p: { x: number; z: number }): boolean => {
   const a = k.body.area!;
-  const [rx, rz] = [PLAYER_R + BALL_R + ZONE_AHEAD, PLAYER_R + k.profile.reachZ + BALL_R];
+  const r = radiusOf(k.body);
+  const [rx, rz] = [r + BALL_R + ZONE_AHEAD, r + k.profile.reachZ + BALL_R];
   return p.x >= a.x0 - rx && p.x <= a.x1 + rx && p.z >= a.z0 - rz && p.z <= a.z1 + rz;
 };
 const intoArea = (k: Keeper, p: { x: number; z: number }): { x: number; z: number } => {

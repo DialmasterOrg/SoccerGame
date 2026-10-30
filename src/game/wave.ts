@@ -1,7 +1,7 @@
 import { BALL_R } from '../art/ball';
 import { BALL_REST_Y } from './ball';
 import { ballOutOfPlay, blowKeeper } from './keeper';
-import { PLAYER_R, blowAway, brace, type Player } from './player';
+import { blowAway, brace, radiusOf, type Player } from './player';
 import { maxGoal, waveTarget } from './power';
 import type { World } from './world';
 
@@ -82,8 +82,8 @@ export function stepWave(w: World, dt: number): { braced: boolean; blown: boolea
   /** The beam's head reaches `p` this tick: he's in its path, ahead of it, and within this tick's travel. */
   const reaches = (p: Player): boolean => {
     const lateral = Math.abs(-(p.x - wave.originX) * wave.dirZ + (p.z - wave.originZ) * wave.dirX);
-    const pAlong = along(p.x, p.z);
-    return lateral <= WAVE_HALF_WIDTH + PLAYER_R && pAlong + PLAYER_R >= head && pAlong - PLAYER_R <= head + WAVE_SPEED * dt + BALL_R;
+    const [pAlong, r] = [along(p.x, p.z), radiusOf(p)];
+    return lateral <= WAVE_HALF_WIDTH + r && pAlong + r >= head && pAlong - r <= head + WAVE_SPEED * dt + BALL_R;
   };
   // Their keeper in its path is blown into his net, whatever Max did; nobody braces against it.
   const keeper = w.keepers?.away;
@@ -98,13 +98,14 @@ export function stepWave(w: World, dt: number): { braced: boolean; blown: boolea
   const maxAlong = along(max.x, max.z);
 
   const sx = wave.dirX >= 0 ? 1 : -1;
-  const travel = maxAlong - PLAYER_R;
+  const maxR = radiusOf(max);
+  const travel = maxAlong - maxR;
   if (max.state === 'ground' && max.facing === -sx && travel >= BRACE_DISTANCE) {
     brace(max, sx);
-    Object.assign(w.ball, { x: max.x - sx * (PLAYER_R + BALL_R + BRACE_BALL_GAP), z: max.z, vx: 0, vy: 0, vz: 0, spin: 0 });
+    Object.assign(w.ball, { x: max.x - sx * (maxR + BALL_R + BRACE_BALL_GAP), z: max.z, vx: 0, vy: 0, vz: 0, spin: 0 });
     wave.outcome = 'braced';
     wave.live = false;
-    [wave.endX, wave.endZ] = [max.x - sx * PLAYER_R, max.z];
+    [wave.endX, wave.endZ] = [max.x - sx * maxR, max.z];
     out.braced = true;
   } else {
     blowAway(max, wave.dirX, wave.dirZ);

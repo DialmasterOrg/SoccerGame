@@ -46,4 +46,13 @@ describe('zones', () => {
     expect(ballInBody(p, { x: 106, y: 3, z: 26 }, 3)).toBe(false);
     expect(ballInBody(p, { x: 100, y: 44, z: 20 }, 3)).toBe(false);
   });
+
+  it('a bigger body is a bigger cylinder', () => {
+    const plain = createPlayer('home', BASE_STATS, 100, 1, 20);
+    const big = Object.assign(createPlayer('home', BASE_STATS, 100, 1, 20), { radius: 7, height: 53 });
+    expect(ballInBody(big, { x: 109, y: 3, z: 20 }, 3)).toBe(true);
+    expect(ballInBody(plain, { x: 109, y: 3, z: 20 }, 3)).toBe(false);
+    expect(ballInBody(big, { x: 100, y: 50, z: 20 }, 3)).toBe(true);
+    expect(ballInBody(plain, { x: 100, y: 50, z: 20 }, 3)).toBe(false);
+  });
 });

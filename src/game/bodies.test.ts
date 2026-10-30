@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { seeded } from '../engine/random';
-import { keepOutOfGoals, resolveBodies, separatePlayers } from './bodies';
+import { keepOutOfGoals, resolveAll, resolveBodies, separatePlayers } from './bodies';
 import { BACKYARD, SCHOOL_FIELD, inGoalBox } from './field';
-import { NO_INTENT, NORMAL_HANDLING, PLAYER_R, createPlayer, stepPlayer, type Player, type PlayerIntent } from './player';
+import { NO_INTENT, NORMAL_HANDLING, PLAYER_R, createPlayer, radiusOf, stepPlayer, type Player, type PlayerIntent } from './player';
 import { BASE_STATS } from './stats';
+import { keeperWorld } from './testKeepers';
 import { createWorld, placeForKickoff } from './world';
 
 const STEP = 1 / 60;
@@ -295,5 +296,57 @@ describe('soft brakes: a runner who can\'t stop brushes past a body', () => {
       expect(gap(runner, stander)).toBeGreaterThanOrEqual(2 * PLAYER_R - 1e-6);
       expect(runner.z).toBeGreaterThanOrEqual(PLAYER_R);
     }
+  });
+});
+
+describe('bodies of any size', () => {
+  const big = (x: number, z: number) => Object.assign(home(x, z), { radius: 7 });
+
+  it('bodies of different sizes rest exactly their two radii apart', () => {
+    const [a, b] = [big(300, 60), away(304, 62)];
+    resolveBodies(a, b, BACKYARD);
+    expect(gap(a, b)).toBeCloseTo(12, 6);
+  });
+
+  it('a big body keeps its own radius inside the boards and out of a goal', () => {
+    const a = big(300, 3);
+    resolveBodies(a, away(500, 30), SCHOOL_FIELD);
+    expect(a.z).toBeGreaterThanOrEqual(7);
+    const g = SCHOOL_FIELD.goals[1];
+    const b = big(g.lineX - 3, 64);
+    keepOutOfGoals(b, SCHOOL_FIELD);
+    expect(b.x).toBeLessThanOrEqual(g.lineX - 7);
+  });
+
+  /** Their keeper (radius 7) and Harrison squeezed together, then one resolveAll. */
+  function squeezed(keeperAt: { x: number; z: number }, harrisonAt: { x: number; z: number }) {
+    const w = keeperWorld();
+    const k = w.keepers!.away.body;
+    Object.assign(k, keeperAt, { radius: 7 });
+    Object.assign(w.home, harrisonAt);
+    const bodies = [w.home, w.away, w.keepers!.home.body, k];
+    resolveAll(bodies, w.field);
+    return { w, k, bodies };
+  }
+
+  function expectSettled({ w, k, bodies }: ReturnType<typeof squeezed>): void {
+    for (let i = 0; i < bodies.length; i++) {
+      for (let j = i + 1; j < bodies.length; j++) {
+        const [a, b] = [bodies[i]!, bodies[j]!];
+        expect(gap(a, b), `${i}-${j}`).toBeGreaterThanOrEqual(radiusOf(a) + radiusOf(b) - 1e-6);
+      }
+    }
+    for (const p of bodies) for (const g of w.field.goals) expect(inGoalBox(g, p.x, p.z, radiusOf(p) - 1e-6)).toBe(false);
+    const a = k.area!;
+    expect(k.x >= a.x0 && k.x <= a.x1 && k.z >= a.z0 && k.z <= a.z1).toBe(true);
+  }
+
+  it('Harrison squeezed between a big keeper and a post: nobody overlaps, nobody stands in a goal, the keeper stays in his box', () => {
+    const g = SCHOOL_FIELD.goals[1];
+    expectSettled(squeezed({ x: g.lineX - 8, z: g.z0 + 7 }, { x: g.lineX - 11, z: g.z0 - 1 }));
+  });
+
+  it('Harrison squeezed between a big keeper and the near board settles the same way', () => {
+    expectSettled(squeezed({ x: 1200, z: 10 }, { x: 1200, z: 7 }));
   });
 });

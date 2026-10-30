@@ -146,11 +146,17 @@ export interface Player {
   area?: Area;
   /** A keeper blown into his net by the Energy Wave: the net holds him until he walks out. */
   inNet?: boolean;
+  /** His body's radius when it isn't PLAYER_R: Goalie Gus's. */
+  radius?: number;
+  /** His height when it isn't PLAYER_H. */
+  height?: number;
 }
 
 export const PLAYER_H = 40;
 /** Body radius on the ground plane. */
 export const PLAYER_R = 5;
+export const radiusOf = (p: Pick<Player, 'radius'>): number => p.radius ?? PLAYER_R;
+export const heightOf = (p: Pick<Player, 'height'>): number => p.height ?? PLAYER_H;
 export const FALL_TIME = 0.9;
 /** Where a new player stands in depth: the centre line of the pitch. */
 const START_Z = BACKYARD.depth / 2;
@@ -417,10 +423,11 @@ function fall(p: Player, dt: number): void {
  */
 function dropWallSpeed(p: Player, intent: PlayerIntent, field: Field): void {
   const [minX, maxX] = playerSpan(field);
-  if (p.x <= minX + PLAYER_R && p.vx < 0 && intent.moveX >= 0) p.vx = 0;
-  if (p.x >= maxX - PLAYER_R && p.vx > 0 && intent.moveX <= 0) p.vx = 0;
-  if (p.z <= PLAYER_R && p.vz < 0 && intent.moveZ >= 0) p.vz = 0;
-  if (p.z >= field.depth - PLAYER_R && p.vz > 0 && intent.moveZ <= 0) p.vz = 0;
+  const r = radiusOf(p);
+  if (p.x <= minX + r && p.vx < 0 && intent.moveX >= 0) p.vx = 0;
+  if (p.x >= maxX - r && p.vx > 0 && intent.moveX <= 0) p.vx = 0;
+  if (p.z <= r && p.vz < 0 && intent.moveZ >= 0) p.vz = 0;
+  if (p.z >= field.depth - r && p.vz > 0 && intent.moveZ <= 0) p.vz = 0;
 }
 
 /**
@@ -586,8 +593,9 @@ export function stepPlayer(
   }
 
   const [minX, maxX] = playerSpan(field);
-  p.x = Math.min(Math.max(p.x + p.vx * dt, minX + PLAYER_R), maxX - PLAYER_R);
-  p.z = Math.min(Math.max(p.z + p.vz * dt, PLAYER_R), field.depth - PLAYER_R);
+  const r = radiusOf(p);
+  p.x = Math.min(Math.max(p.x + p.vx * dt, minX + r), maxX - r);
+  p.z = Math.min(Math.max(p.z + p.vz * dt, r), field.depth - r);
   updateStamina(p, sprinting, dt);
 
   const anim = chooseAnim(p, sprinting, skidding(p, intent));

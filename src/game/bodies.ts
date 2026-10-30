@@ -1,8 +1,8 @@
 import { inGoalBox, playerSpan, type Field } from './field';
-import { DECEL, PLAYER_R, type Player } from './player';
+import { DECEL, radiusOf, type Player } from './player';
 
-/** Two players closer than this on the ground plane overlap. */
-const MIN_GAP = 2 * PLAYER_R;
+/** Two players closer than this on the ground plane overlap: the sum of their radii. */
+const minGap = (a: Player, b: Player): number => radiusOf(a) + radiusOf(b);
 /** A jumper whose feet are this far above the other player clears him. */
 const JUMP_CLEARANCE = 20;
 /** Rounds of separating and confining per tick, so a push off a wall or goal settles. */
@@ -11,7 +11,7 @@ const SOLVE_PASSES = 4;
 const TOUCH_EPS = 1e-9;
 
 const overlapping = (a: Player, b: Player): boolean =>
-  Math.abs(a.y - b.y) <= JUMP_CLEARANCE && Math.hypot(b.x - a.x, b.z - a.z) < MIN_GAP - TOUCH_EPS;
+  Math.abs(a.y - b.y) <= JUMP_CLEARANCE && Math.hypot(b.x - a.x, b.z - a.z) < minGap(a, b) - TOUCH_EPS;
 
 /** The unit vector from a to b on the ground plane, and their distance. On the same spot, b is ahead of a. */
 function centreLine(a: Player, b: Player): { nx: number; nz: number; d: number } {
@@ -24,7 +24,7 @@ function centreLine(a: Player, b: Player): { nx: number; nz: number; d: number }
 function pushApart(a: Player, b: Player, shareA: (nx: number, nz: number) => number): void {
   if (Math.abs(a.y - b.y) > JUMP_CLEARANCE) return;
   const { nx, nz, d } = centreLine(a, b);
-  const overlap = MIN_GAP - d;
+  const overlap = minGap(a, b) - d;
   if (overlap <= 0) return;
   const share = shareA(nx, nz);
   a.x -= nx * overlap * share;
@@ -51,10 +51,10 @@ export function separatePlayers(a: Player, b: Player): void {
   });
 }
 
-/** Whether (x, z) is somewhere a player's centre may stand: inside the fences, the near board and the back fence. */
-function onPitch(field: Field, x: number, z: number): boolean {
+/** Whether (x, z) is somewhere the centre of a body of radius r may stand: inside the fences, the near board and the back fence. */
+function onPitch(field: Field, x: number, z: number, r: number): boolean {
   const [x0, x1] = playerSpan(field);
-  return x >= x0 + PLAYER_R && x <= x1 - PLAYER_R && z >= PLAYER_R && z <= field.depth - PLAYER_R;
+  return x >= x0 + r && x <= x1 - r && z >= r && z <= field.depth - r;
 }
 
 /**
@@ -63,15 +63,16 @@ function onPitch(field: Field, x: number, z: number): boolean {
  * gap behind the net is too narrow for him, so that way never counts.
  */
 export function keepOutOfGoals(p: Player, field: Field): void {
+  const r = radiusOf(p);
   for (const g of field.goals) {
-    if (!inGoalBox(g, p.x, p.z, PLAYER_R)) continue;
+    if (!inGoalBox(g, p.x, p.z, r)) continue;
     const toField = g.side === 'right' ? -1 : 1;
     const exits = [
-      { x: g.lineX + toField * PLAYER_R, z: p.z },
-      { x: p.x, z: g.z0 - PLAYER_R },
-      { x: p.x, z: g.z1 + PLAYER_R },
-      { x: g.backX - toField * PLAYER_R, z: p.z },
-    ].filter(e => onPitch(field, e.x, e.z));
+      { x: g.lineX + toField * r, z: p.z },
+      { x: p.x, z: g.z0 - r },
+      { x: p.x, z: g.z1 + r },
+      { x: g.backX - toField * r, z: p.z },
+    ].filter(e => onPitch(field, e.x, e.z, r));
     const best = exits.reduce((m, e) => (Math.hypot(e.x - p.x, e.z - p.z) < Math.hypot(m.x - p.x, m.z - p.z) ? e : m));
     p.x = best.x;
     p.z = best.z;
@@ -83,14 +84,15 @@ export function keepOutOfGoals(p: Player, field: Field): void {
  * open so he can walk out. Clear of the goal, he's out of the net.
  */
 function keepInNet(p: Player, field: Field): void {
-  const g = field.goals.find(g => inGoalBox(g, p.x, p.z, PLAYER_R));
+  const r = radiusOf(p);
+  const g = field.goals.find(g => inGoalBox(g, p.x, p.z, r));
   if (!g) {
     p.inNet = false;
     return;
   }
   const out = g.side === 'right' ? -1 : 1;
-  p.x = out === -1 ? Math.min(p.x, g.backX - PLAYER_R) : Math.max(p.x, g.backX + PLAYER_R);
-  if ((p.x - g.lineX) * out < 0) p.z = Math.min(Math.max(p.z, g.z0 + PLAYER_R), g.z1 - PLAYER_R);
+  p.x = out === -1 ? Math.min(p.x, g.backX - r) : Math.max(p.x, g.backX + r);
+  if ((p.x - g.lineX) * out < 0) p.z = Math.min(Math.max(p.z, g.z0 + r), g.z1 - r);
 }
 
 /**
@@ -101,8 +103,9 @@ function keepInNet(p: Player, field: Field): void {
 function confine(p: Player, field: Field): boolean {
   const [x, z] = [p.x, p.z];
   const [x0, x1] = playerSpan(field);
-  p.x = Math.min(Math.max(p.x, x0 + PLAYER_R), x1 - PLAYER_R);
-  p.z = Math.min(Math.max(p.z, PLAYER_R), field.depth - PLAYER_R);
+  const r = radiusOf(p);
+  p.x = Math.min(Math.max(p.x, x0 + r), x1 - r);
+  p.z = Math.min(Math.max(p.z, r), field.depth - r);
   const free = p.state === 'blown' || p.inNet === true;
   if (p.area && !free) {
     p.x = Math.min(Math.max(p.x, p.area.x0), p.area.x1);
@@ -125,7 +128,7 @@ function sidestep(a: Player, b: Player, field: Field): void {
   const order = Math.abs(a.x - middle) <= Math.abs(b.x - middle) ? [a, b] : [b, a];
   for (const [mover, other] of [order, [order[1]!, order[0]!]] as const) {
     const dz = Math.abs(mover.z - other.z);
-    const needX = Math.sqrt(Math.max(0, MIN_GAP * MIN_GAP - dz * dz));
+    const needX = Math.sqrt(Math.max(0, minGap(a, b) ** 2 - dz * dz));
     const dir = mover.x === other.x ? Math.sign(middle - mover.x) || 1 : Math.sign(mover.x - other.x);
     const [x, z] = [mover.x, mover.z];
     mover.x = other.x + dir * needX;
@@ -153,7 +156,7 @@ function brushPast(runner: Player, other: Player, field: Field): boolean {
   if (along <= 0) return false;
   const across = rx * -uz + rz * ux;
   const away = across !== 0 ? -Math.sign(across) : Math.sign((field.depth / 2 - other.z) * ux) || 1;
-  const step = Math.sqrt(MIN_GAP * MIN_GAP - along * along) - Math.abs(across) + TOUCH_EPS;
+  const step = Math.sqrt(minGap(runner, other) ** 2 - along * along) - Math.abs(across) + TOUCH_EPS;
   const [x, z] = [runner.x, runner.z];
   runner.x += -uz * away * step;
   runner.z += ux * away * step;

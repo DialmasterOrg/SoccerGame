@@ -89,6 +89,13 @@ describe('the Energy Wave', () => {
     expect(run(w).blown).toBe(true);
   });
 
+  it('a bigger body is reached from further to the side', () => {
+    const big = fired({ x: ORIGIN_X + 60, z: LINE_Z + 14, radius: 7 });
+    expect(run(big).blown).toBe(true);
+    const plain = fired({ x: ORIGIN_X + 60, z: LINE_Z + 14 });
+    expect(run(plain)).toEqual({ braced: false, blown: false, goal: true });
+  });
+
   it('the brace boundary: exactly BRACE_DISTANCE braces, one px less blows', () => {
     expect(run(fired({ x: ORIGIN_X + BRACE_DISTANCE + PLAYER_R })).braced).toBe(true);
     expect(run(fired({ x: ORIGIN_X + BRACE_DISTANCE + PLAYER_R - 1 })).blown).toBe(true);

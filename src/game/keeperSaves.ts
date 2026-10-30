@@ -3,7 +3,7 @@ import { blockBall } from './contact';
 import { GRAVITY } from './constants';
 import { keeperGoal, pitchward, startHold, type Keeper, type KeeperEvents, type KeeperProfile, type Strike } from './keeper';
 import { BALL_REST_Y } from './ball';
-import { PLAYER_R, type Player } from './player';
+import { radiusOf, type Player } from './player';
 import { REACH_Z } from './zones';
 import type { World } from './world';
 
@@ -76,9 +76,9 @@ function meets(k: Keeper, from: Pt, to: Pt): { at: Pt; reach: number } | null {
 
 function inStandingZone(k: Keeper, b: Pt): number | null {
   const { body, profile } = k;
-  const dz = Math.abs(b.z - body.z);
-  if (dz > PLAYER_R + profile.reachZ + BALL_R || Math.abs(b.x - body.x) > PLAYER_R + BALL_R + ZONE_AHEAD || b.y > profile.reachY + BALL_R) return null;
-  return clamp01(dz / (PLAYER_R + profile.reachZ));
+  const [dz, r] = [Math.abs(b.z - body.z), radiusOf(body)];
+  if (dz > r + profile.reachZ + BALL_R || Math.abs(b.x - body.x) > r + BALL_R + ZONE_AHEAD || b.y > profile.reachY + BALL_R) return null;
+  return clamp01(dz / (r + profile.reachZ));
 }
 
 function inDiveZone(k: Keeper, b: Pt): number | null {

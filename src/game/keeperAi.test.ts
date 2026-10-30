@@ -3,6 +3,7 @@ import { BALL_R } from '../art/ball';
 import { DIFFICULTY, createBrain, think } from './ai';
 import { inGoalBox } from './field';
 import { SET_OFF, quietKeepers, stepKeeper } from './keeper';
+import { setSpot } from './keeperAi';
 import { NO_INTENT, PLAYER_R } from './player';
 import { chargeTime } from './stats';
 import { keeperWorld, runFor, runUntil, setBall, shotAt } from './testKeepers';
@@ -12,6 +13,13 @@ import { stepWorld, type World } from './world';
 const away = (w: World) => w.keepers!.away;
 
 describe('where he stands', () => {
+  it('a bigger keeper sets his own radius off his line', () => {
+    const w = keeperWorld();
+    w.keepers!.away.body.radius = 7;
+    setBall(w, { x: 640, z: 64 });
+    expect(setSpot(w, away(w)).x).toBe(1240 - 7 - SET_OFF);
+  });
+
   it('with the ball far away he stands on his line in the middle of his goal', () => {
     const w = keeperWorld();
     runFor(w, 1);

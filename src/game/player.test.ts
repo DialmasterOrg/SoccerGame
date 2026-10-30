@@ -106,6 +106,12 @@ describe('stepPlayer: moving', () => {
 });
 
 describe('stepPlayer: depth', () => {
+  it('a bigger body stops at the near board with its own radius', () => {
+    const p = Object.assign(harrison(), { radius: 7 });
+    tick(p, { moveZ: -1 }, ticks(2));
+    expect(p.z).toBe(7);
+  });
+
   it('starts on the centre line of the pitch in depth', () => {
     expect(harrison().z).toBe(BACKYARD.depth / 2);
   });

@@ -4,7 +4,7 @@ import { BALL_REST_Y, type Ball } from './ball';
 import { POST_R } from './constants';
 import { roofSpan, type Field } from './field';
 import { aimLine, chip, header, shot, volley } from './kick';
-import { PLAYER_R, knockDown, type Player } from './player';
+import { knockDown, radiusOf, type Player } from './player';
 import { touchPush } from './stats';
 import { ballIn, ballInBody, footZone, headZone, slideZone, touchPoint } from './zones';
 
@@ -68,8 +68,9 @@ function slide(p: Player, opponent: Player, ball: Ball, ev: ContactEvents, trips
     return;
   }
   const onGround = opponent.y === 0 && opponent.state !== 'air';
-  const feetX = opponent.x + PLAYER_R >= reach.x0 && opponent.x - PLAYER_R <= reach.x1;
-  const feetZ = opponent.z + PLAYER_R >= reach.z0 && opponent.z - PLAYER_R <= reach.z1;
+  const feet = radiusOf(opponent);
+  const feetX = opponent.x + feet >= reach.x0 && opponent.x - feet <= reach.x1;
+  const feetZ = opponent.z + feet >= reach.z0 && opponent.z - feet <= reach.z1;
   if (trips && onGround && opponent.state !== 'fallen' && opponent.state !== 'blown' && feetX && feetZ) {
     knockDown(opponent);
     p.kick.active = false;
@@ -192,7 +193,7 @@ function placeBall(ball: Ball, x: number, z: number, field: Field): void {
  * from his middle.
  */
 function bodyNormal(p: Player, ball: Ball): { nx: number; nz: number } {
-  const reach = PLAYER_R + BALL_R;
+  const reach = radiusOf(p) + BALL_R;
   const [cx, cz] = [ball.x - p.x, ball.z - p.z];
   const [wx, wz] = [ball.vx - p.vx, ball.vz - p.vz];
   const w2 = wx * wx + wz * wz;
@@ -222,7 +223,7 @@ function pop(ball: Ball, field: Field): void {
 export function blockBall(p: Player, ball: Ball, field: Field): boolean {
   if (!ballInBody(p, ball, BALL_R)) return false;
   const { nx, nz } = bodyNormal(p, ball);
-  const reach = PLAYER_R + BALL_R;
+  const reach = radiusOf(p) + BALL_R;
   const [x, z] = [p.x + nx * reach, p.z + nz * reach];
   if (!canPlace(ball, x, z, field)) {
     if (!onRoof(ball, field) && ball.vy <= 0) pop(ball, field);

@@ -1,6 +1,6 @@
 import { BALL_R } from '../art/ball';
 import { BALL_REST_Y, type Ball } from './ball';
-import { PLAYER_H, PLAYER_R, type Player } from './player';
+import { heightOf, radiusOf, type Player } from './player';
 
 /** Every zone reaches this far either side of his line in depth. */
 export const REACH_Z = 7;
@@ -50,7 +50,7 @@ export function ballIn(r: Rect, b: { x: number; y: number; z: number }, radius: 
   return dx * dx + dy * dy + dz * dz <= radius * radius;
 }
 
-/** Whether a ball overlaps his body: an upright cylinder of PLAYER_R, PLAYER_H tall. */
+/** Whether a ball overlaps his body: an upright cylinder of his radius and height. */
 export function ballInBody(p: Player, b: { x: number; y: number; z: number }, radius: number): boolean {
-  return Math.hypot(b.x - p.x, b.z - p.z) < PLAYER_R + radius && b.y > p.y - radius && b.y < p.y + PLAYER_H + radius;
+  return Math.hypot(b.x - p.x, b.z - p.z) < radiusOf(p) + radius && b.y > p.y - radius && b.y < p.y + heightOf(p) + radius;
 }
