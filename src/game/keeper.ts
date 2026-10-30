@@ -148,6 +148,8 @@ export interface Keepers {
   away: Keeper;
   /** A drop kick still climbing: nobody plays it until it starts to fall. */
   punt: KeeperSide | null;
+  /** Gus's drop kick, untouched since his boot: the keeper it reaches always holds it. */
+  gusPunt: boolean;
   /** The last kick struck, by either side. */
   strike: Strike | null;
 }
@@ -210,7 +212,7 @@ function createKeeper(field: Field, side: KeeperSide, profile: KeeperProfile, gu
 
 /** Harrison's keeper is never Gus; theirs is when the lineup says so. */
 export function createKeepers(field: Field, lineup: KeeperLineup): Keepers {
-  return { home: createKeeper(field, 'home', lineup.home, null), away: createKeeper(field, 'away', lineup.away, lineup.gus ?? null), punt: null, strike: null };
+  return { home: createKeeper(field, 'home', lineup.home, null), away: createKeeper(field, 'away', lineup.away, lineup.gus ?? null), punt: null, gusPunt: false, strike: null };
 }
 
 /** Kickoff: each set on his goal's centre line SET_OFF in front, facing the pitch; every act, hold, dive and punt cleared. */
@@ -224,6 +226,7 @@ export function placeKeepers(w: World): void {
     Object.assign(k, { act: 'set', actT: 0, dive: null, holding: false, readS: 0, errZ: 0, seenV: { vx: 0, vz: 0 }, pose: null });
   }
   ks.punt = null;
+  ks.gusPunt = false;
   ks.strike = null;
 }
 
@@ -345,12 +348,14 @@ export function holdingKeeper(w: World): Keeper | null {
 
 /**
  * Where a player waits while `k` holds: out where his drop kick will come
- * down, around halfway, so nobody crowds him (far more than CROWD_GAP off,
- * on the pitch side) and nobody is left chasing it from his box.
+ * down (around halfway, or deep in Harrison's half for Gus), so nobody
+ * crowds him (far more than CROWD_GAP off, on the pitch side) and nobody is
+ * left chasing it from his box.
  */
 export function standOffSpot(w: World, me: Player, k: Keeper): { x: number; z: number } {
   const out = pitchward(w.field, k.side);
-  const x = w.field.width / 2 + out * (PUNT.from + PUNT.spread / 2);
+  const punt = k.gus?.punt ?? PUNT;
+  const x = w.field.width / 2 + out * (punt.from + punt.spread / 2);
   return { x, z: Math.min(Math.max(me.z, PUNT.z[0]), PUNT.z[1]) };
 }
 
@@ -381,10 +386,11 @@ function puntSpeed(dist: number, y0: number): number {
   return (lo + hi) / 2;
 }
 
-/** The ball leaves his boot, long upfield toward his side's attacking half: nobody plays it while it climbs. */
+/** The ball leaves his boot, long upfield toward his side's attacking half (Gus's far into it): nobody plays it while it climbs. */
 function dropKick(w: World, k: Keeper, ev: KeeperEvents): void {
   const dir = pitchward(w.field, k.side);
-  const land = { x: w.field.width / 2 + dir * (PUNT.from + w.rng() * PUNT.spread), z: PUNT.z[0] + w.rng() * (PUNT.z[1] - PUNT.z[0]) };
+  const punt = k.gus?.punt ?? PUNT;
+  const land = { x: w.field.width / 2 + dir * (punt.from + w.rng() * punt.spread), z: PUNT.z[0] + w.rng() * (PUNT.z[1] - PUNT.z[0]) };
   const b = w.ball;
   const [dx, dz] = [land.x - b.x, land.z - b.z];
   const dist = Math.hypot(dx, dz);
@@ -394,6 +400,7 @@ function dropKick(w: World, k: Keeper, ev: KeeperEvents): void {
   Object.assign(b, { vx: (dx / dist) * ground, vy: speed * Math.sin(rad), vz: (dz / dist) * ground, spin: PUNT.spin });
   k.holding = false;
   w.keepers!.punt = k.side;
+  w.keepers!.gusPunt = k.gus !== null;
   w.keepers!.strike = null;
   ev.punted = k.side;
 }
@@ -403,6 +410,12 @@ export function blowKeeper(w: World, k: Keeper, dirX: number, dirZ: number): voi
   blowAway(k.body, dirX, dirZ);
   Object.assign(k, { act: 'set', actT: 0, dive: null, holding: false, pose: null });
   if (w.keepers!.punt === k.side) w.keepers!.punt = null;
+}
+
+/** The wave caught: he holds it, standing, as a save. Its sound is the brace's, not a glove's. */
+export function catchWave(w: World, k: Keeper): void {
+  [k.body.vx, k.body.vz] = [0, 0];
+  startHold(w, k, quietKeepers(), true);
 }
 
 /** A keeper has the ball, or his drop kick is still climbing: nobody else may play it in any way. */

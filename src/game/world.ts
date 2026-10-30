@@ -316,10 +316,6 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
     resolveAll([home, w.away, keepers.home.body, keepers.away.body], w.field);
     parkHeldBall(w);
   } else resolveBodies(home, w.away, w.field);
-  // A ball a keeper holds is out of play: nobody else touches it, and it isn't simulated.
-  const held = keepers !== null && (keepers.home.holding || keepers.away.holding);
-  // A drop kick still climbing is nobody's: no contact or save until it starts to fall.
-  const punting = keepers !== null && keepers.punt !== null;
   if (dogBody && live && checkPinned(w, awayIntent, Math.hypot(w.away.x - dogFrom.x, w.away.z - dogFrom.z), dt)) dog.dropped = true;
   if (carryFromZ !== null && windingUp(home)) carryInDepth(w, home.z - carryFromZ);
   const steal = resolveSteal(w, homeIntent);
@@ -331,6 +327,11 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
 
   const { braced, blown } = stepWave(w, dt);
   [power.braced, power.blown] = [braced, blown];
+  // Read after the wave, which Gus may have caught.
+  // A ball a keeper holds is out of play: nobody else touches it, and it isn't simulated.
+  const held = keepers !== null && (keepers.home.holding || keepers.away.holding);
+  // A drop kick still climbing is nobody's: no contact or save until it starts to fall.
+  const punting = keepers !== null && keepers.punt !== null;
   // A carried ball isn't simulated: it rides in the dog's mouth.
   const from = { x: w.ball.x, y: w.ball.y, z: w.ball.z };
   const ball = w.dog?.carrying || held ? quietBall() : stepBall(w.ball, dt, w.field);
@@ -367,6 +368,8 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
     // While the wave is live nobody else touches the ball, keepers included.
     if (!held && !punting && !w.wave?.live) keeperSaves(w, from, keeper);
     if (keepers.punt !== null && w.ball.vy <= 0) keepers.punt = null;
+    // Gus's drop kick is an ordinary ball once anyone plays it or a keeper saves it.
+    if (keeper.caught || keeper.pushed || kicks.some(c => c.touched || c.blocked || c.kicked || c.tackledBall)) keepers.gusPunt = false;
   }
   stepNutmeg(w, dt);
   w.tick++;
@@ -388,6 +391,7 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
   const before = { ...w.match.score };
   const { resetForKickoff } = stepMatch(w.match, dt, goalScored(w.field, w.ball));
   const goal: Team | null = w.match.score.home > before.home ? 'home' : w.match.score.away > before.away ? 'away' : null;
+  if (goal && keepers) keepers.gusPunt = false;
   if (w.power && goal) {
     if (goal === 'home' && STYLE_KINDS.has(w.power.lastKind)) addMeter(w.power, 'styleGoal');
     w.power.lastKind = null;

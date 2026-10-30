@@ -36,6 +36,7 @@ export type Cue =
   | 'dive'
   | 'parry'
   | 'punt'
+  | 'boom'
   | 'star'
   | 'bark'
   | 'pant'
@@ -244,6 +245,8 @@ export const CUES: Readonly<Record<Cue, CueRecipe>> = {
   parry: { voices: [{ wave: 'noise', dur: 0.06, gain: 0.24, freq: 2400, toFreq: 1200, filter: { type: 'bandpass', q: 1 } }, { wave: 'triangle', dur: 0.05, gain: 0.12, freq: 200, toFreq: 110 }], minGapS: 0.15 },
   /** A keeper's drop kick: a deep thud off his boot. By design, not by ear. */
   punt: { voices: [{ wave: 'triangle', dur: 0.12, gain: 0.3, freq: 110, toFreq: 55 }, { wave: 'noise', dur: 0.06, gain: 0.1, freq: 600, filter: { type: 'lowpass' } }], minGapS: 0.2 },
+  /** Goalie Gus's drop kick: deeper and louder than a punt, a boom off his boot under a thud. By design, not by ear. */
+  boom: { voices: [{ wave: 'triangle', dur: 0.2, gain: 0.4, freq: 80, toFreq: 40 }, { wave: 'noise', dur: 0.1, gain: 0.15, freq: 400, filter: { type: 'lowpass' } }], minGapS: 0.3 },
   /** A star earned, or a bonus done: a short rising two-note chime, G then D above. By design, not by ear. */
   star: {
     voices: [

@@ -79,6 +79,13 @@ describe('cue recipes', () => {
     expect(CUES.star.minGapS).toBeLessThan(0.4);
   });
 
+  it("Gus's drop kick booms: deeper and louder than a keeper's punt, never twice in 0.3 s", () => {
+    const lowest = (cue: Cue) => Math.min(...CUES[cue].voices.map(v => Math.min(v.freq, v.toFreq ?? v.freq)));
+    expect(lowest('boom')).toBeLessThan(lowest('punt'));
+    expect(loudest('boom')).toBeGreaterThan(loudest('punt'));
+    expect(CUES.boom.minGapS).toBeGreaterThanOrEqual(0.3);
+  });
+
   it('the power-up hum rises over about a second', () => {
     const hum = CUES.powerUp.voices[0]!;
     expect(hum.dur).toBeGreaterThanOrEqual(0.9);

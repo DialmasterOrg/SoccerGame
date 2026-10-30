@@ -44,7 +44,8 @@ export function matchFeedback(w: World, prevPhase: Phase, speed?: SpeedMemo): Ma
   if (keeper.caught) cues.add('glove');
   if (keeper.dived) cues.add('dive');
   if (keeper.pushed) cues.add('parry');
-  if (keeper.punted) cues.add('punt');
+  // Goalie Gus's drop kick booms.
+  if (keeper.punted) cues.add(w.keepers?.[keeper.punted].gus ? 'boom' : 'punt');
   if (dog.grabbed) cues.add('bark');
   if (dog.panted) cues.add('pant');
   if (power.started) {

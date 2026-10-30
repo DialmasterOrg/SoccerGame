@@ -148,7 +148,8 @@ export function keeperSaves(w: World, from: Pt, ev: KeeperEvents): void {
     }
     Object.assign(w.ball, hit.at);
     const speed = Math.hypot(w.ball.vx, w.ball.vy, w.ball.vz);
-    const always = k.act === 'dive' && smothering(k);
+    // The smother always holds, and so does whoever Gus's untouched drop kick reaches.
+    const always = (k.act === 'dive' && smothering(k)) || ks.gusPunt;
     const chance = always ? 1 : holdChance(k.profile, { speed, reach: hit.reach, strike: ks.strike }, keeperGoal(w.field, k.side).lineX);
     if (chance >= 1 || w.rng() < chance) startHold(w, k, ev, k.act !== 'dive');
     else pushAway(w, k, ev);

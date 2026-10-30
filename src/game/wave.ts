@@ -1,6 +1,7 @@
 import { BALL_R } from '../art/ball';
 import { BALL_REST_Y } from './ball';
-import { ballOutOfPlay, blowKeeper } from './keeper';
+import { bracesWave } from './gus';
+import { ballOutOfPlay, blowKeeper, catchWave } from './keeper';
 import { blowAway, brace, radiusOf, type Player } from './player';
 import { maxGoal, waveTarget } from './power';
 import type { World } from './world';
@@ -55,6 +56,7 @@ export function fireWave(w: World): Wave {
  * ball at wave speed along its line, and the tick its head reaches Max
  * decides his fate: braced if he's on his feet, facing it and it came far
  * enough for him to see it; otherwise blown away while the ball carries on.
+ * Their keeper in its path is blown into his net, unless Goalie Gus is set.
  */
 export function stepWave(w: World, dt: number): { braced: boolean; blown: boolean } {
   const wave = w.wave;
@@ -85,9 +87,17 @@ export function stepWave(w: World, dt: number): { braced: boolean; blown: boolea
     const [pAlong, r] = [along(p.x, p.z), radiusOf(p)];
     return lateral <= WAVE_HALF_WIDTH + r && pAlong + r >= head && pAlong - r <= head + WAVE_SPEED * dt + BALL_R;
   };
-  // Their keeper in its path is blown into his net, whatever Max did; nobody braces against it.
+  // Their keeper in its path is blown into his net, whatever Max did, unless he's Goalie Gus and set: he catches it.
   const keeper = w.keepers?.away;
   if (keeper && !wave.keeperBlown && reaches(keeper.body)) {
+    if (keeper.gus && bracesWave(w, keeper, wave)) {
+      catchWave(w, keeper);
+      wave.outcome = 'braced';
+      wave.live = false;
+      [wave.endX, wave.endZ] = [w.ball.x, w.ball.z];
+      out.braced = true;
+      return out;
+    }
     blowKeeper(w, keeper, wave.dirX, wave.dirZ);
     wave.keeperBlown = true;
     out.blown = true;

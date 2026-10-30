@@ -1,7 +1,10 @@
 import { GUS_HANDS } from '../art/keepers/gus';
 import type { Difficulty } from './ai';
-import { KEEPER_TOP_LEVEL, keeperProfile, type KeeperLineup, type KeeperProfile } from './keeper';
+import { KEEPER_TOP_LEVEL, SET_OFF, keeperGoal, keeperProfile, pitchward, type Keeper, type KeeperLineup, type KeeperProfile } from './keeper';
+import { radiusOf } from './player';
 import type { Point } from '../art/raster';
+import type { Wave } from './wave';
+import type { World } from './world';
 
 /** What only Goalie Gus has: his size, where he holds the ball, his boot. */
 export interface GusRules {
@@ -13,9 +16,33 @@ export interface GusRules {
   boot: Point;
   /** A ball caught in his dive lies this far along it. */
   diveBallPx: number;
+  /** His drop kick's first bounce: halfway + his attacking direction × (from + rng × spread). */
+  punt: { from: number; spread: number };
 }
 
-export const GUS: GusRules = { radius: 7, height: 53, hands: GUS_HANDS, boot: { x: 11, y: 8 }, diveBallPx: 13 };
+/** His drop kick lands 160-360 px into Harrison's half, where everyone else's lands short of halfway. */
+export const GUS: GusRules = { radius: 7, height: 53, hands: GUS_HANDS, boot: { x: 11, y: 8 }, diveBallPx: 13, punt: { from: 160, spread: 200 } };
+
+/** He stands within this of his set spot as he eases into it. */
+const SET_SLACK_PX = 0.5;
+
+/**
+ * He stops the wave: set, on his feet and not fooled, facing it, and no
+ * further out than his set spot takes him (radius + SET_OFF + comeOutPx).
+ * Unlike Max, he needs no sight of it coming.
+ */
+export function bracesWave(w: World, k: Keeper, wave: Wave): boolean {
+  const { body } = k;
+  const out = (body.x - keeperGoal(w.field, k.side).lineX) * pitchward(w.field, k.side);
+  return (
+    k.act === 'set' &&
+    body.state === 'ground' &&
+    body.fooled === null &&
+    !body.inNet &&
+    body.facing === -(wave.dirX >= 0 ? 1 : -1) &&
+    out <= radiusOf(body) + SET_OFF + k.profile.comeOutPx + SET_SLACK_PX
+  );
+}
 
 const profile = (p: KeeperProfile): KeeperProfile => p;
 

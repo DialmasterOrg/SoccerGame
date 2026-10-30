@@ -232,4 +232,15 @@ describe('keepers', () => {
     w.events.keeper = { caught: 'away', dived: 'home', pushed: 'home', punted: 'away' };
     expect(matchFeedback(w, 'playing').cues).toEqual(expect.arrayContaining(['glove', 'dive', 'parry', 'punt']));
   });
+
+  it("Goalie Gus's drop kick booms; Eddie's, in the same match, thuds", () => {
+    const w = keeperWorld({ gus: true });
+    w.events.keeper = { caught: null, dived: null, pushed: null, punted: 'away' };
+    const gus = matchFeedback(w, 'playing').cues;
+    expect(gus).toContain('boom');
+    expect(gus).not.toContain('punt');
+    w.events.keeper.punted = 'home';
+    expect(matchFeedback(w, 'playing').cues).toEqual(expect.arrayContaining(['punt']));
+    expect(matchFeedback(w, 'playing').cues).not.toContain('boom');
+  });
 });
