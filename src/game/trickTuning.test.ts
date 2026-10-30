@@ -3,9 +3,8 @@ import type { Difficulty } from './ai';
 import type { HumanOpponentId } from './opponents';
 import { trickMatch, type TrickMatch, type TrickScript } from './trickScripts';
 
-/** The tuning seeds: 64 for the measures against Max and Biscuit, the first 32 for the personalities. */
+/** The tuning seeds, for every measure. */
 const SEEDS = Array.from({ length: 64 }, (_, i) => 100 + i);
-const PERSONALITY_SEEDS = SEEDS.slice(0, 32);
 
 const played = new Map<string, TrickMatch>();
 function match(opponent: HumanOpponentId | 'biscuit', d: Difficulty, seed: number, script: TrickScript): TrickMatch {
@@ -54,11 +53,11 @@ describe('the tricks are not a win button (not too easy)', () => {
   });
 });
 
-describe('the personalities show (Normal, 32 seeds)', () => {
-  const stepoverBeats = (id: HumanOpponentId) => beatShare(matches(id, 'normal', 'trickster', PERSONALITY_SEEDS), ['stepover']);
-
+describe('the personalities show (Normal, 64 seeds)', () => {
+  // Over all 64 seeds since close control (2026-10-30), as Pete's: 32 seeds held only 4-7 fooling stepovers each (Tia 1/4, Brick 2/6),
+  // while 64 hold 13 (Max .92, Tia .54, Brick .23) and 192 the same order (.79, .47, .22).
   it('of fooling stepovers, the share that beat him runs Max, Tia, Brick', () => {
-    const [max, tia, brick] = (['max', 'tia', 'brick'] as const).map(stepoverBeats);
+    const [max, tia, brick] = (['max', 'tia', 'brick'] as const).map(id => beatShare(matches(id, 'normal', 'trickster'), ['stepover']));
     expect(max).toBeGreaterThanOrEqual(tia);
     expect(tia).toBeGreaterThanOrEqual(brick);
   });
