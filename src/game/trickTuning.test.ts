@@ -3,8 +3,10 @@ import type { Difficulty } from './ai';
 import type { HumanOpponentId } from './opponents';
 import { trickMatch, type TrickMatch, type TrickScript } from './trickScripts';
 
-/** The tuning seeds, for every measure. */
+/** The tuning seeds, for every measure... */
 const SEEDS = Array.from({ length: 64 }, (_, i) => 100 + i);
+/** ...but the mashing guard against Normal Sam, whose 64-seed gap is noise-sized. */
+const WIDE_SEEDS = Array.from({ length: 192 }, (_, i) => 100 + i);
 
 const played = new Map<string, TrickMatch>();
 function match(opponent: HumanOpponentId | 'biscuit', d: Difficulty, seed: number, script: TrickScript): TrickMatch {
@@ -82,8 +84,10 @@ describe('the personalities show (Normal, 64 seeds)', () => {
 describe('mashing RB does not beat Speedy Sam (not too easy)', () => {
   // The parent's call (2026-10-30, close control): Normal only. On Easy, mashing's stop-start makes Sam overshoot, his own lesson
   // working; only about 2 of 40 mashed tricks fool him (192 seeds, before close control too: spammer .781, plain .583).
-  it('on normal the spammer wins no more than 0.06 above the plain script', () => {
-    expect(winRate(matches('sam', 'normal', 'spammer'))).toBeLessThanOrEqual(winRate(matches('sam', 'normal', 'plain')) + 0.06);
+  // Over 192 seeds: on 64 the gap swings with any change to his play (after close control's ball-carry fix, 64 seeds read .609 vs .549,
+  // 192 read .484 vs .505), and Sam Normal's dials are the parent's to keep.
+  it('on normal the spammer wins no more than 0.06 above the plain script (192 seeds)', () => {
+    expect(winRate(matches('sam', 'normal', 'spammer', WIDE_SEEDS))).toBeLessThanOrEqual(winRate(matches('sam', 'normal', 'plain', WIDE_SEEDS)) + 0.06);
   });
 });
 
