@@ -3,7 +3,8 @@ import { MASTER } from '../art/colors';
 import type { KeeperId } from '../art/keepers/keepers';
 import { DIVE_FRAMES, KEEPER_POSE_FPS, KEEPER_POSE_FRAMES, type KeeperPose } from '../art/keepers/poses';
 import { project, type Camera } from '../game/camera';
-import type { Keeper } from '../game/keeper';
+import { CLAP_S, type Keeper } from '../game/keeper';
+import { PLAYER_R, radiusOf } from '../game/player';
 import type { World } from '../game/world';
 import type { CareerMatch } from '../meta/career';
 import type { KeeperSprites } from './art';
@@ -21,9 +22,12 @@ const SHUFFLE_SPEED = 5;
 const POSE_S = 0.25;
 /** How high his dive lifts him off the grass at its peak, px. */
 const DIVE_LIFT = 4;
+/** A standing keeper's shadow is this wide, and grows 2 px for each px of radius past PLAYER_R. */
 const SHADOW_W = 5;
-/** Lying along a dive or a smother, his shadow is a strip this long. */
+/** Lying along a dive or a smother, his shadow is a strip this long, in proportion to his radius over PLAYER_R. */
 const LYING_SHADOW = 14;
+
+export { CLAP_S };
 
 const looping = (name: KeeperPose, nowS: number): KeeperFrame => ({ kind: 'pose', name, frame: Math.floor(Math.max(0, nowS) * KEEPER_POSE_FPS[name]) % KEEPER_POSE_FRAMES[name] });
 /** A frame through `name` as `u` runs 0..1. */
@@ -48,7 +52,10 @@ export function keeperFrame(k: Keeper, nowS: number): KeeperFrame {
     case 'getUp':
       return through('getUp', k.actT / profile.getUpS);
     case 'hold':
-      return k.pose?.name === 'catch' ? through('catch', 1 - k.pose.leftS / POSE_S) : looping('hold', nowS);
+      if (k.pose?.name === 'catch') return through('catch', 1 - k.pose.leftS / POSE_S);
+      // Goalie Gus's clap, after any catch pose.
+      if (k.pose?.name === 'clap') return through('clap', 1 - k.pose.leftS / CLAP_S);
+      return looping('hold', nowS);
     case 'kick':
       return through('dropKick', (k.actT * KEEPER_POSE_FPS.dropKick) / KEEPER_POSE_FRAMES.dropKick);
     case 'set':
@@ -59,8 +66,9 @@ export function keeperFrame(k: Keeper, nowS: number): KeeperFrame {
   }
 }
 
-/** Eddie in Harrison's goal; backupA in theirs on odd tryouts, backupB on even ones and the boss (Gus is plan 5's). */
-export function keeperLooks(m: Pick<CareerMatch, 'kind' | 'rung'>): { home: KeeperId; away: KeeperId } {
+/** Eddie in Harrison's goal; Gus in his own match; else backup A on odd tryouts, backup B on even ones. */
+export function keeperLooks(m: Pick<CareerMatch, 'kind' | 'rung' | 'opponent'>): { home: KeeperId; away: KeeperId } {
+  if (m.opponent === 'gus') return { home: 'eddie', away: 'gus' };
   return { home: 'eddie', away: m.kind !== 'boss' && m.rung % 2 === 1 ? 'backupA' : 'backupB' };
 }
 
@@ -91,23 +99,26 @@ export function keeperDrawables(w: World, cam: Camera, sprites: { home: KeeperSp
   return [ks.home, ks.away].map(k => ({ z: k.body.z, draw: (g: CanvasRenderingContext2D) => drawKeeper(g, cam, k, sprites[k.side], nowS, flat) }));
 }
 
-/** A 5×1 patch under a standing keeper; a strip along his length in a dive or lying down. */
+/** A 5×1 patch under a standing keeper (wider under Gus); a strip along his length in a dive or lying down. */
 export function drawKeeperShadows(g: CanvasRenderingContext2D, cam: Camera, w: World): void {
   const ks = w.keepers;
   if (!ks) return;
   g.fillStyle = MASTER.grassDark;
   for (const k of [ks.home, ks.away]) {
     const { body } = k;
+    const r = radiusOf(body);
     const lying = (k.act === 'dive' || k.act === 'down') && k.dive !== null;
     if (!lying) {
       const s = project(body.x, 0, body.z, cam);
-      g.fillRect(Math.round(s.sx) - Math.floor(SHADOW_W / 2), Math.round(s.sy) + 1, SHADOW_W, 1);
+      const width = SHADOW_W + 2 * (r - PLAYER_R);
+      g.fillRect(Math.round(s.sx) - Math.floor(width / 2), Math.round(s.sy) + 1, width, 1);
       continue;
     }
     const { dirX, dirZ } = k.dive!;
     const len = Math.hypot(dirX, dirZ) || 1;
+    const strip = Math.round((LYING_SHADOW * r) / PLAYER_R);
     // His hips are on his ground point: the strip runs a little back over his legs and on along his arms.
-    for (let i = -LYING_SHADOW / 2; i <= LYING_SHADOW; i++) {
+    for (let i = -strip / 2; i <= strip; i++) {
       const s = project(body.x + (dirX / len) * i, 0, body.z + (dirZ / len) * i, cam);
       g.fillRect(Math.round(s.sx) - 1, Math.round(s.sy) + 1, 3, 1);
     }

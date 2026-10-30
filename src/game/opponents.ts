@@ -7,14 +7,16 @@ import { DOG_TRICKS, TRICK_DIFFICULTY, TRICK_SCALE, type TrickSetup } from './tr
 import type { Stats } from './stats';
 import { TRYOUT_PROFILES, TRYOUT_STATS, type TryoutKidId } from './tryouts';
 import type { VenueId } from '../meta/career';
+import { GUS_PARTNER_PROFILES, GUS_PARTNER_STATS } from './gus';
 
-/** Every opponent who plays on a human body. Biscuit has his own. */
-export type HumanOpponentId = 'max' | CrewId | 'sam' | TryoutKidId;
+/** Every opponent who plays on a human body. Biscuit has his own. Goalie Gus's outfield body is his partner's. */
+export type HumanOpponentId = 'max' | CrewId | 'sam' | TryoutKidId | 'gus';
 
 const isTryoutKid = (id: HumanOpponentId): id is TryoutKidId => id in TRYOUT_STATS && id !== 'max' && id !== 'tia';
 
 /** Their stats for the match: Max's come from the ladder rung, everyone else plays at their own. Max and Tia come back tougher at the School Field, at their tryout stats and profiles. */
 export function opponentStats(id: HumanOpponentId, rung: number, venue?: VenueId): Stats {
+  if (id === 'gus') return { ...GUS_PARTNER_STATS };
   if (venue === 'school' && (id === 'max' || id === 'tia')) return { ...TRYOUT_STATS[id] };
   if (id === 'max') return maxStats(rung);
   if (isTryoutKid(id)) return { ...TRYOUT_STATS[id] };
@@ -22,6 +24,7 @@ export function opponentStats(id: HumanOpponentId, rung: number, venue?: VenueId
 }
 
 export function opponentProfile(id: HumanOpponentId, d: Difficulty, venue?: VenueId): AiProfile {
+  if (id === 'gus') return GUS_PARTNER_PROFILES[d];
   if (venue === 'school' && (id === 'max' || id === 'tia')) return TRYOUT_PROFILES[id][d];
   if (id === 'max') return DIFFICULTY[d];
   if (isTryoutKid(id)) return TRYOUT_PROFILES[id][d];

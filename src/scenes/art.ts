@@ -17,7 +17,7 @@ import { SAM_HEADS, samLook } from '../art/opponents/sam';
 import { TRYOUT_BODY, TRYOUT_HEADS, tryoutLook } from '../art/opponents/tryouts';
 import type { TryoutKidId } from '../game/tryouts';
 import { addOutline, type Point } from '../art/raster';
-import { KEEPER_HEADS, keeperBody, keeperExtras, keeperLook, type KeeperId } from '../art/keepers/keepers';
+import { KEEPER_EXTRAS, KEEPER_HEADS, keeperBody, keeperExtras, keeperLook, type KeeperId } from '../art/keepers/keepers';
 import { KEEPER_POSE_FRAMES, bakeKeeperPoses, diveFrames, type KeeperPose } from '../art/keepers/poses';
 import { backyardLayers, type VenueLayers } from '../art/venues/backyard';
 import { JOGGERS, joggerFrames, parkLayers } from '../art/venues/park';
@@ -137,6 +137,10 @@ interface OpponentLook {
   heads: Readonly<Record<HeadFacing, HeadSprite>>;
   look: LookColors;
   body: BodyProportions;
+  /** Gloves and the like; none for most. */
+  extras?: BodyExtras;
+  /** The face the venue screen shows, when it isn't this body's own: Gus's for his partner. */
+  face?: { head: HeadSprite; look: LookColors };
 }
 
 const crewKid = (id: CrewId): OpponentLook => ({ heads: CREW_HEADS[id], look: crewLook(id), body: CREW_BODY[id] });
@@ -156,6 +160,14 @@ export const OPPONENT_LOOKS: Readonly<Record<HumanOpponent, OpponentLook>> = {
   priya: tryoutKid('priya'),
   niko: tryoutKid('niko'),
   paige: tryoutKid('paige'),
+  // Goalie Gus's match: the body is his partner, BACKUP MO, in his keeper top and gloves; the face is Gus's.
+  gus: {
+    heads: KEEPER_HEADS.backupA,
+    look: keeperLook('backupA'),
+    body: keeperBody('backupA'),
+    extras: KEEPER_EXTRAS,
+    face: { head: KEEPER_HEADS.gus.front, look: keeperLook('gus') },
+  },
 };
 
 function spriteSet(cache: SpriteCache, who: string, heads: Readonly<Record<HeadFacing, HeadSprite>>, look: LookColors, body: BodyProportions = HARRISON_BODY, extras: BodyExtras = NO_BODY_EXTRAS): SpriteSet {
@@ -224,8 +236,8 @@ export function loadGameArt(): GameArt {
     return j.dir === 1 ? ([a, b] as const) : ([flipX(a), flipX(b)] as const);
   });
   const opponentArt = (id: HumanOpponent): OpponentArt => {
-    const { heads, look, body } = OPPONENT_LOOKS[id];
-    return { sprites: spriteSet(cache, id, heads, look, body), face: faceCanvas(heads.front, look) };
+    const { heads, look, body, extras, face } = OPPONENT_LOOKS[id];
+    return { sprites: spriteSet(cache, id, heads, look, body, extras), face: face ? faceCanvas(face.head, face.look) : faceCanvas(heads.front, look) };
   };
   const texts = new Map<string, HTMLCanvasElement>();
   const harrison = new HarrisonArt(cache);
@@ -290,11 +302,11 @@ export function loadGameArt(): GameArt {
     },
     opponents: Object.fromEntries((Object.keys(OPPONENT_LOOKS) as HumanOpponent[]).map(id => [id, opponentArt(id)])) as Record<HumanOpponent, OpponentArt>,
     opponentIn(id, change) {
-      const { heads, look, body } = OPPONENT_LOOKS[id];
+      const { heads, look, body, extras } = OPPONENT_LOOKS[id];
       const key = `${id}-${change}`;
       let set = changed.get(key);
       if (!set) {
-        set = spriteSet(cache, key, heads, changeLook(look, change), body);
+        set = spriteSet(cache, key, heads, changeLook(look, change), body, extras);
         changed.set(key, set);
       }
       return set;

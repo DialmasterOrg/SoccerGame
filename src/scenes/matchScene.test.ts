@@ -2,14 +2,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { recordingAudio } from '../audio/testAudio';
 import { recordingRumble } from '../engine/testRumble';
 import type { GameContext } from './context';
-import { DIFFICULTY } from '../game/ai';
+import { DIFFICULTIES, DIFFICULTY } from '../game/ai';
 import { BALL_REST_Y } from '../game/ball';
 import { CREW_PROFILES, CREW_STATS } from '../game/crew';
 import { seeded } from '../engine/random';
 import { DOG_DIFFICULTY } from '../game/dog';
 import { GOAL_PAUSE_S } from '../game/match';
-import { NORMAL_HANDLING, NO_INTENT } from '../game/player';
-import { keeperLevel, keeperProfile, quietKeepers, stepKeeper } from '../game/keeper';
+import { NORMAL_HANDLING, NO_INTENT, radiusOf } from '../game/player';
+import { KEEPER_TOP_LEVEL, keeperLevel, keeperProfile, quietKeepers, stepKeeper } from '../game/keeper';
+import { GUS, GUS_PARTNER_PROFILES, GUS_PARTNER_STATS, GUS_PROFILES } from '../game/gus';
 import { keeperLooks } from './keeperView';
 import { clockText } from '../game/match';
 import { BIG_VIEW } from '../game/camera';
@@ -1373,7 +1374,7 @@ describe("the School's crowd", () => {
   });
 });
 
-describe('the School Field, with Max standing in', () => {
+describe('the School Field', () => {
   /** Sam beaten: the same stars as the career tests' PARK_DONE. */
   const PARK_DONE_PROFILE = { ...newProfile(), ladderWins: 10, career: { stars: { 'backyard-boss': 1, 'park-1': 1, 'park-2': 1, 'park-3': 1, 'park-4': 1, 'park-boss': 1 }, milestonesPaid: 0, lossStreaks: {} } };
 
@@ -1386,13 +1387,15 @@ describe('the School Field, with Max standing in', () => {
       expect(s.world.away.stats, m.id).toEqual(opponentStats(human, m.rung, 'school'));
       expect(s.world.maxProfile, m.id).toBe(opponentProfile(human, 'hard', 'school'));
       expect(s.hud.awayName).toBe(m.hudName);
-      expect([s.world.keepers!.home.profile, s.world.keepers!.away.profile]).toEqual([keeperProfile(keeperLevel(m), 'normal'), keeperProfile(keeperLevel(m), 'hard')]);
-      expect(keeperLooks(m).away).toBe(m.kind === 'match' && m.rung % 2 === 1 ? 'backupA' : 'backupB');
+      const gus = m.opponent === 'gus';
+      const keepers = gus ? [keeperProfile(KEEPER_TOP_LEVEL, 'normal'), GUS_PROFILES.hard] : [keeperProfile(keeperLevel(m), 'normal'), keeperProfile(keeperLevel(m), 'hard')];
+      expect([s.world.keepers!.home.profile, s.world.keepers!.away.profile], m.id).toEqual(keepers);
+      expect(keeperLooks(m).away).toBe(gus ? 'gus' : m.rung % 2 === 1 ? 'backupA' : 'backupB');
       expect(clockText(s.world.match).text).toBe('2:00');
     }
     const statsAt = (id: string) => createMatchScene(testContext(), 3, matchById(id)!).world.away.stats;
     expect(statsAt('school-1')).toEqual(TRYOUT_STATS.max);
-    expect(statsAt('school-boss')).toEqual(TRYOUT_STATS.max); // Max stands in for Gus at his School best until plan 5
+    expect(statsAt('school-boss')).toEqual(GUS_PARTNER_STATS);
     expect(statsAt('school-5')).toEqual(TRYOUT_STATS.tia);
   });
 
@@ -1409,6 +1412,49 @@ describe('the School Field, with Max standing in', () => {
       expect(s.world.maxProfile, id).toBe(TRYOUT_PROFILES[who].hard);
       expect(s.world.aimErrorDeg.away, id).toBe(TRYOUT_PROFILES[who].hard.aimErrorDeg);
     }
+  });
+
+  it("Gus's match puts Goalie Gus in their goal at the difficulty, and Eddie in Harrison's at tryout 8's Normal keeper", () => {
+    for (const d of DIFFICULTIES) {
+      const s = createMatchScene(testContext({ profile: { ...newProfile(), difficulty: d } }), 3, matchById('school-boss')!);
+      const { home, away } = s.world.keepers!;
+      expect([away.gus, radiusOf(away.body)], d).toEqual([GUS, 7]);
+      expect(away.profile, d).toBe(GUS_PROFILES[d]);
+      expect([home.gus, home.profile], d).toEqual([null, keeperProfile(KEEPER_TOP_LEVEL, 'normal')]);
+    }
+  });
+
+  it("in Gus's match the outfield body is his partner, and the HUD says GUS", () => {
+    const s = createMatchScene(testContext(), 3, matchById('school-boss')!);
+    expect(s.world.away.stats).toEqual(GUS_PARTNER_STATS);
+    expect(s.world.maxProfile).toBe(GUS_PARTNER_PROFILES.normal);
+    expect(s.hud.awayName).toBe('GUS');
+  });
+
+  it("Gus's match draws Gus in their goal and his partner on the pitch", () => {
+    stubCanvases();
+    const s = createMatchScene(testContext({ art: fakeArt() }), 3, matchById('school-boss')!);
+    const main = recordingContext();
+    s.draw(main.g, 0);
+    expect(main.drawn.some(n => n?.startsWith('art.keepers.gus.poses.ready.left'))).toBe(true);
+    expect(main.drawn.some(n => n?.startsWith('art.opponents.gus.sprites'))).toBe(true);
+    expect((s.hud.awaySprites as unknown as Named).name).toBe('art.opponents.gus.sprites');
+  });
+
+  it('a difficulty change mid-match keeps Gus as Gus, his act playing out, and Eddie as he was (Review Focus 1)', () => {
+    const s = createMatchScene(testContext(), 1, matchById('school-boss')!);
+    s.world.match.phase = 'playing';
+    const { home, away } = s.world.keepers!;
+    const eddie = home.profile;
+    Object.assign(away, { act: 'dive', actT: 0, dive: { dirX: 0, dirZ: 1 } });
+    s.update(frame(['pause']), STEP);
+    for (let i = 0; i < PAUSE_ITEMS.indexOf('OPTIONS'); i++) s.update(frame(['down']), STEP);
+    const options = s.update(frame(['confirm']), STEP)!;
+    options.update(frame(['right']), STEP);
+    options.update(frame(['back']), STEP);
+    expect(away.profile).toBe(GUS_PROFILES.hard);
+    expect([away.gus, radiusOf(away.body), away.act]).toEqual([GUS, 7, 'dive']);
+    expect(home.profile).toBe(eddie);
   });
 
   it('a tryout plays to full time and pays out, whatever the score', () => {

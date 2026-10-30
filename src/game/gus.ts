@@ -1,8 +1,11 @@
 import { GUS_HANDS } from '../art/keepers/gus';
-import type { Difficulty } from './ai';
-import { KEEPER_TOP_LEVEL, SET_OFF, keeperGoal, keeperProfile, pitchward, type Keeper, type KeeperLineup, type KeeperProfile } from './keeper';
+import type { CareerMatch } from '../meta/career';
+import { DIFFICULTY, type AiProfile, type Difficulty } from './ai';
+import { KEEPER_TOP_LEVEL, SET_OFF, keeperGoal, keeperLevel, keeperLineup, keeperProfile, pitchward, type Keeper, type KeeperLineup, type KeeperProfile } from './keeper';
 import { radiusOf } from './player';
 import type { Point } from '../art/raster';
+import type { Stats } from './stats';
+import { profiles } from './tryouts';
 import type { Wave } from './wave';
 import type { World } from './world';
 
@@ -63,3 +66,23 @@ export const GUS_PROFILES: Record<Difficulty, KeeperProfile> = {
 export function gusLineup(d: Difficulty): KeeperLineup {
   return { home: keeperProfile(KEEPER_TOP_LEVEL, 'normal'), away: GUS_PROFILES[d], gus: GUS };
 }
+
+/** BACKUP MO, playing out of position. */
+export const GUS_PARTNER_STATS: Readonly<Stats> = { speed: 3, power: 3, jump: 2, control: 3, stamina: 1 };
+
+/** Max's dials, a touch slower: paceFactor 0.85 / 0.9 / 0.95. Mutable, so headless sweeps can try other numbers. */
+export const GUS_PARTNER_PROFILES: Record<Difficulty, AiProfile> = profiles(DIFFICULTY, {
+  easy: { paceFactor: 0.85 },
+  normal: { paceFactor: 0.9 },
+  hard: { paceFactor: 0.95 },
+});
+
+type LineupMatch = Pick<CareerMatch, 'kind' | 'rung' | 'opponent'>;
+
+/** A match's keepers: Gus's lineup for his match, every other at its level. */
+export function lineupFor(m: LineupMatch, d: Difficulty): KeeperLineup {
+  return m.opponent === 'gus' ? gusLineup(d) : keeperLineup(keeperLevel(m), d);
+}
+
+/** Their keeper's profile at `d`: what a difficulty change gives him mid-match. */
+export const awayKeeperProfile = (m: LineupMatch, d: Difficulty): KeeperProfile => lineupFor(m, d).away;

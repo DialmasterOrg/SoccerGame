@@ -6,7 +6,7 @@ import type { TryoutKidId } from '../game/tryouts';
 export type VenueId = 'backyard' | 'park' | 'school' | 'state' | 'stadium' | 'worldCup';
 
 /** Who Harrison plays: Max, Biscuit, the Park crew, Speedy Sam, and the School's tryouts. */
-export type OpponentId = 'max' | 'biscuit' | 'brick' | 'leo' | 'tia' | 'pete' | 'sam' | TryoutKidId;
+export type OpponentId = 'max' | 'biscuit' | 'brick' | 'leo' | 'tia' | 'pete' | 'sam' | TryoutKidId | 'gus';
 
 export interface CareerMatch {
   id: string;
@@ -104,7 +104,6 @@ export const PARK: Venue = {
   ],
 };
 
-// Max stands in for Gus until plan 5.
 const tryout = (rung: number, name: string, hudName: string, opponent: OpponentId, blurb: string, bonus: BonusId): CareerMatch => ({
   id: `school-${rung}`, venue: 'school', kind: 'match', rung, name, hudName, opponent, blurb, tip: null, bonus,
 });
@@ -124,7 +123,7 @@ export const SCHOOL: Venue = {
     tryout(7, 'NUTMEG NIKO', 'NIKO', 'niko', 'HE PUTS IT THROUGH YOUR LEGS.', 'perfect'),
     tryout(8, 'PINPOINT PAIGE', 'PAIGE', 'paige', 'THE TOP SCORER. SHE PICKS A CORNER.', 'noPaigeGoals'),
     {
-      id: SCHOOL_BOSS_ID, venue: 'school', kind: 'boss', rung: 0, name: 'GOALIE GUS', hudName: 'GUS', opponent: 'max',
+      id: SCHOOL_BOSS_ID, venue: 'school', kind: 'boss', rung: 0, name: 'GOALIE GUS', hudName: 'GUS', opponent: 'gus',
       blurb: 'THE CAPTAIN. HE FILLS THE WHOLE GOAL.', tip: null, bonus: 'threePastGus',
     },
   ],

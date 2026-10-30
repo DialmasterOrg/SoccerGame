@@ -152,7 +152,7 @@ describe('the School Field on the venue screen', () => {
     expect([1, 2, 3, 4, 5, 6, 7, 8].map(n => nodeX(matchById(`school-${n}`)!))).toEqual([16, 47, 78, 109, 139, 170, 201, 232]);
   });
 
-  it('after Sam the venue draws the School behind SCHOOL FIELD and STARS 0/27, with the stand-in boss a silhouette', () => {
+  it('after Sam the venue draws the School behind SCHOOL FIELD and STARS 0/27, with the boss a silhouette', () => {
     stubCanvases();
     const { g, drawn } = recordingContext();
     createVenueScene(schoolOpen(), 'school').draw(g, 0);
@@ -174,11 +174,11 @@ describe('the School Field on the venue screen', () => {
     }
   });
 
-  it('once tryout 8 is passed the boss node shows the face itself', () => {
+  it("once tryout 8 is passed the boss node and the panel show Gus's own face", () => {
     stubCanvases();
     const { g, drawn } = recordingContext();
     createVenueScene(schoolOpen(TRYOUTS_DONE), 'school').draw(g, 0);
-    expect(drawn.filter(n => n === 'art.opponents.max.face')).toHaveLength(2);
+    expect(drawn.filter(n => n === 'art.opponents.gus.face')).toHaveLength(2);
     expect(drawn).toContain('art.text(GOALIE GUS,2,energyGold,outline)');
   });
 

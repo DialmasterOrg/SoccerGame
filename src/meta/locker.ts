@@ -93,6 +93,8 @@ export const KIT_CLASH: Readonly<Record<KitItemId, { family: ClashFamily; light:
 export const OPPONENT_FAMILY: Readonly<Record<Exclude<OpponentId, 'biscuit'>, ClashFamily>> = {
   max: 'blue', brick: 'orange', leo: 'purple', tia: 'teal', pete: 'yellow', sam: 'pink',
   hank: 'white', lola: 'yellow', finn: 'black', priya: 'olive', niko: 'brown', paige: 'purple',
+  // Gus's partner, BACKUP MO, in his berry keeper top.
+  gus: 'purple',
 };
 
 export const DEFAULT_OUTFIT: Outfit = { kit: 'home', boots: 'volt', extras: [] };

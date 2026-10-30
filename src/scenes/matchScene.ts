@@ -1,4 +1,4 @@
-import { keeperLevel, keeperLineup, keeperProfile } from '../game/keeper';
+import { awayKeeperProfile, lineupFor } from '../game/gus';
 import { keeperLooks } from './keeperView';
 import { goalCrowd } from '../audio/goalCrowd';
 import { matchFeedback, speedMemo } from '../audio/matchFeedback';
@@ -131,7 +131,7 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
   const human: HumanOpponentId = match.opponent === 'biscuit' ? 'max' : match.opponent;
   const thinking = opponentProfile(human, difficulty, match.venue);
   const stage = stageFor(match.venue);
-  // At the School Field Max and Tia come back at their School best; Max stands in for Gus there until plan 5.
+  // At the School Field Max and Tia come back at their School best; in Gus's match the outfield body is his partner.
   const world = createWorld(
     { ...ctx.profile.stats },
     dog ? { ...BASE_STATS } : opponentStats(human, match.rung, match.venue),
@@ -143,8 +143,8 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
     opponentHandling(human),
     hasSkillMoves(ctx.profile) ? trickSetup(difficulty, match.opponent) : null,
     stage,
-    // Harrison's keeper plays at Normal; theirs at the difficulty, both as good as this match's keeper.
-    stage.keepers ? keeperLineup(keeperLevel(match), difficulty) : null,
+    // Harrison's keeper plays at Normal; theirs at the difficulty, both as good as this match's keeper, or Goalie Gus and Eddie.
+    stage.keepers ? lineupFor(match, difficulty) : null,
   );
   const brain = createBrain(thinking);
   // Speedy Sam's whoosh past Harrison remembers when it last sounded.
@@ -258,8 +258,8 @@ export function createMatchScene(ctx: GameContext, seed: number, match: CareerMa
     if (world.maxProfile) world.maxProfile = brain.profile;
     if (dogBrain && world.dog) dogBrain.profile = world.dog.profile = DOG_DIFFICULTY[difficulty];
     if (world.tricks) world.tricks = trickSetup(difficulty, match.opponent);
-    // Only their keeper changes; whatever he's doing plays out.
-    if (world.keepers) world.keepers.away.profile = keeperProfile(keeperLevel(match), difficulty);
+    // Only their keeper changes (Gus stays Gus); whatever he's doing plays out.
+    if (world.keepers) world.keepers.away.profile = awayKeeperProfile(match, difficulty);
     return scene;
   };
 

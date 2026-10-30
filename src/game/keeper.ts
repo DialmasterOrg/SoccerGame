@@ -137,8 +137,8 @@ export interface Keeper {
   errZ: number;
   /** The ball's ground velocity last tick, to see a new flight. */
   seenV: { vx: number; vz: number };
-  /** A standing catch or push, shown for a moment. */
-  pose: { name: 'catch' | 'push'; leftS: number } | null;
+  /** A standing catch or push, shown for a moment; Goalie Gus's glove clap after a catch. */
+  pose: { name: 'catch' | 'push' | 'clap'; leftS: number } | null;
   /** Goalie Gus's size and rules; null for every other keeper. */
   gus: GusRules | null;
 }
@@ -174,6 +174,8 @@ export const SET_OFF = 3;
 const DIVE_BALL_PX = 10;
 /** A standing catch or push shows this long. */
 const POSE_S = 0.25;
+/** Goalie Gus's hold opens with a silent clap of the ball between his gloves, after any catch pose, for this long. */
+export const CLAP_S = 0.45;
 
 /** How long he holds a catch, standing still, before the drop kick. */
 export const HOLD_S = 1.5;
@@ -230,6 +232,8 @@ export function placeKeepers(w: World): void {
   ks.strike = null;
 }
 
+const clap = (): Keeper['pose'] => ({ name: 'clap', leftS: CLAP_S });
+
 function enterAct(k: Keeper, act: KeeperAct): void {
   k.act = act;
   k.actT = 0;
@@ -262,7 +266,7 @@ function slideDive(k: Keeper, dt: number): void {
  */
 export function stepKeeper(w: World, k: Keeper, intent: KeeperIntent, live: boolean, dt: number, ev: KeeperEvents): void {
   k.actT += dt;
-  if (k.pose && (k.pose.leftS -= dt) <= 0) k.pose = null;
+  if (k.pose && (k.pose.leftS -= dt) <= 0) k.pose = k.gus && k.act === 'hold' && k.pose.name === 'catch' ? clap() : null;
   if (live && intent.dive && onFeet(k) && k.body.state === 'ground') startDive(k, intent.dive, ev);
   const walkingOut = k.body.inNet === true;
   const { profile, body } = k;
@@ -281,6 +285,7 @@ export function stepKeeper(w: World, k: Keeper, intent: KeeperIntent, live: bool
       if (k.actT >= profile.getUpS) {
         enterAct(k, k.holding ? 'hold' : 'set');
         k.dive = null;
+        if (k.gus && k.holding) k.pose = clap();
       }
       return;
     case 'hold':

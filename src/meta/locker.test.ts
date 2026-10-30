@@ -134,6 +134,11 @@ describe('outfits and clashes', () => {
     }
   });
 
+  it("Gus's partner wears purple, so he changes into white against Harrison's purple, and only then", () => {
+    expect(changeKitFor('purple', 'gus')).toBe('white');
+    expect(changeKitFor('home', 'gus')).toBeNull();
+  });
+
   it("the tryouts change kit whenever Harrison's kit is in their family, into one that isn't (Review Focus 2)", () => {
     expect([changeKitFor('white', 'hank'), changeKitFor('away', 'finn'), changeKitFor('blackGold', 'finn'), changeKitFor('gold', 'lola'), changeKitFor('purple', 'paige')]).toEqual(['black', 'white', 'white', 'white', 'white']);
     for (const kid of ['hank', 'lola', 'finn', 'priya', 'niko', 'paige'] as const) {

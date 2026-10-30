@@ -12,6 +12,7 @@ import { BASE_STATS } from './stats';
 import { TUNING_STATS } from './dog';
 import { SAM_TUNING_STATS } from './samScripts';
 import { TRYOUT_PROFILES, TRYOUT_STATS } from './tryouts';
+import { GUS_PARTNER_PROFILES, GUS_PARTNER_STATS } from './gus';
 import { createWorld, placeForKickoff, stepWorld } from './world';
 
 const DIFFS: readonly Difficulty[] = ['easy', 'normal', 'hard'];
@@ -109,6 +110,14 @@ describe('opponents', () => {
       expect(opponentProfile('sam', d).style).toBe('speedster');
     }
     expect(opponentHandling('sam')).toBe(SAM_HANDLING);
+  });
+
+  it("in Goalie Gus's match the outfield body is his partner, BACKUP MO, at his own stats and profiles, handling normally", () => {
+    expect(GUS_PARTNER_STATS).toEqual({ speed: 3, power: 3, jump: 2, control: 3, stamina: 1 });
+    expect(opponentStats('gus', 0, 'school')).toEqual(GUS_PARTNER_STATS);
+    expect(opponentStats('gus', 0, 'school')).not.toBe(GUS_PARTNER_STATS);
+    for (const d of DIFFS) expect(opponentProfile('gus', d, 'school')).toBe(GUS_PARTNER_PROFILES[d]);
+    expect(opponentHandling('gus')).toBe(NORMAL_HANDLING);
   });
 
   it('everyone else handles normally', () => {

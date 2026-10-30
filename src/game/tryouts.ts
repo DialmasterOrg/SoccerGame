@@ -24,7 +24,7 @@ export const TRYOUT_STATS: Readonly<Record<TryoutOpponent, Readonly<Stats>>> = {
 type Dials = Partial<AiProfile>;
 
 /** Three profiles on `from`'s, each its own object down to the kickoff spot, so a sweep that mutates one never moves another venue's. */
-const profiles = (from: Record<Difficulty, AiProfile>, dials: Partial<Record<Difficulty, Dials>> = {}): Record<Difficulty, AiProfile> =>
+export const profiles = (from: Record<Difficulty, AiProfile>, dials: Partial<Record<Difficulty, Dials>> = {}): Record<Difficulty, AiProfile> =>
   Object.fromEntries(DIFFICULTIES.map(d => {
     const p = { ...from[d], ...dials[d] };
     return [d, { ...p, kickoffSpot: { ...p.kickoffSpot } }];

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { DIVE_FRAMES } from '../art/keepers/poses';
-import { keeperProfile, type Keeper } from '../game/keeper';
-import { keeperWorld } from '../game/testKeepers';
+import { keeperProfile, quietKeepers, startHold, type Keeper } from '../game/keeper';
+import { keeperWorld, runFor } from '../game/testKeepers';
+import type { World } from '../game/world';
 import { BIG_VIEW, project } from '../game/camera';
 import type { KeeperSprites } from './art';
-import { keeperDrawables, keeperFrame, keeperLooks } from './keeperView';
+import { CLAP_S, drawKeeperShadows, keeperDrawables, keeperFrame, keeperLooks } from './keeperView';
 import { fakeArt, type Named } from './testDraw';
 
 const k = (o: Partial<Keeper>): Keeper => ({ ...keeperWorld().keepers!.away, ...o });
@@ -43,8 +44,77 @@ describe('keeperFrame', () => {
 
 describe('keeperLooks', () => {
   it("Eddie keeps Harrison's goal; the backups take turns in theirs", () => {
-    expect(keeperLooks({ kind: 'match', rung: 1 })).toEqual({ home: 'eddie', away: 'backupA' });
-    expect(keeperLooks({ kind: 'match', rung: 2 })).toEqual({ home: 'eddie', away: 'backupB' });
+    expect(keeperLooks({ kind: 'match', rung: 1, opponent: 'max' })).toEqual({ home: 'eddie', away: 'backupA' });
+    expect(keeperLooks({ kind: 'match', rung: 2, opponent: 'hank' })).toEqual({ home: 'eddie', away: 'backupB' });
+  });
+
+  it("Goalie Gus keeps their goal in his own match", () => {
+    expect(keeperLooks({ kind: 'boss', rung: 0, opponent: 'gus' })).toEqual({ home: 'eddie', away: 'gus' });
+  });
+});
+
+describe("Gus's glove clap", () => {
+  const STEP = 1 / 60;
+  /** A keeper getting up from a dive with the ball, a tick from his hold. */
+  function gettingUpWithIt(w: World, k: Keeper): void {
+    Object.assign(k, { act: 'getUp', actT: k.profile.getUpS - STEP / 2, holding: true, dive: { dirX: 0, dirZ: 1 } });
+    runFor(w, STEP);
+    expect(k.act).toBe('hold');
+  }
+
+  it('held after a dive, his hold opens with the clap, then the plain hold', () => {
+    const w = keeperWorld({ gus: true });
+    const gus = w.keepers!.away;
+    gettingUpWithIt(w, gus);
+    runFor(w, 0.1);
+    expect(keeperFrame(gus, 0)).toMatchObject({ kind: 'pose', name: 'clap' });
+    runFor(w, 0.5);
+    expect(keeperFrame(gus, 0)).toMatchObject({ kind: 'pose', name: 'hold' });
+  });
+
+  it('caught standing, he shows the catch, then the clap, then the plain hold', () => {
+    const w = keeperWorld({ gus: true });
+    const gus = w.keepers!.away;
+    startHold(w, gus, quietKeepers(), true);
+    runFor(w, 0.1);
+    expect(keeperFrame(gus, 0)).toMatchObject({ name: 'catch' });
+    runFor(w, 0.25);
+    expect(keeperFrame(gus, 0)).toMatchObject({ name: 'clap' });
+    runFor(w, CLAP_S);
+    expect(keeperFrame(gus, 0)).toMatchObject({ name: 'hold' });
+  });
+
+  it("Eddie doesn't clap", () => {
+    const w = keeperWorld({ gus: true });
+    const eddie = w.keepers!.home;
+    gettingUpWithIt(w, eddie);
+    runFor(w, 0.1);
+    expect(keeperFrame(eddie, 0)).toMatchObject({ kind: 'pose', name: 'hold' });
+  });
+});
+
+describe('keeper shadows', () => {
+  /** The shadow pixels drawn for their keeper alone: [width, rows] of what's under him. */
+  function shadowOf(w: World): { x: number; w: number }[] {
+    const rects: { x: number; w: number }[] = [];
+    const g = { fillRect: (x: number, _y: number, rw: number) => void rects.push({ x, w: rw }), fillStyle: '' } as unknown as CanvasRenderingContext2D;
+    w.keepers!.home.body.x = -1000;
+    drawKeeperShadows(g, { x: 900, view: BIG_VIEW }, w);
+    return rects.filter(r => r.x > 0);
+  }
+
+  it("a standing keeper's patch is 2 x radius - 5 wide: 5 for everyone, 9 for Gus", () => {
+    expect(shadowOf(keeperWorld()).map(r => r.w)).toEqual([5]);
+    expect(shadowOf(keeperWorld({ gus: true })).map(r => r.w)).toEqual([9]);
+  });
+
+  it('lying along a dive, the strip is 14 x radius / 5 long: 14 for everyone, 20 for Gus', () => {
+    const lying = (w: World) => {
+      Object.assign(w.keepers!.away, { act: 'down', dive: { dirX: 0, dirZ: 1 } });
+      return shadowOf(w).length - 1;
+    };
+    expect(lying(keeperWorld())).toBe(14 + 14 / 2);
+    expect(lying(keeperWorld({ gus: true }))).toBe(20 + 20 / 2);
   });
 });
 

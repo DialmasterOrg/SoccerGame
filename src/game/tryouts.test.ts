@@ -4,6 +4,7 @@ import { DIFFICULTIES, DIFFICULTY } from './ai';
 import { CREW_PROFILES, CREW_STATS } from './crew';
 import { STAT_NAMES, type Stats } from './stats';
 import { TRYOUT_ORDER, TRYOUT_PROFILES, TRYOUT_STATS } from './tryouts';
+import { GUS_PARTNER_PROFILES } from './gus';
 
 const total = (s: Stats) => s.speed + s.power + s.jump + s.control;
 const PLAYED = ['speed', 'power', 'jump', 'control'] as const;
@@ -38,11 +39,11 @@ describe('the tryouts cast', () => {
     }
   });
 
-  it("every Easy dial is gentler than Normal's, and Normal's than Hard's", () => {
+  it("every Easy dial is gentler than Normal's, and Normal's than Hard's, Gus's partner's too", () => {
     const gentlerHigh = ['reactionS', 'aimErrorDeg', 'backOffS', 'cleanSteal', 'wrongFootedS'] as const;
     const harderHigh = ['aggression', 'braceSense', 'paceFactor'] as const;
-    for (const id of TRYOUT_ORDER) {
-      const { easy: e, normal: n, hard: h } = TRYOUT_PROFILES[id];
+    const all = [...TRYOUT_ORDER.map(id => [id, TRYOUT_PROFILES[id]] as const), ['gus partner', GUS_PARTNER_PROFILES] as const];
+    for (const [id, { easy: e, normal: n, hard: h }] of all) {
       for (const k of gentlerHigh) expect([e[k] >= n[k], n[k] >= h[k]], `${id} ${k}`).toEqual([true, true]);
       for (const k of harderHigh) expect([e[k] <= n[k], n[k] <= h[k]], `${id} ${k}`).toEqual([true, true]);
     }
