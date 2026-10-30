@@ -142,6 +142,12 @@ export interface Player {
   fooled: null | { kind: 'confused' | 'stumble'; leftS: number; totalS: number; swayZ: number };
   /** Time left wise to Harrison's tricks, when none can fool him. */
   wiseS: number;
+  /** The way (a unit vector) his last dribble touch sent the ball; null until he touches it, and after a trap or a heavy touch. */
+  dribbleLine: { x: number; z: number } | null;
+  /** Harrison's clean turn with the ball under way: the ball rolls round to his new front (x, z, a unit vector) over leftS. The world runs it. */
+  turnTouch: { x: number; z: number; leftS: number } | null;
+  /** The way (a unit vector) Harrison's drag-back or turn-round rolls the ball to. */
+  turnDir: { x: number; z: number } | null;
   /** A keeper's penalty box: his centre never leaves it. Absent on every other player. */
   area?: Area;
   /** A keeper blown into his net by the Energy Wave: the net holds him until he walks out. */
@@ -232,6 +238,9 @@ export function createPlayer(team: 'home' | 'away', stats: Stats, x: number, fac
     trickCooldownS: 0,
     fooled: null,
     wiseS: 0,
+    dribbleLine: null,
+    turnTouch: null,
+    turnDir: null,
   };
 }
 

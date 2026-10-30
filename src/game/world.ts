@@ -59,6 +59,8 @@ export interface WorldEvents {
   trick: TrickEvents;
   /** What the keepers did this tick. All quiet without them. */
   keeper: KeeperEvents;
+  /** Harrison's turn with the ball this tick; null without one. */
+  turn: 'turned' | 'heavy' | null;
 }
 
 export interface World {
@@ -68,6 +70,8 @@ export interface World {
   away: Player;
   match: MatchState;
   rng: Rng;
+  /** Harrison's heavy-touch rolls only, so every other random event keeps its sequence. */
+  touchRng: Rng;
   aimErrorDeg: { home: number; away: number };
   events: WorldEvents;
   /** Harrison's super meter; null unless he owns a power move, and then the match plays exactly as before. */
@@ -86,6 +90,8 @@ export interface World {
   keepers: Keepers | null;
 }
 
+/** Mixed into the match seed for the touch stream. */
+const TOUCH_SEED = 0x2f6b9d1;
 /** A ball slower than this, px/s, is at rest. */
 const BALL_RESTING = 40;
 /** Where the kicking-off player stands, behind the ball. */
@@ -107,6 +113,7 @@ const quietEvents = (): WorldEvents => ({
   steal: null,
   trick: quietTricks(),
   keeper: quietKeepers(),
+  turn: null,
 });
 
 /** The kicks that make a goal a style goal. */
@@ -144,6 +151,7 @@ export function createWorld(
     away: createPlayer('away', awayStats, centre, -1),
     match: createMatch(stage.matchS, stage.goldenGoalS),
     rng: seeded(seed),
+    touchRng: seeded(seed ^ TOUCH_SEED),
     aimErrorDeg,
     events: quietEvents(),
     power: kit ? createPower(kit) : null,
@@ -396,7 +404,7 @@ export function stepWorld(w: World, homeIntent: PlayerIntent, awayIntent: Player
     if (goal === 'home' && STYLE_KINDS.has(w.power.lastKind)) addMeter(w.power, 'styleGoal');
     w.power.lastKind = null;
   }
-  w.events = { kicks, ball, goal, power, dog, steal, trick, keeper };
+  w.events = { kicks, ball, goal, power, dog, steal, trick, keeper, turn: null };
   if (resetForKickoff) {
     placeForKickoff(w);
     w.wave = null;

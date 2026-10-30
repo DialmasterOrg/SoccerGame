@@ -93,6 +93,14 @@ describe('resolveContacts: dribbling and blocking', () => {
     expect(ev.touched).toBe(true);
   });
 
+  it('a dribble touch records the line it sent the ball along', () => {
+    const { p, opp } = setup();
+    [p.vx, p.vz] = [60, 80];
+    contact(p, opp, ball({ x: p.x + 4.2, z: p.z + 5.6 }));
+    expect(p.dribbleLine!.x).toBeCloseTo(0.6, 9);
+    expect(p.dribbleLine!.z).toBeCloseTo(0.8, 9);
+  });
+
   it('waits out the touch cooldown between dribble touches', () => {
     const { p, opp } = setup();
     p.vx = 95;

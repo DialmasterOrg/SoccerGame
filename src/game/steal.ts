@@ -111,6 +111,7 @@ function trap(w: World): void {
   const spot = trapSpot(w);
   if (spot) [ball.x, ball.z, ball.y] = [spot.x, spot.z, BALL_REST_Y];
   home.touchCooldown = TOUCH_COOLDOWN_S;
+  home.dribbleLine = null;
   [home.vx, home.vz] = keep === 0 ? [0, 0] : [home.vx * keep, home.vz * keep];
   Object.assign(ball, { vx: home.vx, vy: 0, vz: home.vz, spin: 0 });
 }

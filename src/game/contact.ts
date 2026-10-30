@@ -141,6 +141,7 @@ function dribble(p: Player, ball: Ball, ev: ContactEvents, keepOut: boolean, fie
   const push = (touchPush(p.stats) * p.handling.touchScale) / speed;
   ball.vx = p.vx * (1 + push);
   ball.vz = p.vz * (1 + push);
+  p.dribbleLine = { x: p.vx / speed, z: p.vz / speed };
   p.touchCooldown = TOUCH_COOLDOWN_S;
   ev.touched = true;
 }

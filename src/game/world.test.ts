@@ -46,6 +46,20 @@ describe('world', () => {
     expect([dog.away.x, dog.away.z]).toEqual([390, 32]);
   });
 
+  it('a new world has a touch stream of its own', () => {
+    const [a, b] = [createWorld(BASE_STATS, BASE_STATS, 7, ERR), createWorld(BASE_STATS, BASE_STATS, 7, ERR)];
+    const first = a.touchRng();
+    expect(b.touchRng()).toBe(first);
+    expect(createWorld(BASE_STATS, BASE_STATS, 7, ERR).rng()).not.toBe(first);
+  });
+
+  it('kickoff clears the new dribble state', () => {
+    const w = createWorld(BASE_STATS, BASE_STATS, 1, ERR);
+    Object.assign(w.home, { dribbleLine: { x: 1, z: 0 }, turnTouch: { x: 0, z: 1, leftS: 0.1 }, turnDir: { x: -1, z: 0 } });
+    placeForKickoff(w);
+    expect([w.home.dribbleLine, w.home.turnTouch, w.home.turnDir]).toEqual([null, null, null]);
+  });
+
   it('the next kickoff after a difficulty change uses the new spot', () => {
     const w = createWorld(BASE_STATS, BASE_STATS, 1, ERR, null, null, DIFFICULTY.easy);
     w.maxProfile = DIFFICULTY.hard;
