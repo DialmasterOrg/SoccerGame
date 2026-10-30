@@ -19,10 +19,13 @@ describe("Speedy Sam stays tuned to his lesson: don't race him, make him oversho
     expect(wins('normal', 'racer')).toBeLessThanOrEqual(0.15);
   });
 
-  it('a matador wins about half on Normal', () => {
+  // The parent's call (2026-10-30, close control): keeping the ball on his sidestep, the matador beats Normal Sam far more often
+  // (192 seeds: .667 before, .844 after; racers and plain play unchanged), and every dial that pulls it back under .65 makes plain
+  // play much harder or lets a Stamina-10 racer win. Sam Normal stays as he was; the cap is Easy's.
+  it('a matador wins at least 0.4 on Normal', () => {
     const r = wins('normal', 'matador');
     expect(r).toBeGreaterThanOrEqual(0.4);
-    expect(r).toBeLessThanOrEqual(0.65);
+    expect(r).toBeLessThanOrEqual(0.95);
   });
 
   it('a matador wins about 0.8 on Easy and 0.3 on Hard', () => {
