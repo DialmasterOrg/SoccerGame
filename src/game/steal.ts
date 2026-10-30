@@ -117,6 +117,17 @@ function trap(w: World): void {
 }
 
 /**
+ * A clean steal takes the ball: trapped at his feet, already there, or
+ * carried on along his run. Wedged by a goal or a fence beyond his feet
+ * with him standing, it can't: Max would be wrong-footed over a ball that
+ * never moved, again at every press.
+ */
+function canTake(w: World): boolean {
+  const { home } = w;
+  return trapSpot(w) !== null || ballIn(footZone(home), w.ball, BALL_R) || home.vx !== 0 || home.vz !== 0;
+}
+
+/**
  * Max, robbed cleanly, is wrong-footed: his wind-up or swing is lost, and
  * for his beat his feet can't dribble the ball straight back (his brain
  * stands him still for the same beat).
@@ -169,7 +180,7 @@ export function resolveSteal(w: World, intent: PlayerIntent): StealOutcome | nul
     trap(w);
     return 'trapped';
   }
-  if (w.rng() < cleanStealOdds(w)) {
+  if (w.rng() < cleanStealOdds(w) && canTake(w)) {
     trap(w);
     wrongFoot(w.away, w);
     return 'stole';

@@ -164,6 +164,21 @@ describe('the steal button', () => {
     expect(Math.abs(poked.ball.vz)).toBe(SIDE_CLEAR.vz);
   });
 
+  // Close control's re-measure (2026-10-30): a clean steal that could only leave the ball where it was wrong-footed Max for nothing,
+  // every 0.4 s, and Pete and the scripted Harrison stood over a ball wedged in the pocket beside a goal for good.
+  it('a clean steal with nowhere to trap the ball at his feet is a poke: the ball moves and Max is not wrong-footed', () => {
+    const w = createWorld(BASE_STATS, BASE_STATS, 152, { home: 0, away: 0 }, null, null, DIFFICULTY.normal);
+    w.match.phase = 'playing';
+    w.rng = () => 0;
+    Object.assign(w.away, { x: 624.6, z: 9.6, vx: 0, vz: 0, facing: 1 });
+    Object.assign(w.home, { x: 614.3, z: 12.9, vx: 0, vz: 0, facing: 1 });
+    Object.assign(w.ball, { x: 631.7, y: BALL_REST_Y, z: 3.2, vx: 0, vy: 0, vz: 0 });
+    expect(maxHasBall(w.away, w.ball)).toBe(true);
+    expect(resolveSteal(w, TAP)).toBe('poked');
+    expect(w.away.touchCooldown).toBe(0);
+    expect(Math.hypot(w.ball.vx, w.ball.vz)).toBeGreaterThan(0);
+  });
+
   it("a head-on clean steal sticks through Max's wrong-footed beat", () => {
     // Max dribbling at a Harrison standing his ground.
     const w = stage({ max: 300, ball: 292, home: 280, vx: -150, profile: DIFFICULTY.easy, seed: 3, homeVx: 1 });
