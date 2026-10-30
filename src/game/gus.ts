@@ -53,13 +53,23 @@ const profile = (p: KeeperProfile): KeeperProfile => p;
  * He fills the goal: a big standing reach above LOW_Y and over the bar, a
  * catch of anything straight at him or high. He's slow to get down: no
  * reach in depth for a low ball standing, his dive's gloves reach one only
- * over getDownS, and he's slow up after a dive. He comes out big.
+ * over getDownS, and he's slow up after a dive. He comes out big, and
+ * commits to his smother late (smotherAt 22), so a stepover beats him.
+ * He reads a shot quicker than any keeper (so a long one never beats him),
+ * but getting down to a low one still takes him getDownS.
+ * Tuned by gusTuning and gusDrills on GUS_SEEDS against the blaster and the
+ * worker at GUS_TUNING_STATS (2026-10-29). Measured: the worker wins
+ * E .781 N .641 H .422, the blaster E .375 N .141 H .016; on Normal the
+ * worker's goals are all low; the high drill is saved
+ * 64/64 on every difficulty, low corners go in E .667 N .490 H .260, a
+ * one-on-one stepping over him E .938 N .882 (on Hard his dive smothers
+ * even that); no slow roller ever goes in.
  * Mutable, so headless sweeps can try other numbers.
  */
 export const GUS_PROFILES: Record<Difficulty, KeeperProfile> = {
-  easy: profile({ reactionS: 0.23, speed: 104, posErrPx: 5, comeOutPx: 24, reachZ: 5, lowReachZ: 0, reachY: 52, diveTravel: 9, diveReach: 14, diveS: 0.44, getDownS: 0.36, catchSpeed: 440, holdOdds: 0.9, downS: 0.95, getUpS: 0.95, smotherAt: 28 }),
-  normal: profile({ reactionS: 0.19, speed: 112, posErrPx: 3, comeOutPx: 26, reachZ: 6, lowReachZ: 0, reachY: 54, diveTravel: 10, diveReach: 20, diveS: 0.4, getDownS: 0.3, catchSpeed: 600, holdOdds: 1, downS: 0.8, getUpS: 0.8, smotherAt: 30 }),
-  hard: profile({ reactionS: 0.16, speed: 120, posErrPx: 2, comeOutPx: 28, reachZ: 7, lowReachZ: 1, reachY: 56, diveTravel: 11, diveReach: 22, diveS: 0.36, getDownS: 0.25, catchSpeed: 640, holdOdds: 1, downS: 0.7, getUpS: 0.7, smotherAt: 32 }),
+  easy: profile({ reactionS: 0.1, speed: 104, posErrPx: 5, comeOutPx: 24, reachZ: 5, lowReachZ: 0, reachY: 52, diveTravel: 9, diveReach: 18, diveS: 0.44, getDownS: 0.3, catchSpeed: 440, holdOdds: 0.9, downS: 1.2, getUpS: 1.2, smotherAt: 22 }),
+  normal: profile({ reactionS: 0.08, speed: 112, posErrPx: 3, comeOutPx: 26, reachZ: 10, lowReachZ: 0, reachY: 54, diveTravel: 10, diveReach: 20, diveS: 0.4, getDownS: 0.26, catchSpeed: 600, holdOdds: 1, downS: 1, getUpS: 1, smotherAt: 22 }),
+  hard: profile({ reactionS: 0.08, speed: 120, posErrPx: 2, comeOutPx: 28, reachZ: 10, lowReachZ: 1, reachY: 56, diveTravel: 11, diveReach: 22, diveS: 0.36, getDownS: 0.22, catchSpeed: 640, holdOdds: 1, downS: 0.9, getUpS: 0.9, smotherAt: 22 }),
 };
 
 /** Eddie at tryout 8's Normal keeper, Gus at `d`. */
@@ -70,11 +80,16 @@ export function gusLineup(d: Difficulty): KeeperLineup {
 /** BACKUP MO, playing out of position. */
 export const GUS_PARTNER_STATS: Readonly<Stats> = { speed: 3, power: 3, jump: 2, control: 3, stamina: 1 };
 
-/** Max's dials, a touch slower: paceFactor 0.85 / 0.9 / 0.95. Mutable, so headless sweeps can try other numbers. */
+/**
+ * Max's dials, a touch slower (paceFactor 0.85 / 0.95 / 0.95), and on Normal
+ * and Hard harder to rob (cleanSteal 0.5 / 0.4), so Harrison has to work
+ * for the ball he has most of the match. Tuned with GUS_PROFILES (see there).
+ * Mutable, so headless sweeps can try other numbers.
+ */
 export const GUS_PARTNER_PROFILES: Record<Difficulty, AiProfile> = profiles(DIFFICULTY, {
-  easy: { paceFactor: 0.85 },
-  normal: { paceFactor: 0.9 },
-  hard: { paceFactor: 0.95 },
+  easy: { paceFactor: 0.85, cleanSteal: 0.9 },
+  normal: { paceFactor: 0.95, cleanSteal: 0.5 },
+  hard: { paceFactor: 0.95, cleanSteal: 0.4 },
 });
 
 type LineupMatch = Pick<CareerMatch, 'kind' | 'rung' | 'opponent'>;

@@ -115,7 +115,8 @@ function acrossLine(w: World, aim: Aim): boolean {
   return Math.hypot(bx + u * dx - w.home.x, bz + u * dz - w.home.z) <= PLAYER_R + BALL_R;
 }
 
-const strayed = (w: World): boolean =>
+/** An outfield body stands in a goal, or behind a net under its roof. */
+export const strayed = (w: World): boolean =>
   w.field.goals.some(g => {
     const [x0, x1] = roofSpan(w.field, g);
     return [w.home, w.away].some(p => inGoalBox(g, p.x, p.z, 0) || (p.x >= x0 && p.x <= x1 && p.z >= g.z0 && p.z <= g.z1));

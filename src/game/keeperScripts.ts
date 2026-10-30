@@ -2,7 +2,7 @@ import { seeded } from '../engine/random';
 import { maxStats } from '../meta/ladder';
 import { DIFFICULTY, createBrain, think, type Difficulty } from './ai';
 import { judgedChip, openCorner } from './aiming';
-import { keeperLineup, type Keeper, type KeeperSide } from './keeper';
+import { keeperLineup, type Keeper, type KeeperLineup, type KeeperSide } from './keeper';
 import { HUMAN_AIM_ERROR_DEG, type Aim } from './kick';
 import { harrisonIntent, harrisonStats, scriptMemo, type MaxMatch } from './maxScripts';
 import { opponentProfile, trickSetup } from './opponents';
@@ -12,7 +12,7 @@ import { chargeTime } from './stats';
 import { createWorld, stepWorld, type World } from './world';
 import { ballAtFeet } from './zones';
 
-export type Drill = 'long' | 'corner' | 'oneOnOne' | 'roller';
+export type Drill = 'long' | 'corner' | 'oneOnOne' | 'roller' | 'high' | 'lowCorner';
 export type DrillOutcome = 'goal' | 'saved' | 'wide';
 
 const STEP = 1 / 60;
@@ -31,9 +31,9 @@ const PARKED = { x: 640, z: 124 };
 
 type Script = (w: World, t: number) => PlayerIntent;
 
-function drillWorld(level: number, d: Difficulty, seed: number, tricks: boolean): World {
+function drillWorld(level: number, d: Difficulty, seed: number, tricks: boolean, lineup: KeeperLineup = keeperLineup(level, d)): World {
   const profile = DIFFICULTY.normal;
-  const w = createWorld({ ...DRILL_STATS }, maxStats(10), seed, { home: HUMAN_AIM_ERROR_DEG, away: profile.aimErrorDeg }, null, null, profile, NORMAL_HANDLING, tricks ? trickSetup(d, 'max') : null, SCHOOL_STAGE, keeperLineup(level, d));
+  const w = createWorld({ ...DRILL_STATS }, maxStats(10), seed, { home: HUMAN_AIM_ERROR_DEG, away: profile.aimErrorDeg }, null, null, profile, NORMAL_HANDLING, tricks ? trickSetup(d, 'max') : null, SCHOOL_STAGE, lineup);
   w.match.phase = 'playing';
   return w;
 }
@@ -51,6 +51,13 @@ function shoot(aim: Aim, charge: number): Script {
 }
 
 const pick = <T>(rng: () => number, xs: readonly T[]): T => xs[Math.floor(rng() * xs.length)]!;
+
+/** The high drill: this far out, px, the shot held full for this long, s. */
+const HIGH = { out: [90, 150] as const, overS: [0.25, 0.5] as const };
+
+/** The one-on-one's move, by the seed's turn. */
+const ONE_ON_ONE_MOVES = ['round', 'chip', 'stepover'] as const;
+export const oneOnOneMove = (seed: number): (typeof ONE_ON_ONE_MOVES)[number] => ONE_ON_ONE_MOVES[seed % ONE_ON_ONE_MOVES.length]!;
 
 /** The one-on-one: how far out he settles on the ball, how long he waits for the keeper to commit, and his moves. */
 export const ONE_ON_ONE = {
@@ -179,6 +186,18 @@ function stage(kind: Drill, w: World, rng: () => number, side: KeeperSide, seed:
       onBall(w, 1240 - (50 + rng() * 50), 30 + rng() * 68);
       return shoot(openCorner(w, w.home), 0.7 + rng() * 0.25);
     }
+    case 'high': {
+      // Hard and high: what Goalie Gus catches. A full shot is back on the grass about 145 px out, so it's held full for HIGH.overS, as the
+      // blaster's are, from close enough that it's still up when it reaches him.
+      onBall(w, 1240 - (HIGH.out[0] + rng() * (HIGH.out[1] - HIGH.out[0])), 24 + rng() * 80);
+      const overS = HIGH.overS[0] + rng() * (HIGH.overS[1] - HIGH.overS[0]);
+      return shoot(pick(rng, ['far', 'near', 'straight'] as const), 1 + overS / chargeTime(DRILL_STATS));
+    }
+    case 'lowCorner': {
+      // Low for the open corner from close in: what Goalie Gus is slow to get down to.
+      onBall(w, 1240 - (70 + rng() * 50), 30 + rng() * 68);
+      return shoot(openCorner(w, w.home), 0.35 + rng() * 0.15);
+    }
     case 'roller': {
       const g = w.field.goals[away ? 1 : 0];
       const out = away ? -1 : 1;
@@ -191,13 +210,16 @@ function stage(kind: Drill, w: World, rng: () => number, side: KeeperSide, seed:
     case 'oneOnOne':
       onBall(w, 1240 - ONE_ON_ONE.startOut, 64 + (rng() * 40 - 20));
       // His move goes by the seed's turn: round him, chip him, step over him.
-      return oneOnOne(w, k, rng, seed % 3);
+      return oneOnOne(w, k, rng, ONE_ON_ONE_MOVES.indexOf(oneOnOneMove(seed)));
   }
 }
 
-/** One headless trial against the keeper of `side` (default 'away') at `level` and `d`, the other side's players parked out of play; `watch` sees the world after every tick. */
-export function drill(kind: Drill, level: number, d: Difficulty, seed: number, side: KeeperSide = 'away', watch?: (w: World) => void): DrillOutcome {
-  const w = drillWorld(level, d, seed, kind === 'oneOnOne');
+/**
+ * One headless trial against the keeper of `side` (default 'away') at `level` and `d`, the other side's players parked out of play; `watch`
+ * sees the world after every tick. `lineup` puts other keepers in goal (Goalie Gus's), in place of both at `level`.
+ */
+export function drill(kind: Drill, level: number, d: Difficulty, seed: number, side: KeeperSide = 'away', watch?: (w: World) => void, lineup?: KeeperLineup): DrillOutcome {
+  const w = drillWorld(level, d, seed, kind === 'oneOnOne', lineup);
   const script = stage(kind, w, seeded(seed * 7919 + kind.length), side, seed);
   for (let t = 0; t < (kind === 'oneOnOne' ? ONE_ON_ONE_S : DRILL_S); t += STEP) {
     stepWorld(w, script(w, t), NO_INTENT, STEP);
@@ -209,10 +231,10 @@ export function drill(kind: Drill, level: number, d: Difficulty, seed: number, s
 }
 
 /** goals / (goals + saves) over the seeds; wide shots don't count. */
-export function goalRate(kind: Drill, level: number, d: Difficulty, seeds: readonly number[], side: KeeperSide = 'away'): number {
+export function goalRate(kind: Drill, level: number, d: Difficulty, seeds: readonly number[], side: KeeperSide = 'away', lineup?: KeeperLineup): number {
   let [goals, saves] = [0, 0];
   for (const seed of seeds) {
-    const o = drill(kind, level, d, seed, side);
+    const o = drill(kind, level, d, seed, side, undefined, lineup);
     if (o === 'goal') goals++;
     else if (o === 'saved') saves++;
   }
