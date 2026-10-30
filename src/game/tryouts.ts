@@ -66,8 +66,9 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
   // Measured E 0.828, N 0.563, H 0.063 (keepers at level 5); 11.2 fakes a match on Normal, and each one she finishes near goal ends in a shot.
   tia: profiles(CREW_PROFILES.tia, {
     easy: { shootRange: 150, fakeShot: 220 },
-    normal: { shootRange: 150, paceFactor: 1, fakeShot: 220 },
-    hard: { shootRange: 180, paceFactor: 1.15, cleanSteal: 0.45, fakeShot: 220 },
+    // Close control (2026-10-30): Normal reactionS 0.16 → 0.14, Hard paceFactor 1.15 → 1.2; measured after E 0.859, N 0.672, H 0.078.
+    normal: { shootRange: 150, paceFactor: 1, fakeShot: 220, reactionS: 0.14 },
+    hard: { shootRange: 180, paceFactor: 1.2, cleanSteal: 0.45, fakeShot: 220 },
   }),
   // Poacher Priya: follows her shots and his keeper's pushes in, and lingers upfield while Harrison attacks. Normal shoots from closer in, nearer
   // the rebound; Hard quicker and sharper. Measured E 0.875, N 0.578, H 0.078 (keepers at level 6); Normal 1.55 rebound touches a match vs Max's
