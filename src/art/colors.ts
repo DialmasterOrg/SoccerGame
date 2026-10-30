@@ -129,6 +129,10 @@ export const MASTER = {
   plumDark: '#3a1c3c',
   plum: '#643463',
   plumLight: '#9a6496',
+  // Goalie Gus's keeper top: a cyan nobody else wears.
+  cyanDark: '#0a6a86',
+  cyan: '#18b4d8',
+  cyanLight: '#7ee0f4',
 } as const;
 
 export type MasterColor = keyof typeof MASTER;

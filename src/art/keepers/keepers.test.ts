@@ -8,19 +8,20 @@ import type { IndexedImage } from '../indexedImage';
 import { KITS } from '../kits';
 import { KEEPER_EXTRAS, KEEPER_HEADS, KEEPER_NAMES, keeperLook, type KeeperId } from './keepers';
 
-const IDS: KeeperId[] = ['eddie', 'backupA', 'backupB'];
+const IDS: KeeperId[] = ['eddie', 'backupA', 'backupB', 'gus'];
 
 describe('the keepers', () => {
-  it('Steady Eddie and two backups, each with a head in every facing', () => {
+  it('Steady Eddie, two backups and Goalie Gus, each with a head in every facing', () => {
     expect(KEEPER_NAMES.eddie).toBe('STEADY EDDIE');
+    expect(KEEPER_NAMES.gus).toBe('GOALIE GUS');
     for (const id of IDS) for (const f of ['side', 'threeQuarter', 'front'] as const) expect(KEEPER_HEADS[id][f].image.width).toBeGreaterThan(0);
   });
 
-  it("no keeper's top is any kit's colour, and no two match", () => {
+  it("no keeper's top is any kit's colour, and no two of the four match", () => {
     const kits = new Set([...Object.values(KITS), ...Object.values(HARRISON_KITS)].map(k => k.Jersey));
     const tops = IDS.map(id => keeperLook(id).Jersey);
     for (const top of tops) expect(kits.has(top), top).toBe(false);
-    expect(new Set(tops).size).toBe(3);
+    expect(new Set(tops).size).toBe(4);
   });
 
   it('gloves draw in the glove colours, and only when worn', () => {

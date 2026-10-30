@@ -2,7 +2,7 @@ import { C } from '../colors';
 import type { HeadSprite } from './head';
 import { IndexedImage, blit } from '../indexedImage';
 import { addOutline, drawSegment, fillPolygon, type Point } from '../raster';
-import { FRAME_H, FRAME_W, solvePose, type HeadFacing, type Pose } from './pose';
+import { frameOf, solvePose, type HeadFacing, type Pose } from './pose';
 import type { BodyProportions } from './proportions';
 
 /** Fraction of the thigh covered by shorts, and of the upper arm by the sleeve. */
@@ -24,6 +24,8 @@ export interface BodyExtras {
   armband: boolean;
   /** A keeper's gloves. */
   gloves: boolean;
+  /** Gloves this many px across, not GLOVE's 3: Goalie Gus's. */
+  gloveSize?: number;
 }
 
 export const NO_BODY_EXTRAS: BodyExtras = { wristbands: false, armband: false, gloves: false };
@@ -63,7 +65,7 @@ function drawArm(img: IndexedImage, shoulder: Point, elbow: Point, hand: Point, 
   drawSegment(img, shoulder, elbow, body.upperArmWidth, t => (t < SLEEVE_LENGTH ? (armband && onArmband(t) ? C.Armband : c.sleeve) : c.skin));
   if (near) drawSegment(img, shoulder, round(lerpPt(shoulder, elbow, SLEEVE_LENGTH)), 1, t => (armband && onArmband(t * SLEEVE_LENGTH) ? C.Armband : C.Trim));
   drawSegment(img, elbow, hand, body.forearmWidth, t => (extras.wristbands && t >= WRISTBAND_FROM ? c.trim : c.skin));
-  if (extras.gloves) drawSegment(img, hand, hand, GLOVE, () => c.glove);
+  if (extras.gloves) drawSegment(img, hand, hand, extras.gloveSize ?? GLOVE, () => c.glove);
   else drawSegment(img, hand, hand, HAND, () => c.skin);
 }
 
@@ -71,7 +73,9 @@ function drawLeg(img: IndexedImage, hip: Point, knee: Point, ankle: Point, toe: 
   drawSegment(img, hip, knee, body.thighWidth, t => (t < SHORTS_LENGTH ? c.shorts : c.skin));
   if (stripe) drawSegment(img, hip, round(lerpPt(hip, knee, SHORTS_LENGTH)), 1, () => C.Trim);
   const shinLen = Math.max(1, dist(knee, ankle));
-  drawSegment(img, knee, ankle, body.shinWidth, t => (t * shinLen < KNEE_SKIN ? c.skin : c.socks));
+  // An even-width brush reaches a row further down than up: end it a pixel short so the sock never shows under the sole (Gus's 4-px shin).
+  const shinEnd = body.shinWidth % 2 === 0 ? round(lerpPt(knee, ankle, 1 - 1 / shinLen)) : ankle;
+  drawSegment(img, knee, shinEnd, body.shinWidth, t => (t * shinLen < KNEE_SKIN ? c.skin : c.socks));
   // Foot from one pixel behind the ankle (the heel) to the toe; the lower row is the sole.
   const footLen = Math.max(1, dist(ankle, toe));
   const heel = round({ x: ankle.x - (toe.x - ankle.x) / footLen, y: ankle.y - (toe.y - ankle.y) / footLen });
@@ -92,9 +96,10 @@ function drawTorso(img: IndexedImage, hip: Point, shoulder: Point, body: BodyPro
   drawSegment(img, round(at(shoulder, -half + 0.5)), round(at(shoulder, half - 1)), 1, () => C.Trim);
 }
 
-/** Draws a posed, outlined figure into a FRAME_W×FRAME_H image of logical colours. */
+/** Draws a posed, outlined figure into an image of logical colours, his body's frame in size (FRAME_W×FRAME_H for most). */
 export function drawFigure(pose: Pose, body: BodyProportions, heads: Record<HeadFacing, HeadSprite>, extras: BodyExtras = NO_BODY_EXTRAS): IndexedImage {
-  const img = new IndexedImage(FRAME_W, FRAME_H);
+  const { w, h } = frameOf(body);
+  const img = new IndexedImage(w, h);
   const j = solvePose(pose, body);
   const hip = round(j.hip);
   const shoulder = round(j.shoulder);

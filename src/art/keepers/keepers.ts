@@ -1,15 +1,17 @@
 import type { HeadSprite } from '../body/head';
 import { NO_BODY_EXTRAS, type BodyExtras } from '../body/drawFigure';
 import type { HeadFacing } from '../body/pose';
+import { HARRISON_BODY, type BodyProportions } from '../body/proportions';
 import { ART_LEGEND, EXTRA_COLORS, type LookColors, type MasterColor } from '../colors';
 import { parseGrid } from '../indexedImage';
 import type { KitSlots } from '../kits';
 import type { Point } from '../raster';
+import { GUS_BODY, GUS_EXTRAS, GUS_HEADS } from './gus';
 
-export type KeeperId = 'eddie' | 'backupA' | 'backupB';
+export type KeeperId = 'eddie' | 'backupA' | 'backupB' | 'gus';
 
-/** For the sheet: never on the HUD. */
-export const KEEPER_NAMES: Readonly<Record<KeeperId, string>> = { eddie: 'STEADY EDDIE', backupA: 'BACKUP MO', backupB: 'BACKUP JUNE' };
+/** For the sheet: never on the HUD (Gus's match names GUS). */
+export const KEEPER_NAMES: Readonly<Record<KeeperId, string>> = { eddie: 'STEADY EDDIE', backupA: 'BACKUP MO', backupB: 'BACKUP JUNE', gus: 'GOALIE GUS' };
 
 function head(rows: readonly string[], neck: Point): HeadSprite {
   return { image: parseGrid(rows, ART_LEGEND), neck };
@@ -167,10 +169,16 @@ export const KEEPER_HEADS: Readonly<Record<KeeperId, Record<HeadFacing, HeadSpri
       { x: 4, y: 10 },
     ),
   },
+  gus: GUS_HEADS,
 };
 
 /** Every keeper wears gloves. */
 export const KEEPER_EXTRAS: BodyExtras = { ...NO_BODY_EXTRAS, gloves: true };
+
+/** Every keeper but Gus has Harrison's body. */
+export const keeperBody = (id: KeeperId): BodyProportions => (id === 'gus' ? GUS_BODY : HARRISON_BODY);
+/** Gus's gloves are bigger, and he wears the captain's armband. */
+export const keeperExtras = (id: KeeperId): BodyExtras => (id === 'gus' ? GUS_EXTRAS : KEEPER_EXTRAS);
 
 type Skin = Record<'SkinShadow' | 'Skin' | 'SkinLight' | 'Blush' | 'Lip', MasterColor>;
 type Hair = Record<'HairShadow' | 'Hair' | 'HairLight' | 'HairTip' | 'Fade', MasterColor>;
@@ -203,6 +211,13 @@ const LOOKS: Record<KeeperId, { skin: Skin; hair: Hair; top: Record<KitSlots, Ma
     hair: { ...BLACK_HAIR, Fade: 'tanShadow' },
     top: top(['lemonDark', 'lemon', 'lemonLight'], ['black', 'charcoal'], ['lemonDark', 'lemon']),
     boots: { BootShadow: 'silver', Boot: 'white', BootLight: 'white' },
+  },
+  // Goalie Gus: ginger, freckled, in cyan; his boots share his shorts' greys so every frame stays within 14 colours.
+  gus: {
+    skin: { SkinShadow: 'skinShadow', Skin: 'skin', SkinLight: 'skinLight', Blush: 'blush', Lip: 'lip' },
+    hair: { HairShadow: 'flameDark', Hair: 'flame', HairLight: 'flameLight', HairTip: 'flameLight', Fade: 'skinShadow' },
+    top: top(['cyanDark', 'cyan', 'cyanLight'], ['silver', 'white'], ['cyanDark', 'cyan']),
+    boots: { BootShadow: 'charcoal', Boot: 'slate', BootLight: 'slate' },
   },
 };
 

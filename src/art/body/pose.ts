@@ -1,10 +1,15 @@
 import type { Point } from '../raster';
-import { standingHipHeight, type BodyProportions } from './proportions';
+import { standingHipHeight, type BodyProportions, type FrameSpec } from './proportions';
 
 export const FRAME_W = 49;
 export const FRAME_H = 56;
 /** Centre of the feet on the sole row. Odd FRAME_W keeps it fixed under flipX. */
 export const ANCHOR: Point = { x: 24, y: 53 };
+
+/** The frame a body is drawn in: its own, or the shared FRAME_W×FRAME_H on ANCHOR. */
+export function frameOf(b: BodyProportions): FrameSpec {
+  return b.frame ?? { w: FRAME_W, h: FRAME_H, anchor: ANCHOR };
+}
 
 export type HeadFacing = 'side' | 'threeQuarter' | 'front';
 
@@ -78,7 +83,8 @@ function solveLeg(hip: Point, leg: LegPose, body: BodyProportions): LegJoints {
 }
 
 export function solvePose(pose: Pose, body: BodyProportions): Joints {
-  const hip = { x: ANCHOR.x + pose.x, y: ANCHOR.y - pose.hipHeight };
+  const { anchor } = frameOf(body);
+  const hip = { x: anchor.x + pose.x, y: anchor.y - pose.hipHeight };
   const up = { x: Math.sin(pose.torso * RAD), y: -Math.cos(pose.torso * RAD) };
   const neck = { x: hip.x + up.x * body.torso, y: hip.y + up.y * body.torso };
   const shoulder = { x: hip.x + up.x * (body.torso - 1), y: hip.y + up.y * (body.torso - 1) };

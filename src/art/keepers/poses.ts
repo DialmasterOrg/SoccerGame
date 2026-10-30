@@ -3,15 +3,15 @@ import { poseKey, type KeySpec } from '../body/animations';
 import { samplePoses } from '../body/bake';
 import { drawFigure, type BodyExtras } from '../body/drawFigure';
 import type { HeadSprite } from '../body/head';
-import { FRAME_H, FRAME_W, solvePose, type HeadFacing, type Pose } from '../body/pose';
+import { frameOf, solvePose, type HeadFacing, type Pose } from '../body/pose';
 import type { BodyProportions } from '../body/proportions';
 import { flipX, shearUp, turnLeft, type IndexedImage } from '../indexedImage';
 import type { Point } from '../raster';
 
-export type KeeperPose = 'ready' | 'shuffle' | 'catch' | 'push' | 'hold' | 'dropKick' | 'getUp' | 'smother';
+export type KeeperPose = 'ready' | 'shuffle' | 'catch' | 'push' | 'hold' | 'dropKick' | 'getUp' | 'smother' | 'clap';
 
-export const KEEPER_POSE_FRAMES: Readonly<Record<KeeperPose, number>> = { ready: 2, shuffle: 4, catch: 2, push: 2, hold: 2, dropKick: 4, getUp: 3, smother: 3 };
-export const KEEPER_POSE_FPS: Readonly<Record<KeeperPose, number>> = { ready: 3, shuffle: 10, catch: 8, push: 8, hold: 3, dropKick: 9, getUp: 6, smother: 8 };
+export const KEEPER_POSE_FRAMES: Readonly<Record<KeeperPose, number>> = { ready: 2, shuffle: 4, catch: 2, push: 2, hold: 2, dropKick: 4, getUp: 3, smother: 3, clap: 3 };
+export const KEEPER_POSE_FPS: Readonly<Record<KeeperPose, number>> = { ready: 3, shuffle: 10, catch: 8, push: 8, hold: 3, dropKick: 9, getUp: 6, smother: 8, clap: 8 };
 const LOOPS: ReadonlySet<KeeperPose> = new Set(['ready', 'shuffle', 'hold']);
 
 /** Where a held ball's centre sits in the hold frames, from ANCHOR: x ahead of him, y up. The sim parks the ball there. */
@@ -61,10 +61,16 @@ const KEEPER_KEYS: Readonly<Record<KeeperPose, readonly KeySpec[]>> = (() => {
       { x: -3, hip: -13, torso: 85, near: { hip: -88, knee: 15, ankle: 170 }, far: { hip: -80, knee: 35, ankle: 170 }, nearArm: [-5, 0], farArm: [-10, 0] },
       { x: -3, hip: -14, torso: 90, near: { hip: -90, knee: 10, ankle: 175 }, far: { hip: -85, knee: 25, ankle: 175 }, nearArm: [-8, 5], farArm: [-12, 5] },
     ],
+    // Goalie Gus's glove clap on a save: gloves apart at his chest, together on the ball, apart. Every keeper bakes it; only Gus shows it.
+    clap: [
+      { hip: 0, torso: 3, near: { plant: 3 }, far: { plant: -2 }, nearArm: [25, 115], farArm: [22, 8] },
+      { hip: 0, torso: 5, near: { plant: 3 }, far: { plant: -2 }, nearArm: [-6, 62], farArm: [-2, 58] },
+      { hip: 0, torso: 3, near: { plant: 3 }, far: { plant: -2 }, nearArm: [25, 115], farArm: [22, 8] },
+    ],
   };
 })();
 
-/** FRAME_W×FRAME_H frames on ANCHOR, like every body frame, facing right. */
+/** Frames in his body's frame (FRAME_W×FRAME_H on ANCHOR for most), like every body frame, facing right. */
 export function bakeKeeperPoses(body: BodyProportions, heads: Record<HeadFacing, HeadSprite>, extras: BodyExtras): Record<KeeperPose, IndexedImage[]> {
   const out = {} as Record<KeeperPose, IndexedImage[]>;
   for (const name of Object.keys(KEEPER_POSE_FRAMES) as KeeperPose[]) {
@@ -96,9 +102,10 @@ export function diveFrames(body: BodyProportions, heads: Record<HeadFacing, Head
     return facing === 1 ? turned : flipX(turned);
   };
   const frames = poses.map(p => shearUp(turn(drawFigure(p, body, heads, extras)), DEPTH_SHEAR));
-  // Follow the hip pixel through the same steps: turned, the image is FRAME_H wide and FRAME_W tall.
+  // Follow the hip pixel through the same steps: turned, the image is the frame's height wide and its width tall.
+  const { w, h } = frameOf(body);
   const [hx, hy] = [Math.round(hip.x), Math.round(hip.y)];
-  const turned = toward === 'far' ? { x: hy, y: FRAME_W - 1 - hx } : { x: hy, y: hx };
-  const p = facing === 1 ? turned : { x: FRAME_H - 1 - turned.x, y: turned.y };
-  return { frames, anchor: { x: p.x + Math.round(DEPTH_SHEAR * (FRAME_W - 1 - p.y)), y: p.y } };
+  const turned = toward === 'far' ? { x: hy, y: w - 1 - hx } : { x: hy, y: hx };
+  const p = facing === 1 ? turned : { x: h - 1 - turned.x, y: turned.y };
+  return { frames, anchor: { x: p.x + Math.round(DEPTH_SHEAR * (w - 1 - p.y)), y: p.y } };
 }

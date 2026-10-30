@@ -36,11 +36,12 @@ describe('MASTER', () => {
 
   // Around 40 was the main spec's guide, not a limit: the Park crew's skin tones and kits need more,
   // the keepers' three tops (Steady Eddie's emerald, the backups' berry and lemon) nine more,
-  // and the tryouts' three new kits (Priya's olive, Niko's cocoa, Paige's plum) nine more again.
-  it('has at most 79 colours, and the Park crew\'s, the keepers\' and the tryouts\' are there', () => {
+  // the tryouts' three new kits (Priya's olive, Niko's cocoa, Paige's plum) nine more again,
+  // and Goalie Gus's cyan keeper top three more.
+  it('has at most 82 colours, and the Park crew\'s, the keepers\', the tryouts\' and Gus\'s are there', () => {
     expect(Object.keys(MASTER).length).toBeGreaterThanOrEqual(56);
-    expect(Object.keys(MASTER).length).toBeLessThanOrEqual(79);
-    expect(Object.keys(MASTER)).toEqual(expect.arrayContaining(['emerald', 'berry', 'lemon', 'olive', 'cocoa', 'plum']));
+    expect(Object.keys(MASTER).length).toBeLessThanOrEqual(82);
+    expect(Object.keys(MASTER)).toEqual(expect.arrayContaining(['emerald', 'berry', 'lemon', 'olive', 'cocoa', 'plum', 'cyan']));
   });
 });
 

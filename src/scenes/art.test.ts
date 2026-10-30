@@ -5,6 +5,8 @@ import { MAX_HEADS, maxLook } from '../art/opponents/max';
 import { SAM_HEADS, samLook } from '../art/opponents/sam';
 import { DEFAULT_OUTFIT, type Outfit } from '../meta/locker';
 import { BACKYARD, SCHOOL_FIELD } from '../game/field';
+import { ANCHOR } from '../art/body/pose';
+import { GUS_FRAME } from '../art/keepers/gus';
 import { DIVE_FRAMES } from '../art/keepers/poses';
 import { OPPONENT_LOOKS, loadGameArt } from './art';
 import { stubCanvases } from './testDraw';
@@ -71,5 +73,11 @@ describe('keepers', () => {
     const art = loadGameArt();
     expect(art.keepers.eddie).toBe(art.keepers.eddie);
     expect(art.keepers.eddie.dives.far.left).toHaveLength(DIVE_FRAMES);
+  });
+
+  it("Gus's frames stand on his own anchor, everyone else's on the shared one", () => {
+    const art = loadGameArt();
+    expect(art.keepers.gus.anchor).toEqual(GUS_FRAME.anchor);
+    expect(art.keepers.eddie.anchor).toEqual(ANCHOR);
   });
 });

@@ -1,5 +1,4 @@
 import type { AnimName } from '../art/body/animations';
-import { ANCHOR } from '../art/body/pose';
 import { MASTER } from '../art/colors';
 import type { KeeperId } from '../art/keepers/keepers';
 import { DIVE_FRAMES, KEEPER_POSE_FPS, KEEPER_POSE_FRAMES, type KeeperPose } from '../art/keepers/poses';
@@ -82,7 +81,7 @@ function drawKeeper(g: CanvasRenderingContext2D, cam: Camera, k: Keeper, sprites
     return;
   }
   const frames = f.kind === 'pose' ? sprites.poses[f.name] : { right: sprites.body.right[f.name], left: sprites.body.left[f.name] };
-  draw(pick(right ? frames.right : frames.left, f.frame), body.x, body.y, body.z, ANCHOR);
+  draw(pick(right ? frames.right : frames.left, f.frame), body.x, body.y, body.z, sprites.anchor);
 }
 
 /** Both keepers, to be depth-sorted with everyone else on the pitch. */

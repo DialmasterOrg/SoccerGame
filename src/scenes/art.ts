@@ -3,7 +3,7 @@ import type { AnimName } from '../art/body/animations';
 import { bakeAll, type BakedClip } from '../art/body/bake';
 import { NO_BODY_EXTRAS, type BodyExtras } from '../art/body/drawFigure';
 import type { HeadSprite } from '../art/body/head';
-import type { HeadFacing } from '../art/body/pose';
+import { frameOf, type HeadFacing } from '../art/body/pose';
 import { HARRISON_BODY, type BodyProportions } from '../art/body/proportions';
 import { C, masterPalette, resolvePalette, type LookColors, type MasterColor, type ResolvedPalette } from '../art/colors';
 import { renderText, textPalette } from '../art/font';
@@ -17,7 +17,7 @@ import { SAM_HEADS, samLook } from '../art/opponents/sam';
 import { TRYOUT_BODY, TRYOUT_HEADS, tryoutLook } from '../art/opponents/tryouts';
 import type { TryoutKidId } from '../game/tryouts';
 import { addOutline, type Point } from '../art/raster';
-import { KEEPER_EXTRAS, KEEPER_HEADS, keeperLook, type KeeperId } from '../art/keepers/keepers';
+import { KEEPER_HEADS, keeperBody, keeperExtras, keeperLook, type KeeperId } from '../art/keepers/keepers';
 import { KEEPER_POSE_FRAMES, bakeKeeperPoses, diveFrames, type KeeperPose } from '../art/keepers/poses';
 import { backyardLayers, type VenueLayers } from '../art/venues/backyard';
 import { JOGGERS, joggerFrames, parkLayers } from '../art/venues/park';
@@ -48,6 +48,8 @@ export interface KeeperSprites {
   body: SpriteSet;
   poses: Record<KeeperPose, FacingFrames>;
   dives: Record<'far' | 'near', { right: HTMLCanvasElement[]; left: HTMLCanvasElement[]; anchor: { right: Point; left: Point } }>;
+  /** The feet point of his body and pose frames: ANCHOR, or Gus's. */
+  anchor: Point;
 }
 
 /** Biscuit's clips, facing right and left. */
@@ -120,7 +122,7 @@ export interface GameArt {
   opponentIn(id: HumanOpponent, change: ChangeKit): SpriteSet;
   /** Harrison's portrait in each expression, in what he wears. */
   readonly portraits: Record<Expression, HTMLCanvasElement>;
-  /** The three keepers, baked the first time they're read. */
+  /** The keepers (Gus too), baked the first time they're read. */
   readonly keepers: Readonly<Record<KeeperId, KeeperSprites>>;
   /** Biscuit the Dog, the Backyard's boss. */
   biscuit: DogSprites;
@@ -171,16 +173,17 @@ function spriteSet(cache: SpriteCache, who: string, heads: Readonly<Record<HeadF
 /** A keeper's sprites: every dive facing baked from its own turn, never a flip, since depth always leans right. */
 function keeperSprites(cache: SpriteCache, id: KeeperId): KeeperSprites {
   const heads = KEEPER_HEADS[id];
+  const [body, extras] = [keeperBody(id), keeperExtras(id)];
   const palette = resolvePalette(keeperLook(id));
-  const baked = bakeKeeperPoses(HARRISON_BODY, heads, KEEPER_EXTRAS);
+  const baked = bakeKeeperPoses(body, heads, extras);
   const poses = Object.fromEntries(
     (Object.keys(KEEPER_POSE_FRAMES) as KeeperPose[]).map(name => [name, cache.frames(`keeper-${id}/pose-${name}`, () => ({ frames: baked[name], palette }))]),
   ) as Record<KeeperPose, FacingFrames>;
   const dive = (toward: 'far' | 'near') => {
-    const [r, l] = [diveFrames(HARRISON_BODY, heads, KEEPER_EXTRAS, 1, toward), diveFrames(HARRISON_BODY, heads, KEEPER_EXTRAS, -1, toward)];
+    const [r, l] = [diveFrames(body, heads, extras, 1, toward), diveFrames(body, heads, extras, -1, toward)];
     return { right: r.frames.map(f => toCanvas(f, palette)), left: l.frames.map(f => toCanvas(f, palette)), anchor: { right: r.anchor, left: l.anchor } };
   };
-  return { body: spriteSet(cache, `keeper-${id}`, heads, keeperLook(id), HARRISON_BODY, KEEPER_EXTRAS), poses, dives: { far: dive('far'), near: dive('near') } };
+  return { body: spriteSet(cache, `keeper-${id}`, heads, keeperLook(id), body, extras), poses, dives: { far: dive('far'), near: dive('near') }, anchor: frameOf(body).anchor };
 }
 
 /** A head on its own, with a one-pixel outline ring, in `look`'s colours. */
@@ -308,6 +311,9 @@ export function loadGameArt(): GameArt {
       },
       get backupB() {
         return keeper('backupB');
+      },
+      get gus() {
+        return keeper('gus');
       },
     },
     biscuit: Object.fromEntries(

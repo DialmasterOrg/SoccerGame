@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { DIVE_FRAMES } from '../art/keepers/poses';
 import { keeperProfile, type Keeper } from '../game/keeper';
 import { keeperWorld } from '../game/testKeepers';
-import { keeperFrame, keeperLooks } from './keeperView';
+import { BIG_VIEW, project } from '../game/camera';
+import type { KeeperSprites } from './art';
+import { keeperDrawables, keeperFrame, keeperLooks } from './keeperView';
+import { fakeArt, type Named } from './testDraw';
 
 const k = (o: Partial<Keeper>): Keeper => ({ ...keeperWorld().keepers!.away, ...o });
 
@@ -42,5 +45,20 @@ describe('keeperLooks', () => {
   it("Eddie keeps Harrison's goal; the backups take turns in theirs", () => {
     expect(keeperLooks({ kind: 'match', rung: 1 })).toEqual({ home: 'eddie', away: 'backupA' });
     expect(keeperLooks({ kind: 'match', rung: 2 })).toEqual({ home: 'eddie', away: 'backupB' });
+  });
+});
+
+describe('drawing a keeper', () => {
+  it("draws his pose frames on his own sprites' anchor", () => {
+    const w = keeperWorld();
+    const fake = fakeArt().keepers.eddie;
+    const sprites: KeeperSprites = { body: fake.body, poses: fake.poses, dives: fake.dives, anchor: { x: 31, y: 69 } };
+    const placed: { name: string; x: number; y: number }[] = [];
+    const g = { drawImage: (img: Named, x: number, y: number) => void placed.push({ name: img.name, x, y }) } as unknown as CanvasRenderingContext2D;
+    const cam = { x: 900, view: BIG_VIEW };
+    const away = w.keepers!.away.body;
+    keeperDrawables(w, cam, { home: sprites, away: sprites }, 0)[1]!.draw(g);
+    const s = project(away.x, away.y, away.z, cam);
+    expect(placed).toEqual([{ name: 'art.keepers.eddie.poses.ready.left.0', x: Math.round(s.sx) - 31, y: Math.round(s.sy) - 69 }]);
   });
 });

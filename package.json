@@ -12,6 +12,7 @@
     "test": "vitest run",
     "sheet": "tsx tools/render-sheet.ts",
     "keepers": "tsx tools/render-keepers.ts",
+    "gus": "tsx tools/render-gus.ts",
     "tryouts": "tsx tools/render-tryouts.ts"
   },
   "repository": {

@@ -3,6 +3,7 @@ import { ANCHOR } from '../body/pose';
 import { HARRISON_BODY } from '../body/proportions';
 import { C } from '../colors';
 import type { IndexedImage } from '../indexedImage';
+import { GUS_BODY, GUS_EXTRAS, GUS_HEADS } from './gus';
 import { KEEPER_EXTRAS, KEEPER_HEADS } from './keepers';
 import { DIVE_FRAMES, KEEPER_HANDS, KEEPER_POSE_FPS, KEEPER_POSE_FRAMES, bakeKeeperPoses, diveFrames, type KeeperPose } from './poses';
 
@@ -25,6 +26,10 @@ describe('keeper poses', () => {
     }
   });
 
+  it('the glove clap has its three frames', () => {
+    expect(baked.clap).toHaveLength(3);
+  });
+
   it('in the hold frames his gloves are round the ball spot', () => {
     for (const f of baked.hold) {
       const [cx, cy] = [ANCHOR.x + KEEPER_HANDS.x, ANCHOR.y - KEEPER_HANDS.y];
@@ -43,6 +48,12 @@ describe('dives', () => {
     expect(gloveAt(far.frames[1]!).y).toBeLessThan(far.anchor.y - 12);
     expect(gloveAt(far.frames[1]!).x).toBeGreaterThan(far.anchor.x);
     expect(gloveAt(near.frames[1]!).y).toBeGreaterThan(near.anchor.y + 8);
+  });
+
+  it("Gus's far-post dive lies up the screen and leans right, as Eddie's does", () => {
+    const far = diveFrames(GUS_BODY, GUS_HEADS, GUS_EXTRAS, 1, 'far');
+    expect(gloveAt(far.frames[1]!).y).toBeLessThan(far.anchor.y - 12);
+    expect(gloveAt(far.frames[1]!).x).toBeGreaterThan(far.anchor.x);
   });
 
   it('facing left, a dive still leans right with depth', () => {

@@ -1,3 +1,12 @@
+import type { Point } from '../raster';
+
+/** A body frame's size, and the centre of his feet on the sole row in it. */
+export interface FrameSpec {
+  w: number;
+  h: number;
+  anchor: Point;
+}
+
 /** Limb lengths and thicknesses in pixels for a side-view figure. */
 export interface BodyProportions {
   thigh: number;
@@ -12,6 +21,8 @@ export interface BodyProportions {
   upperArmWidth: number;
   forearmWidth: number;
   torsoWidth: number;
+  /** The frame he's drawn in when it isn't FRAME_W×FRAME_H on ANCHOR: Goalie Gus's. */
+  frame?: FrameSpec;
 }
 
 /** Tall and lean for 12: about 40 px standing with the head. */
