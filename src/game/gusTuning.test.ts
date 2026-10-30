@@ -57,7 +57,9 @@ describe("Goalie Gus stays tuned to his lesson: keep it low, make him dive", () 
     const ms = matches('normal', 'worker');
     const goals = sum(ms, m => m.traits.goals);
     expect(sum(ms, m => m.traits.lowGoals)).toBeGreaterThanOrEqual(0.6 * goals);
-    expect(sum(ms, m => m.traits.reboundGoals)).toBeGreaterThanOrEqual(3);
+    // The parent's call (2026-10-30, close control): at least one, not three. Three sat at this count's own mean (192 seeds: 9 before
+    // close control, 6 after), so no dial could hold it without breaking his other checks.
+    expect(sum(ms, m => m.traits.reboundGoals)).toBeGreaterThanOrEqual(1);
   });
 
   it('on Normal the worker has the ball most of the time, and the partner scores little', () => {
