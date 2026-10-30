@@ -65,7 +65,8 @@ export function turnWithBall(w: World, intent: PlayerIntent): TurnOutcome | null
   const cos = n.x * line.x + n.z * line.z;
   const deg = (Math.acos(Math.min(1, cos)) * 180) / Math.PI;
   if (deg < TURN_MIN_DEG || cos <= -STICK_BACK || n.x * upfieldOf(home) < -BACK_LIMIT) return null;
-  if (!ballIsHisAlong(w, line) || keepingOut(home, ball, w.field, n.x)) return null;
+  // Near his own goal, the shield has a ball he's running at it with, or turning onto it: a heavy touch would squirt it at his net.
+  if (!ballIsHisAlong(w, line) || keepingOut(home, ball, w.field, n.x) || keepingOut(home, ball, w.field, line.x)) return null;
   if (!canPlace(ball, home.x + n.x * FOOT_SPOT, home.z + n.z * FOOT_SPOT, w.field)) return null;
   const speed = Math.hypot(home.vx, home.vz);
   const push = touchPush(home.stats) * home.handling.touchScale;

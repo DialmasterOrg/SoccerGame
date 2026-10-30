@@ -108,6 +108,38 @@ describe('turning with the ball', () => {
   });
 
   it("a heavy touch squirts off nearer his old line, faster than a touch, and he can't touch it for a beat", () => {
+  // The final review (2026-10-30): dribbling at his own goal near it, a cut out was a turn touch, and a heavy one squirted the ball on
+  // along his old line into his own net (48 of 744 staged heavies at the Backyard). The shield has that ball, as it did before.
+  it("dribbling at his own goal near it, a cut out is left to the shield: no turn touch, so no heavy one at his net", () => {
+    const own = dribbling().field.goals.find(g => g.side === 'left')!.lineX;
+    const w = dribbling({ x: own + 60, line: { x: -1, z: 0 } });
+    w.touchRng = HEAVY_ROLL;
+    stepWorld(w, stick(90), NO_INTENT, STEP);
+    expect(w.events.turn).toBeNull();
+  });
+
+  // The final review (2026-10-30): a keeper's smother mid-roll left the held ball still and low, so the roll went on moving it out of
+  // his gloves for a few frames, and the drag-back had the same gap.
+  it.each([
+    ['turn', (w: World) => (w.home.turnTouch = { x: 0, z: 1, leftS: TURN_TOUCH_S })],
+    ['drag-back', (w: World) => Object.assign(w.home, { turnS: 0.2, turnDir: { x: -1, z: 0 } })],
+  ] as const)("a ball the keeper holds is his: the %s ends and never moves it", (_, start) => {
+    const held = (roll: boolean): World => {
+      const w = keeperWorld();
+      const k = w.keepers!.away;
+      Object.assign(w.home, { x: k.body.x - 20, z: k.body.z, vx: 0, vz: 0, facing: 1 });
+      if (roll) start(w);
+      // Down on it after a smother: he holds it on the grass.
+      Object.assign(k, { act: 'down', actT: 0, holding: true, dive: { dirX: 0, dirZ: 1 } });
+      Object.assign(w.ball, { x: k.body.x - 6, y: BALL_REST_Y, z: k.body.z, vx: 0, vy: 0, vz: 0 });
+      stepWorld(w, NO_INTENT, NO_INTENT, STEP);
+      return w;
+    };
+    const [rolling, still] = [held(true), held(false)];
+    expect([rolling.ball.x, rolling.ball.z]).toEqual([still.ball.x, still.ball.z]);
+    expect([rolling.home.turnTouch, rolling.home.turnS]).toEqual([null, 0]);
+  });
+
     const w = dribbling();
     w.touchRng = HEAVY_ROLL;
     const speed = Math.hypot(w.home.vx, w.home.vz);
