@@ -63,11 +63,11 @@ const maxProfile = (d: Difficulty, dials: Partial<AiProfile> = {}): AiProfile =>
 
 /** Max's profiles. Mutable, for headless sweeps. */
 export const DIFFICULTY: Record<Difficulty, AiProfile> = {
-  // Close control (2026-10-30): paceFactor 1 → 1.02; measured after 0.859 (first rung 0.906).
-  easy: maxProfile('easy', { paceFactor: 1.02 }),
-  normal: maxProfile('normal'),
-  // Close control (2026-10-30): paceFactor 1.1 → 1.13; measured after 0.047.
-  hard: maxProfile('hard', { paceFactor: 1.13 }),
+  easy: maxProfile('easy'),
+  // Close control (2026-10-30): paceFactor 1.03 → 1.055.
+  normal: maxProfile('normal', { paceFactor: 1.055 }),
+  // Close control (2026-10-30): paceFactor 1.1 → 1.16.
+  hard: maxProfile('hard', { paceFactor: 1.16 }),
 };
 
 export interface AiBrain {

@@ -257,10 +257,10 @@ describe('think', () => {
     });
   });
 
-  it("Max's dials are the all-round ones, a touch quicker on Easy and Hard (close control, 2026-10-30)", () => {
-    expect(DIFFICULTY.easy).toEqual({ ...ALL_ROUND.easy, paceFactor: 1.02 });
-    expect(DIFFICULTY.normal).toEqual(ALL_ROUND.normal);
-    expect(DIFFICULTY.hard).toEqual({ ...ALL_ROUND.hard, paceFactor: 1.13 });
+  it("Max's dials are the all-round ones, a touch quicker on Normal and Hard (close control, 2026-10-30)", () => {
+    expect(DIFFICULTY.easy).toEqual(ALL_ROUND.easy);
+    expect(DIFFICULTY.normal).toEqual({ ...ALL_ROUND.normal, paceFactor: 1.055 });
+    expect(DIFFICULTY.hard).toEqual({ ...ALL_ROUND.hard, paceFactor: 1.16 });
   });
 
   it('a whole simulated match between two AIs finishes with a result and no exceptions', () => {
