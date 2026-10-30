@@ -74,8 +74,8 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
   // the rebound; Hard quicker and sharper. Measured E 0.875, N 0.578, H 0.078 (keepers at level 6); Normal 1.55 rebound touches a match vs Max's
   // brain's 1.20, and 431 px from her goal line while Harrison has the ball in her half vs 348.
   priya: profiles(ALL_ROUND, {
-    easy: { style: 'poacher' },
-    // Close control (2026-10-30): Normal paceFactor 1.03 → 1.05, Hard cleanSteal 0.55 → 0.45; measured after E 0.875, N 0.672, H 0.078.
+    // Close control (2026-10-30): Easy paceFactor 1 → 1.03 and reactionS 0.22 → 0.2, Normal paceFactor 1.03 → 1.05, Hard cleanSteal 0.55 → 0.45.
+    easy: { style: 'poacher', paceFactor: 1.03, reactionS: 0.2 },
     normal: { style: 'poacher', shootRange: 140, paceFactor: 1.05 },
     hard: { style: 'poacher', paceFactor: 1.3, reactionS: 0.07, aimErrorDeg: 1, cleanSteal: 0.45 },
   }),
