@@ -87,7 +87,7 @@ export function turnWithBall(w: World, intent: PlayerIntent): TurnOutcome | null
 
 /**
  * One tick of a clean turn: the ball rolls on toward FOOT_SPOT in front of
- * him along his new way, and when the turn is over it's knocked on that
+ * him along his new way, riding his run as it goes, and when the turn is over it's knocked on that
  * way as a touch would. If play stops, he leaves his feet or starts
  * another move, anyone plays the ball (it moves or leaves the ground), or
  * its spot can't be reached, the turn ends there and the ball stays put.
@@ -103,13 +103,17 @@ export function stepTurnTouch(w: World, dt: number): void {
     home.turnTouch = null;
     return;
   }
+  // His front runs on with him, so the ball rides his run as it rolls round, and never has a lag to close on the last tick.
   const k = Math.min(1, dt / turn.leftS);
-  ball.x += (target.x - ball.x) * k;
-  ball.z += (target.z - ball.z) * k;
+  ball.x += (target.x - ball.x) * k + home.vx * dt * (1 - k);
+  ball.z += (target.z - ball.z) * k + home.vz * dt * (1 - k);
   turn.leftS = Math.max(0, turn.leftS - dt);
   if (turn.leftS > 1e-9) return;
   const knock = Math.hypot(home.vx, home.vz) + touchPush(home.stats) * home.handling.touchScale;
   [ball.vx, ball.vz] = [turn.x * knock, turn.z * knock];
+  // Its own roll this tick takes it the last step to his front, so the tick it's knocked on it moves once, not twice.
+  ball.x -= ball.vx * dt;
+  ball.z -= ball.vz * dt;
   home.touchCooldown = TOUCH_COOLDOWN_S;
   home.turnTouch = null;
 }

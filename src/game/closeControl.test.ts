@@ -84,10 +84,27 @@ describe('turning with the ball', () => {
     const speed = Math.hypot(w.home.vx, w.home.vz);
     const knock = speed + touchPush(BASE_STATS);
     expect(Math.abs(w.ball.x - w.home.x)).toBeLessThan(1);
-    expect(w.ball.z - w.home.z).toBeGreaterThanOrEqual(FOOT_SPOT - 1e-6);
+    // Knocked on, its own roll takes it the last step to his front, less one tick's friction.
+    expect(w.ball.z - w.home.z).toBeGreaterThanOrEqual(FOOT_SPOT - ROLL_FRICTION * STEP * STEP - 1e-6);
     expect(w.ball.z - w.home.z).toBeLessThanOrEqual(FOOT_SPOT + knock * STEP + 1);
     expect(w.ball.vx).toBeCloseTo(0, 6);
     expect(w.ball.vz).toBeCloseTo(knock - ROLL_FRICTION * STEP, 1);
+  });
+
+  // The browser check (2026-10-30): the roll eased the ball toward a front that ran on with him, so it lagged, and its last tick
+  // closed the whole lag at once, a pop of 6.9 px in one frame between steps of about 2.3.
+  it('the roll carries the ball with him: no tick moves it more than twice its pace once knocked on', () => {
+    const w = dribbling();
+    const steps: number[] = [];
+    let [x, z] = [w.ball.x, w.ball.z];
+    for (let i = 0; i < 20; i++) {
+      stepWorld(w, stick(90), NO_INTENT, STEP);
+      steps.push(Math.hypot(w.ball.x - x, w.ball.z - z));
+      [x, z] = [w.ball.x, w.ball.z];
+    }
+    const settled = steps[steps.length - 1]!;
+    expect(settled).toBeGreaterThan(1);
+    expect(Math.max(...steps)).toBeLessThanOrEqual(2 * settled);
   });
 
   it("a heavy touch squirts off nearer his old line, faster than a touch, and he can't touch it for a beat", () => {
