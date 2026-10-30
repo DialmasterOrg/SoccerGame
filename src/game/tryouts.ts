@@ -37,7 +37,8 @@ export const profiles = (from: Record<Difficulty, AiProfile>, dials: Partial<Rec
  */
 export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfile>> = {
   // School Max: the all-round dials, a touch less pace on Normal. Measured E 0.813, N 0.594, H 0.063 (keepers at level 1).
-  max: profiles(ALL_ROUND, { normal: { paceFactor: 1.02 } }),
+  // Close control (2026-10-30): Easy paceFactor 1 → 1.02, Hard 1.1 → 1.14; measured after E 0.859, N 0.609, H 0.094.
+  max: profiles(ALL_ROUND, { easy: { paceFactor: 1.02 }, normal: { paceFactor: 1.02 }, hard: { paceFactor: 1.14 } }),
   // Header Hank: wins the ball in the air, so Normal is a touch gentler on the ground. Measured E 0.828, N 0.578, H 0.047 (keepers at level 2).
   hank: profiles(ALL_ROUND, {
     easy: { style: 'header' },
