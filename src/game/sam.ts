@@ -1,4 +1,4 @@
-import { DIFFICULTY, type AiProfile, type Difficulty } from './ai';
+import { ALL_ROUND, type AiProfile, type Difficulty } from './ai';
 import type { Handling } from './player';
 import type { Stats } from './stats';
 
@@ -17,11 +17,11 @@ export const SAM_STATS: Readonly<Stats> = { speed: 10, power: 1, jump: 3, contro
 export const SAM_HANDLING: Readonly<Handling> = { decel: 650, touchScale: 1.5, shotScale: 0.55, ballAhead: 48 };
 
 type Dials = Partial<Omit<AiProfile, 'style'>>;
-const samProfile = (d: Difficulty, dials: Dials): AiProfile => ({ ...DIFFICULTY[d], shootRange: 90, ...dials, style: 'speedster' });
+const samProfile = (d: Difficulty, dials: Dials): AiProfile => ({ ...ALL_ROUND[d], shootRange: 90, ...dials, style: 'speedster' });
 
 /**
- * His three difficulty profiles: Max's, with his own pace, range, range-shot
- * odds and kickoff spot. He waits for Harrison's kickoff shot rather than
+ * His three difficulty profiles: the all-round dials, with his own pace,
+ * range, range-shot odds and kickoff spot. He waits for Harrison's kickoff shot rather than
  * rushing the wind-up (at his pace that sent it back into Harrison's net).
  * A faster Sam is an easier one, since his pace is what makes him overshoot,
  * so Hard keeps Normal's pace. Mutable like DIFFICULTY, for headless sweeps.

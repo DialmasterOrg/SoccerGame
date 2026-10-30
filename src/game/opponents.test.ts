@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { maxStats } from '../meta/ladder';
-import { DIFFICULTY, createBrain, think, type Difficulty } from './ai';
+import { ALL_ROUND, DIFFICULTY, createBrain, think, type Difficulty } from './ai';
 import { BALL_REST_Y } from './ball';
 import { CREW_PROFILES, CREW_STATS, type CrewId } from './crew';
 import { NO_INTENT, NORMAL_HANDLING } from './player';
@@ -82,7 +82,7 @@ describe('opponents', () => {
         const p = opponentProfile(id, d);
         expect(p, `${id} ${d}`).toBe(CREW_PROFILES[id][d]);
         expect(p.style, `${id} ${d}`).toBe(styles[id]);
-        expect([p.braceSense, p.backOffS], `${id} ${d}`).toEqual([DIFFICULTY[d].braceSense, DIFFICULTY[d].backOffS]);
+        expect([p.braceSense, p.backOffS], `${id} ${d}`).toEqual([ALL_ROUND[d].braceSense, ALL_ROUND[d].backOffS]);
       }
   });
 
@@ -125,7 +125,7 @@ describe('opponents', () => {
   });
 
   it("Sam's profiles keep Max's Energy Wave answers, and every Easy number is gentler than Normal's, Normal's than Hard's", () => {
-    for (const d of DIFFS) expect([SAM_PROFILES[d].braceSense, SAM_PROFILES[d].backOffS], d).toEqual([DIFFICULTY[d].braceSense, DIFFICULTY[d].backOffS]);
+    for (const d of DIFFS) expect([SAM_PROFILES[d].braceSense, SAM_PROFILES[d].backOffS], d).toEqual([ALL_ROUND[d].braceSense, ALL_ROUND[d].backOffS]);
     const [e, n, h] = DIFFS.map(d => SAM_PROFILES[d]);
     for (const k of ['reactionS', 'cleanSteal', 'wrongFootedS', 'rangeShot'] as const) {
       expect(e![k], k).toBeGreaterThanOrEqual(n![k]!);

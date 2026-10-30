@@ -1,7 +1,7 @@
 import { BALL_R } from '../art/ball';
 import { MUZZLE } from '../art/opponents/biscuit';
 import { LADDER_MATCHES, maxStats } from '../meta/ladder';
-import { DIFFICULTY, type Difficulty } from './ai';
+import { ALL_ROUND, type Difficulty } from './ai';
 import { BALL_REST_Y } from './ball';
 import { POST_R } from './constants';
 import { goalScored, inGoalBox, playerSpan } from './field';
@@ -34,9 +34,9 @@ export interface DogProfile {
 }
 
 export const DOG_DIFFICULTY: Readonly<Record<Difficulty, DogProfile>> = {
-  easy: { reactionS: 0.32, dwellS: 0.55, jinkAhead: 26, jinkWidth: 14, staminaS: 2.4, braceSense: DIFFICULTY.easy.braceSense },
-  normal: { reactionS: 0.18, dwellS: 0.35, jinkAhead: 22, jinkWidth: 18, staminaS: 2.9, braceSense: DIFFICULTY.normal.braceSense },
-  hard: { reactionS: 0.1, dwellS: 0.2, jinkAhead: 18, jinkWidth: 22, staminaS: 4, braceSense: DIFFICULTY.hard.braceSense },
+  easy: { reactionS: 0.32, dwellS: 0.55, jinkAhead: 26, jinkWidth: 14, staminaS: 2.4, braceSense: ALL_ROUND.easy.braceSense },
+  normal: { reactionS: 0.18, dwellS: 0.35, jinkAhead: 22, jinkWidth: 18, staminaS: 2.9, braceSense: ALL_ROUND.normal.braceSense },
+  hard: { reactionS: 0.1, dwellS: 0.2, jinkAhead: 18, jinkWidth: 22, staminaS: 4, braceSense: ALL_ROUND.hard.braceSense },
 };
 
 /** The Harrison he's tuned against: one stat level above Max's last rung. */

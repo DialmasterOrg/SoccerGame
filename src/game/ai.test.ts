@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { seeded } from '../engine/random';
-import { DIFFICULTIES, DIFFICULTY, KICKOFF_HOLD_S, createBrain, steerFor, think, type AiBrain, type AiProfile } from './ai';
+import { ALL_ROUND, DIFFICULTIES, DIFFICULTY, KICKOFF_HOLD_S, createBrain, steerFor, think, type AiBrain, type AiProfile } from './ai';
 import { kidWorld, stepKid } from './testTryouts';
 import { looseBallPlay, onBallPlay } from './tryoutMoves';
 import { BALL_REST_Y } from './ball';
@@ -235,16 +235,23 @@ describe('think', () => {
     expect(t).toBeCloseTo(0.3, 1);
   });
 
-  it('difficulty profiles match the plan', () => {
-    expect(DIFFICULTY.easy).toEqual({
+  it("Max's profiles are his own copies, so retuning him moves no one built on the all-round dials", () => {
+    for (const d of DIFFICULTIES) {
+      expect(DIFFICULTY[d], d).not.toBe(ALL_ROUND[d]);
+      expect(DIFFICULTY[d].kickoffSpot, d).not.toBe(ALL_ROUND[d].kickoffSpot);
+    }
+  });
+
+  it('the all-round dials match the plan', () => {
+    expect(ALL_ROUND.easy).toEqual({
       reactionS: 0.22, aimErrorDeg: 8, aggression: 0.3, shootRange: 150, braceSense: 0.5, backOffS: 0.32,
       cleanSteal: 0.9, wrongFootedS: 0.35, kickoffSpot: { back: 110, off: 20 }, kickoffRush: true, paceFactor: 1, style: 'allRound',
     });
-    expect(DIFFICULTY.normal).toEqual({
+    expect(ALL_ROUND.normal).toEqual({
       reactionS: 0.16, aimErrorDeg: 6, aggression: 0.55, shootRange: 180, braceSense: 0.75, backOffS: 0.18,
       cleanSteal: 0.75, wrongFootedS: 0.35, kickoffSpot: { back: 110, off: 24 }, kickoffRush: true, paceFactor: 1.03, style: 'allRound',
     });
-    expect(DIFFICULTY.hard).toEqual({
+    expect(ALL_ROUND.hard).toEqual({
       reactionS: 0.1, aimErrorDeg: 2, aggression: 0.8, shootRange: 210, braceSense: 0.9, backOffS: 0.1,
       cleanSteal: 0.55, wrongFootedS: 0.2, kickoffSpot: { back: 70, off: 0 }, kickoffRush: false, paceFactor: 1.1, style: 'allRound',
     });

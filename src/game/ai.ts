@@ -47,10 +47,25 @@ export interface AiProfile {
   fakeShot?: number;
 }
 
-export const DIFFICULTY: Record<Difficulty, AiProfile> = {
+/**
+ * The all-round dials every other human opponent's profiles are built on:
+ * Max's as tuned before close control (2026-10-30), so retuning Max moves
+ * only Max.
+ */
+export const ALL_ROUND: Readonly<Record<Difficulty, AiProfile>> = {
   easy: { reactionS: 0.22, aimErrorDeg: 8, aggression: 0.3, shootRange: 150, braceSense: 0.5, backOffS: 0.32, cleanSteal: 0.9, wrongFootedS: 0.35, kickoffSpot: { back: 110, off: 20 }, kickoffRush: true, paceFactor: 1, style: 'allRound' },
   normal: { reactionS: 0.16, aimErrorDeg: 6, aggression: 0.55, shootRange: 180, braceSense: 0.75, backOffS: 0.18, cleanSteal: 0.75, wrongFootedS: 0.35, kickoffSpot: { back: 110, off: 24 }, kickoffRush: true, paceFactor: 1.03, style: 'allRound' },
   hard: { reactionS: 0.1, aimErrorDeg: 2, aggression: 0.8, shootRange: 210, braceSense: 0.9, backOffS: 0.1, cleanSteal: 0.55, wrongFootedS: 0.2, kickoffSpot: { back: 70, off: 0 }, kickoffRush: false, paceFactor: 1.1, style: 'allRound' },
+};
+
+/** Max's own copy of the all-round dials, down to the kickoff spot. */
+const maxProfile = (d: Difficulty, dials: Partial<AiProfile> = {}): AiProfile => ({ ...ALL_ROUND[d], kickoffSpot: { ...ALL_ROUND[d].kickoffSpot }, ...dials });
+
+/** Max's profiles. Mutable, for headless sweeps. */
+export const DIFFICULTY: Record<Difficulty, AiProfile> = {
+  easy: maxProfile('easy'),
+  normal: maxProfile('normal'),
+  hard: maxProfile('hard'),
 };
 
 export interface AiBrain {

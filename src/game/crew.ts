@@ -1,4 +1,4 @@
-import { DIFFICULTY, type AiProfile, type Difficulty, type Style } from './ai';
+import { ALL_ROUND, type AiProfile, type Difficulty, type Style } from './ai';
 import type { Stats } from './stats';
 
 /** The Park crew, the local kids who play pickup there. */
@@ -16,11 +16,11 @@ const STYLES: Record<CrewId, Style> = { brick: 'blocker', leo: 'shooter', tia: '
 
 type Dials = Partial<Omit<AiProfile, 'style'>>;
 
-/** A kid's profiles: Max's for each difficulty, their style, and the dials they tune. */
+/** A kid's profiles: the all-round dials for each difficulty, their style, and the dials they tune. */
 const crewProfiles = (id: CrewId, dials: Record<Difficulty, Dials>): Record<Difficulty, AiProfile> => ({
-  easy: { ...DIFFICULTY.easy, ...dials.easy, style: STYLES[id] },
-  normal: { ...DIFFICULTY.normal, ...dials.normal, style: STYLES[id] },
-  hard: { ...DIFFICULTY.hard, ...dials.hard, style: STYLES[id] },
+  easy: { ...ALL_ROUND.easy, ...dials.easy, style: STYLES[id] },
+  normal: { ...ALL_ROUND.normal, ...dials.normal, style: STYLES[id] },
+  hard: { ...ALL_ROUND.hard, ...dials.hard, style: STYLES[id] },
 });
 
 /**

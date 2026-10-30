@@ -1,6 +1,6 @@
 import { GUS_HANDS } from '../art/keepers/gus';
 import type { CareerMatch } from '../meta/career';
-import { DIFFICULTY, type AiProfile, type Difficulty } from './ai';
+import { ALL_ROUND, type AiProfile, type Difficulty } from './ai';
 import { KEEPER_TOP_LEVEL, SET_OFF, keeperGoal, keeperLevel, keeperLineup, keeperProfile, pitchward, type Keeper, type KeeperLineup, type KeeperProfile } from './keeper';
 import { radiusOf } from './player';
 import type { Point } from '../art/raster';
@@ -81,12 +81,12 @@ export function gusLineup(d: Difficulty): KeeperLineup {
 export const GUS_PARTNER_STATS: Readonly<Stats> = { speed: 3, power: 3, jump: 2, control: 3, stamina: 1 };
 
 /**
- * Max's dials, a touch slower (paceFactor 0.85 / 0.95 / 0.95), and on Normal
+ * The all-round dials, a touch slower (paceFactor 0.85 / 0.95 / 0.95), and on Normal
  * and Hard harder to rob (cleanSteal 0.5 / 0.4), so Harrison has to work
  * for the ball he has most of the match. Tuned with GUS_PROFILES (see there).
  * Mutable, so headless sweeps can try other numbers.
  */
-export const GUS_PARTNER_PROFILES: Record<Difficulty, AiProfile> = profiles(DIFFICULTY, {
+export const GUS_PARTNER_PROFILES: Record<Difficulty, AiProfile> = profiles(ALL_ROUND, {
   easy: { paceFactor: 0.85, cleanSteal: 0.9 },
   normal: { paceFactor: 0.95, cleanSteal: 0.5 },
   hard: { paceFactor: 0.95, cleanSteal: 0.4 },
