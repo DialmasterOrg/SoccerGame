@@ -59,7 +59,8 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
   finn: profiles(ALL_ROUND, {
     easy: { style: 'faker' },
     normal: { style: 'faker', paceFactor: 1, shootRange: 200 },
-    hard: { style: 'faker', paceFactor: 1.15, shootRange: 230 },
+    // Close control (2026-10-30): Hard reactionS 0.1 → 0.08; measured after E 0.875, N 0.594, H 0.078.
+    hard: { style: 'faker', paceFactor: 1.15, shootRange: 230, reactionS: 0.08 },
   }),
   // School Tia: the Park's dribbler, shooting from further out, and her fake ends in a shot from 220 px in. Normal a touch slower, Hard sharper.
   // Measured E 0.828, N 0.563, H 0.063 (keepers at level 5); 11.2 fakes a match on Normal, and each one she finishes near goal ends in a shot.
