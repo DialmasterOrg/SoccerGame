@@ -84,7 +84,8 @@ export const TRYOUT_PROFILES: Record<TryoutOpponent, Record<Difficulty, AiProfil
   // (keepers at level 7). The scripted Harrison rarely stands still in his lane: 1, 1 and 8 nutmegs over the 64 E/N/H matches, every one fair.
   niko: profiles(ALL_ROUND, {
     easy: { style: 'nutmegger', reactionS: 0.25, paceFactor: 0.97 },
-    normal: { style: 'nutmegger', paceFactor: 1, cleanSteal: 0.85 },
+    // Close control (2026-10-30): Normal reactionS 0.16 → 0.18.
+    normal: { style: 'nutmegger', paceFactor: 1, cleanSteal: 0.85, reactionS: 0.18 },
     hard: { style: 'nutmegger', paceFactor: 1.15, shootRange: 230 },
   }),
   // Pinpoint Paige: sets herself, then shoots for the corner away from the keeper, only with a clear look past Harrison. Easy and Normal
