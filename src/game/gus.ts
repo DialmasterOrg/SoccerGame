@@ -85,7 +85,7 @@ export const GUS_PARTNER_STATS: Readonly<Stats> = { speed: 3, power: 3, jump: 2,
  * and Hard harder to rob (cleanSteal 0.5 / 0.4), so Harrison has to work
  * for the ball he has most of the match. Tuned with GUS_PROFILES (see there),
  * and retuned for close control (2026-10-30): the worker / blaster now win
- * E 0.813 / 0.281, N 0.516 / 0.125, H 0.406 / 0.031.
+ * E 0.813 / 0.281, N 0.516 / 0.125, H 0.391 / 0.031.
  * Mutable, so headless sweeps can try other numbers.
  */
 export const GUS_PARTNER_PROFILES: Record<Difficulty, AiProfile> = profiles(ALL_ROUND, {

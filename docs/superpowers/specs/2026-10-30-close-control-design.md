@@ -288,3 +288,218 @@ When the build is done:
 
 Ask before any merge into `main` and any push. There's no art in this
 change. If any turns up, it goes to the parent alone.
+
+## As built (2026-10-30)
+
+Built inline over two sessions on `worktree-dribble-control` (1b497ca..HEAD). The parent made eight calls along the way; each is
+below. Every number here is 64 seeds (100-163) unless it says otherwise; one seed is 0.016, and any change to Harrison's play re-rolls
+every match, so a 64-seed rate moves about ±0.06 from noise alone.
+
+### The rule as shipped (`src/game/closeControl.ts`)
+
+- A turn touch fires when the stick points `TURN_MIN_DEG` (10°) or more off his dribble's line, short of a turn-round (`STICK_BACK`),
+  with the ball his along that line, room for it at his new front (`canPlace`), and the new run not heading within 60° of straight at his
+  own goal (`BACK_LIMIT` 0.5).
+- Heavy-touch chance = `turnRisk(Control)` (0.25 at Control 1 to 0.06 at 10) × (angle / 90°)^2.2 × min(pace, 1.6)^1.6, pace being his
+  speed over his own run speed. Rolled once per turn on `World.touchRng`.
+- A heavy touch squirts the ball off 30% toward his new way at his speed + 2 touch pushes; he can't touch it for 0.3 s.
+- A clean turn rolls the ball round to `FOOT_SPOT` ahead along his new run over `TURN_TOUCH_S` (0.15 s), riding his run as it goes, then
+  knocks it on his new way (his speed + a touch push). The knock tick starts the ball one step short, so it moves once that frame, not
+  twice. (The browser check found a ~7 px one-frame pop at the end of every clean turn before this; now the steps run 1.1 to 2.9 px.)
+- Turning right round in any direction works like the drag-back (`Player.turnDir`).
+
+**Cut drill (`cutDrills.test.ts`, 240 trials; 480 measured):** a 90° cut at a run gives the ball away .225 / .165 / .060 of the time at
+Control 1 / 5 / 10, at a sprint .394 / .252 / .094. Sprint cuts sit a little under the design table (~45/30/12%), since a quarter of
+snaps land just after a touch, when he has already slowed in the turn.
+
+### Fixes beyond the plan
+
+- **ALL_ROUND** (`ai.ts`): the all-round dials, Max's before close control. The crew, Sam, the tryout kids, Gus's partner and Biscuit's
+  brace sense spread it; `DIFFICULTY` is Max's own copy, so retuning Max moves no one else.
+- **A clean steal that can't take the ball is a poke** (`steal.ts` `canTake`): Harrison standing, no trap spot, the ball beyond his
+  feet. It used to wrong-foot Max over a ball that never moved, again at every press (a stall, Pete Normal seed 152).
+- **`Steer.into`** (`ai.ts`): steering to a ball a player means to play never stops short, so a ball wedged behind a goal line inside
+  his reach still gets touched; and a speedster on the wrong side of a ball behind his own line goes at it when the fence leaves no room
+  to go round (three stalls).
+
+### Opponents: before / after / final
+
+Before = 1b497ca; after = the rule alone (dd27c8c); final = as shipped. The keeper drills (long, corner, one-on-one, roller at levels 1
+and 8, every difficulty) were identical to the digit throughout.
+
+| Matchup | Before | After close control | Final | Final − before |
+|---|---|---|---|---|
+| max r10 easy | 0.875 | 0.969 | 0.844 | -0.031 |
+| max r10 normal | 0.625 | 0.688 | 0.625 | +0.000 |
+| max r10 hard | 0.016 | 0.109 | 0.016 | +0.000 |
+| max r1 easy | 0.813 | 0.844 | 0.938 | +0.125 |
+| max r1 normal | 0.813 | 0.781 | 0.719 | -0.094 |
+| max r1 hard | 0.125 | 0.156 | 0.031 | -0.094 |
+| crew brick easy | 0.828 | 0.906 | 0.813 | -0.015 |
+| crew brick normal | 0.594 | 0.766 | 0.609 | +0.015 |
+| crew brick hard | 0.031 | 0.031 | 0.031 | +0.000 |
+| crew leo easy | 0.859 | 0.969 | 0.859 | +0.000 |
+| crew leo normal | 0.625 | 0.641 | 0.625 | +0.000 |
+| crew leo hard | 0.063 | 0.156 | 0.047 | -0.016 |
+| crew tia easy | 0.766 | 0.859 | 0.813 | +0.047 |
+| crew tia normal | 0.594 | 0.609 | 0.531 | -0.063 |
+| crew tia hard | 0.000 | 0.016 | 0.031 | +0.031 |
+| crew pete easy | 0.797 | 0.844 | 0.703 | -0.094 |
+| crew pete normal | 0.641 | 0.656 | 0.547 | -0.094 |
+| crew pete hard | 0.031 | 0.047 | 0.000 | -0.031 |
+| sam racer easy | 0.188 | 0.219 | 0.156 | -0.032 |
+| sam racer normal | 0.094 | 0.078 | 0.109 | +0.015 |
+| sam racer hard | 0.109 | 0.047 | 0.141 | +0.032 |
+| sam matador easy | 0.922 | 0.984 | 0.922 | +0.000 |
+| sam matador normal | 0.609 | 0.906 | 0.828 | +0.219 |
+| sam matador hard | 0.422 | 0.578 | 0.484 | +0.062 |
+| dog blocker easy | 0.875 | 0.781 | 0.844 | -0.031 |
+| dog blocker normal | 0.594 | 0.750 | 0.625 | +0.031 |
+| dog blocker hard | 0.219 | 0.125 | 0.188 | -0.031 |
+| dog chaser easy | 0.000 | 0.000 | 0.000 | +0.000 |
+| dog chaser normal | 0.000 | 0.000 | 0.000 | +0.000 |
+| dog chaser hard | 0.000 | 0.000 | 0.000 | +0.000 |
+| stamina10 dog chaser easy | 0.000 | 0.000 | 0.000 | +0.000 |
+| stamina10 dog chaser normal | 0.000 | 0.000 | 0.000 | +0.000 |
+| stamina10 dog chaser hard | 0.000 | 0.000 | 0.000 | +0.000 |
+| stamina10 sam racer easy | 0.203 | 0.234 | 0.203 | +0.000 |
+| stamina10 sam racer normal | 0.141 | 0.094 | 0.078 | -0.063 |
+| stamina10 sam racer hard | 0.156 | 0.172 | 0.125 | -0.031 |
+| stamina10 sam matador easy | 0.984 | 1.000 | 0.922 | -0.062 |
+| stamina10 sam matador normal | 0.781 | 0.859 | 0.859 | +0.078 |
+| stamina10 sam matador hard | 0.547 | 0.688 | 0.516 | -0.031 |
+| trick max plain easy | 0.875 | 0.969 | 0.844 | -0.031 |
+| trick max plain normal | 0.625 | 0.688 | 0.625 | +0.000 |
+| trick max plain hard | 0.016 | 0.109 | 0.016 | +0.000 |
+| trick max trickster easy | 0.688 | 0.891 | 0.766 | +0.078 |
+| trick max trickster normal | 0.672 | 0.578 | 0.516 | -0.156 |
+| trick max trickster hard | 0.063 | 0.031 | 0.031 | -0.032 |
+| trick max spammer easy | 0.438 | 0.250 | 0.266 | -0.172 |
+| trick max spammer normal | 0.203 | 0.266 | 0.141 | -0.062 |
+| trick max spammer hard | 0.047 | 0.016 | 0.031 | -0.016 |
+| trick sam plain easy | 0.672 | 0.547 | 0.625 | -0.047 |
+| trick sam plain normal | 0.516 | 0.547 | 0.531 | +0.015 |
+| trick sam plain hard | 0.281 | 0.328 | 0.297 | +0.016 |
+| trick sam trickster easy | 0.547 | 0.641 | 0.750 | +0.203 |
+| trick sam trickster normal | 0.547 | 0.641 | 0.547 | +0.000 |
+| trick sam trickster hard | 0.484 | 0.516 | 0.328 | -0.156 |
+| trick sam spammer easy | 0.719 | 0.813 | 0.594 | -0.125 |
+| trick sam spammer normal | 0.500 | 0.500 | 0.609 | +0.109 |
+| trick sam spammer hard | 0.422 | 0.469 | 0.047 | -0.375 |
+| keeperMatch easy L1 | 0.656 | 0.781 | 0.438 | -0.218 |
+| keeperMatch normal L1 | 0.281 | 0.563 | 0.406 | +0.125 |
+| keeperMatch hard L1 | 0.375 | 0.375 | 0.313 | -0.062 |
+| school max easy | 0.813 | 0.922 | 0.750 | -0.063 |
+| school max normal | 0.594 | 0.609 | 0.594 | +0.000 |
+| school max hard | 0.063 | 0.172 | 0.031 | -0.032 |
+| school hank easy | 0.828 | 0.844 | 0.828 | +0.000 |
+| school hank normal | 0.578 | 0.594 | 0.531 | -0.047 |
+| school hank hard | 0.047 | 0.125 | 0.031 | -0.016 |
+| school lola easy | 0.766 | 0.922 | 0.859 | +0.093 |
+| school lola normal | 0.594 | 0.750 | 0.672 | +0.078 |
+| school lola hard | 0.063 | 0.047 | 0.063 | +0.000 |
+| school finn easy | 0.781 | 0.875 | 0.844 | +0.063 |
+| school finn normal | 0.531 | 0.594 | 0.609 | +0.078 |
+| school finn hard | 0.047 | 0.188 | 0.063 | +0.016 |
+| school tia easy | 0.828 | 0.859 | 0.828 | +0.000 |
+| school tia normal | 0.563 | 0.734 | 0.578 | +0.015 |
+| school tia hard | 0.063 | 0.188 | 0.078 | +0.015 |
+| school priya easy | 0.875 | 0.875 | 0.844 | -0.031 |
+| school priya normal | 0.578 | 0.734 | 0.594 | +0.016 |
+| school priya hard | 0.078 | 0.172 | 0.094 | +0.016 |
+| school niko easy | 0.813 | 0.813 | 0.875 | +0.062 |
+| school niko normal | 0.547 | 0.547 | 0.531 | -0.016 |
+| school niko hard | 0.047 | 0.031 | 0.031 | -0.016 |
+| school paige easy | 0.797 | 0.797 | 0.891 | +0.094 |
+| school paige normal | 0.609 | 0.656 | 0.625 | +0.016 |
+| school paige hard | 0.031 | 0.094 | 0.063 | +0.032 |
+| gus blaster easy | 0.375 | 0.531 | 0.281 | -0.094 |
+| gus blaster normal | 0.141 | 0.141 | 0.125 | -0.016 |
+| gus blaster hard | 0.016 | 0.125 | 0.031 | +0.015 |
+| gus worker easy | 0.781 | 0.781 | 0.813 | +0.032 |
+| gus worker normal | 0.641 | 0.688 | 0.516 | -0.125 |
+| gus worker hard | 0.422 | 0.594 | 0.391 | -0.031 |
+
+**Dials changed (each with a `Close control (2026-10-30)` comment):**
+- Max: Normal paceFactor 1.03 → 1.055, Hard 1.1 → 1.16 (Easy unchanged).
+- Brick: Easy reactionS 0.22 → 0.2 and cleanSteal 0.9 → 0.85; Normal paceFactor 1.05 → 1.06 and cleanSteal 0.75 → 0.6.
+- Leo: Easy cleanSteal 0.9 → 0.7 and reactionS 0.22 → 0.2; Normal cleanSteal 0.65 → 0.5 and paceFactor 1.06 → 1.05; Hard paceFactor
+  1.15 → 1.18.
+- Speedy Sam: Easy reactionS 0.22 → 0.2; Hard reactionS 0.1 → 0.08 and cleanSteal 0.55 → 0.53; Normal unchanged.
+- Biscuit: Normal dwellS 0.35 → 0.3.
+- School Max: Easy paceFactor 1 → 1.02, Hard 1.1 → 1.14. Hank: Hard cleanSteal 0.55 → 0.45. Lola: Easy cleanSteal 0.9 → 0.75 and
+  reactionS 0.22 → 0.17, Normal cleanSteal 0.75 → 0.71. Finn: Hard reactionS 0.1 → 0.08. School Tia: Normal reactionS 0.16 → 0.14,
+  Hard paceFactor 1.15 → 1.2. Priya: Easy paceFactor 1 → 1.03 and reactionS 0.22 → 0.2, Normal paceFactor 1.03 → 1.05, Hard cleanSteal
+  0.55 → 0.45. Niko: Normal reactionS 0.16 → 0.18.
+- Gus's partner (BACKUP MO): Easy reactionS 0.22 → 0.2; Normal paceFactor 0.95 → 0.97 and reactionS 0.16 → 0.19; Hard paceFactor
+  0.95 → 1.05 and cleanSteal 0.4 → 0.35. Gus's own keeper dials unchanged.
+- Left alone (inside their ranges): crew Tia, Pete, Paige, the keepers.
+
+### The parent's calls
+
+1. Retune per the rule (too-easy opponents back to their range's easy edge).
+2. Tricks vs Max on Normal: drop "tricks beat plain play" (on 192 seeds tricks never beat plain play, before close control either:
+   .656 vs .682); keep the cap (no more than plain + 0.2), the beat-share floors and Hard ≤ .25. A trick multiplier was built, swept
+   (×1.25 to ×2.5, wider windows) and reverted: only about one trick a match fools Max.
+3. Mashing vs Sam: the guard holds on Normal only (on Easy, stop-start play makes Sam overshoot, his own lesson; only 2 of 40 mashed
+   tricks fool him; 192 seeds before close control: .781 vs .583).
+4. Sam Normal keeps his dials; the matador's Normal cap is 0.95 (192 seeds: .667 before close control, .844 after; racers and plain
+   play unchanged; every dial that pulled it under .65 broke the Stamina-10 racer guard or made plain play much harder).
+5. Sam's skid is measured as his own slide while fooled at speed (11.6 px vs a fooled Max's 2.0 on 192 seeds; 12.2 vs 2.1 before),
+   not his gap to Harrison, which turning with the ball shortened.
+6. Fix the end-of-turn pop and retune with margin: every out-of-band opponent two or three seeds inside its band.
+7. Gus's follow-up check asks for at least one follow-up goal in 64 Normal matches, not three (192 seeds: 9 before, 6 after).
+8. Hard Sam's matador cap is .55, not .45 (192 seeds: .505 before close control, .490 after his retune; no reaction or clean-steal dial
+   held .45 on the test seeds with the racer beaten by .3, and fewer slides didn't help on 192 seeds).
+
+### Rulings
+
+- Straight dribbling unchanged: Task 1's before/after sweep was identical, 114 lines.
+- The shield test uses stick (−0.45, 0.89): the plan's (−0.7, 0.7) is already refused by `BACK_LIMIT`.
+- "Max playing the ball mid-roll" asserts the ball is played (his touch or a 50/50 squirt) and the roll ends: the roll's chord passes
+  within his body radius, a fair 50/50 per the spec.
+- A running touch cooldown blocks a turn touch (the rule needs it).
+- The cut drill cuts 40 + phase % 40 ticks in, so a Stamina-1 sprinter isn't exhausted; 240 trials, not 120 (sampling luck at 120).
+- Sprint cuts measure a little under the design table (see above).
+- ALL_ROUND split (see above).
+- Leo's long shots and Hank's headers are personality checks on Normal profiles; small dial nudges restored them (Leo: Normal pace
+  1.05; Hank: back to his original clean steals, 6.39 headers vs 5.82).
+- Biscuit's Normal retune uses dwellS (his stealing time): reactionS from .1 to .16 gave .56 to .75 with nothing in range.
+- The trick stepover order (Max ≥ Tia ≥ Brick) is measured over 64 seeds, as Pete's is: 32 seeds held 4-7 fooling stepovers each.
+- Max Normal pace 1.055, not 1.06: at 1.06 he missed scoring on an idle Harrison inside `ai.test`'s 30 s (seed 7; 32.5 s).
+- Gus Normal's worker reads .516 on the test seeds (.641 before), but .557 vs .625 on 192 seeds, inside the never-harder rule, with the
+  blaster at .146; every partner dial that kept the worker higher let the blaster past .15.
+- The mashing guard vs Normal Sam is measured over 192 seeds (64 read .609 vs .549 after the carry fix; 192 read .484 vs .505).
+- The "cut up the screen" test's spot check allows one tick of rolling friction (7.967 vs 8), from the carry fix.
+- `Steer.into` changes the brain the scripted Harrisons also use, in three rare spots only (a ball wedged within reach in a pocket, a
+  speedster with no room to go round), to end stalls the "nothing stuck" checks require.
+- Fixed from the final review: a heavy turn touch dribbling at his own goal near it could squirt the ball into his own net past the
+  shield (now the shield keeps that ball, as before); and a roll or drag-back pulled a keeper's held ball out of his gloves after a
+  smother (a ball out of play now ends either).
+- The two broader steal fixes tried first (any untrappable steal a poke; plus the ball beyond his feet) moved Max Normal to .766 and
+  .828 and were dropped for the standing-only version.
+
+### Flags
+
+- Tricks against Max on Normal now lose to plain play (.516 vs .625; .578-.63 when the parent made call 2, at Max's old pace): the
+  parent's call 2 accepts it.
+- Other trick measures that moved more than .1 (no bar covers them): trick-script Hard Sam .484 → .328, mashing vs Easy Max .438 → .266,
+  mashing vs Hard Sam .422 → .047.
+- Gus Normal's worker .641 → .516 on the test seeds (.625 → .557 on 192, ruled above).
+- Pete, left alone, moved a lot with the re-rolls: Easy .797 → .703, Normal .641 → .547. Max's first rung on Hard .125 → .031.
+- School Max Easy kept paceFactor 1.02 from the first retune and now reads .750 (before .813); on 192 seeds .807 (at 1.0: .870), so the
+  dial still holds him near his old rate.
+- Pete Easy (.703, floor .7) and Paige Easy (.891, cap .9) were left alone inside their bands but sit within a seed of an edge: the
+  next change to Harrison's play may knock them out.
+- `keeperMatch` (an untested AI-vs-AI measure) moved: Easy .656 → .438, Normal .281 → .406.
+
+### Deferred minors (final review)
+
+- Turns are judged against the last touch's line (or his facing when there's none), not the ball's actual roll: 14% of scripted turn
+  touches fired with the ball already within 10° of the stick, about one heavy touch from no real turn every 16 matches.
+- A light pull back along the pitch (stick 0.25-0.5) now starts a turn-round, and his facing stays the old way for the 0.2 s plant.
+- A steal tap mid-roll doesn't end the roll; clearing `home.turnTouch` in `trap()` would.
+- `cutScripts` counts the roll's own knock as a kept touch (clean turns measure 3-4; the drill's bar is 1); the shot and trick mid-roll
+  tests don't assert that only one rule moved the ball.
+- 17 of the branch's commit subjects run over 50 characters.
+- `RUNNING` and `BALL_LOW` are duplicated across `closeControl.ts` and `dragBack.ts`.
