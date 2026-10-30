@@ -153,6 +153,23 @@ would never cost him the ball.
 Past 90° the chance keeps rising on the same curve, up to the point where
 the turn becomes a turn-round (below).
 
+**Not back at his own goal.** A cut whose new run heads back at his own
+goal (within 60° of straight at it) gets no turn touch, and the ball
+plays on as today. Turning round is still allowed in every direction, so
+running at his own goal with the ball, he pulls back to turn upfield, as
+today.
+
+This is my call, made while planning. A spike of the rule without this
+exception made the School's scripted Harrison concede far more goals:
+Tia on Easy went from 0.23 conceded a match to 1.75, and the win rate
+from .83 to .36. Of his 72 turn touches a match, 64 pointed back at his
+own goal. The scripted Harrison runs round a ball it has just touched to
+get goal-side, and close control kept the ball glued to it on the way.
+With the exception in, Tia, Paige, Gus and Max were back at today's
+rates, within noise. A player who wants to go back toward his own goal
+with the ball is rare. When he does, the keep-out shield near his goal
+already treats that run specially.
+
 **Turning round.** A turn back against his run is a turn-round, not a
 cut. That means the stick pushes back against the ball's line at least as
 hard as the drag-back's `STICK_BACK` (0.5), which is about 120° or more.
