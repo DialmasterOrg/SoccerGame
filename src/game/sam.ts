@@ -28,14 +28,14 @@ const samProfile = (d: Difficulty, dials: Dials): AiProfile => ({ ...ALL_ROUND[d
  *
  * Measured by samTuning.test.ts on seeds 100–163 at the tuning stats, as
  * racer / matador wins: Easy 0.188 / 0.922, Normal 0.094 / 0.609, Hard
- * 0.109 / 0.422; after close control's retune (2026-10-30) Easy 0.125 /
- * 0.922, Normal 0.078 / 0.906 (dials unchanged, the parent's call), Hard
- * 0.078 / 0.406.
+ * 0.109 / 0.422; after close control's retune (2026-10-30) Easy 0.156 /
+ * 0.922, Normal 0.109 / 0.828 (dials unchanged, the parent's call), Hard
+ * 0.125 / 0.438.
  */
 export const SAM_PROFILES: Record<Difficulty, AiProfile> = {
   // Close control (2026-10-30): Easy reactionS 0.22 → 0.2.
   easy: samProfile('easy', { paceFactor: 1, rangeShot: 0.5, kickoffRush: false, kickoffSpot: { back: 110, off: 8 }, reactionS: 0.2 }),
   normal: samProfile('normal', { paceFactor: 1.08, rangeShot: 0.35, kickoffRush: false, kickoffSpot: { back: 110, off: 8 }, cleanSteal: 0.55, wrongFootedS: 0.2 }),
-  // Close control (2026-10-30): Hard reactionS 0.1 → 0.08, cleanSteal 0.55 → 0.53.
-  hard: samProfile('hard', { paceFactor: 1.08, rangeShot: 0.1, kickoffRush: false, kickoffSpot: { back: 110, off: 10 }, aggression: 0.6, reactionS: 0.08, cleanSteal: 0.53 }),
+  // Close control (2026-10-30): Hard reactionS 0.1 → 0.08, cleanSteal 0.55 → 0.53, aggression 0.6 → 0.4 (his slides help the matador).
+  hard: samProfile('hard', { paceFactor: 1.08, rangeShot: 0.1, kickoffRush: false, kickoffSpot: { back: 110, off: 10 }, aggression: 0.4, reactionS: 0.08, cleanSteal: 0.53 }),
 };
