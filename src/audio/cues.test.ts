@@ -86,6 +86,15 @@ describe('cue recipes', () => {
     expect(CUES.boom.minGapS).toBeGreaterThanOrEqual(0.3);
   });
 
+  it("Gus's sting is the boss sting a fourth lower, ending in two glove thumps", () => {
+    const boss = CUES.bossSting.voices;
+    const gus = CUES.gusSting.voices;
+    expect(gus.slice(0, boss.length).map(v => v.freq)).toEqual(boss.map(v => v.freq * 0.75));
+    const thumps = gus.slice(boss.length);
+    expect(thumps.map(v => v.at)).toEqual([0.55, 0.7]);
+    for (const v of thumps) expect([v.wave, v.freq, v.toFreq, v.dur]).toEqual(['triangle', 150, 80, 0.09]);
+  });
+
   it('the power-up hum rises over about a second', () => {
     const hum = CUES.powerUp.voices[0]!;
     expect(hum.dur).toBeGreaterThanOrEqual(0.9);

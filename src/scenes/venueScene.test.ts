@@ -5,7 +5,8 @@ import { newProfile } from '../meta/profile';
 import { fakeArt, recordingContext, stubCanvases } from './testDraw';
 import { testContext } from './testContext';
 import { frame } from './testInput';
-import { PANEL_TEXT_W, createVenueScene, nodeX, panelLines, type VenueScene } from './venueScene';
+import { BOSS_FACE_SCALE, BOSS_NODE, FACE_AT, PANEL_TEXT_W, PANEL_TEXT_X, createVenueScene, nodeX, panelLines, type VenueScene } from './venueScene';
+import { OPPONENT_LOOKS } from './art';
 import type { VsScene } from './vsScene';
 
 const STEP = 1 / 60;
@@ -172,6 +173,13 @@ describe('the School Field on the venue screen', () => {
       createVenueScene(schoolOpen(TRYOUTS_DONE), 'school', `school-${n + 1}`).draw(g, 0);
       expect(drawn, id).toContain(`art.opponents.${id}.face`);
     }
+  });
+
+  it("Gus's face fits the boss node at twice its size, and ends left of the panel's text (Review Focus 4)", () => {
+    // The face canvas is the head with a one-pixel outline ring.
+    const width = OPPONENT_LOOKS.gus.face!.head.image.width + 2;
+    expect(width * BOSS_FACE_SCALE).toBeLessThanOrEqual(BOSS_NODE.size);
+    expect(FACE_AT.x + width).toBeLessThanOrEqual(PANEL_TEXT_X);
   });
 
   it("once tryout 8 is passed the boss node and the panel show Gus's own face", () => {

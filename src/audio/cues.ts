@@ -40,7 +40,8 @@ export type Cue =
   | 'star'
   | 'bark'
   | 'pant'
-  | 'bossSting';
+  | 'bossSting'
+  | 'gusSting';
 
 export type Wave = 'square' | 'triangle' | 'noise';
 
@@ -84,6 +85,18 @@ const whistle = (at: number, dur: number): Voice => ({
 });
 
 /** Written by ear: short, 8-bit, and nothing shrill. */
+/** The boss's VS card: a low three-note sting, falling, with a thump. */
+const BOSS_STING: readonly Voice[] = [
+  { wave: 'triangle', dur: 0.25, gain: 0.5, freq: 110, toFreq: 55 },
+  { wave: 'square', dur: 0.15, gain: 0.1, freq: 392 },
+  { wave: 'square', at: 0.15, dur: 0.15, gain: 0.1, freq: 370 },
+  { wave: 'square', at: 0.3, dur: 0.5, gain: 0.1, hold: 0.2, freq: 262 },
+];
+/** A fourth lower. */
+const FOURTH_DOWN = 0.75;
+/** A glove thump on the ball, at `at`. */
+const thump = (at: number): Voice => ({ wave: 'triangle', at, dur: 0.09, gain: 0.3, freq: 150, toFreq: 80 });
+
 export const CUES: Readonly<Record<Cue, CueRecipe>> = {
   kickSoft: {
     voices: [
@@ -268,14 +281,10 @@ export const CUES: Readonly<Record<Cue, CueRecipe>> = {
     voices: [0, 0.35, 0.7].map(at => ({ wave: 'noise' as const, at, dur: 0.18, gain: 0.12, attack: 0.04, freq: 1800, toFreq: 1200, filter: { type: 'bandpass' as const, q: 2 } })),
     minGapS: 1,
   },
-  /** The boss's VS card: a low three-note sting, falling, with a thump. */
-  bossSting: {
-    voices: [
-      { wave: 'triangle', dur: 0.25, gain: 0.5, freq: 110, toFreq: 55 },
-      { wave: 'square', dur: 0.15, gain: 0.1, freq: 392 },
-      { wave: 'square', at: 0.15, dur: 0.15, gain: 0.1, freq: 370 },
-      { wave: 'square', at: 0.3, dur: 0.5, gain: 0.1, hold: 0.2, freq: 262 },
-    ],
+  bossSting: { voices: BOSS_STING, minGapS: 1 },
+  /** Goalie Gus's VS card: the boss sting a fourth lower, ending in two glove thumps. By design, not by ear. */
+  gusSting: {
+    voices: [...BOSS_STING.map(v => ({ ...v, freq: v.freq * FOURTH_DOWN, ...(v.toFreq === undefined ? {} : { toFreq: v.toFreq * FOURTH_DOWN }) })), thump(0.55), thump(0.7)],
     minGapS: 1,
   },
 };

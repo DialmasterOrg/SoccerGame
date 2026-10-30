@@ -29,11 +29,11 @@ const CAM: Camera = { x: 40 };
 /** The band behind the lines is dimmed, as the venue screen's header is: the sky's cloud streak and the washing line are behind them. */
 const HEADER = { h: 86, tipH: 98, dim: 0.45 };
 /** The match, who plays, the bonus, and the boss's tip once he has beaten Harrison. */
-const LINE_YS = [30, 52, 74, 86] as const;
+export const LINE_YS = [30, 52, 74, 86] as const;
 const LINE_SCALES = [2, 2, 1, 1] as const;
 const LINE_COLOURS = ['energyGold', 'white', 'white', 'volt'] as const;
 /** The two of them stand facing each other on the pitch line. */
-const PITCH_Y = 150;
+export const PITCH_Y = 150;
 const HOME_X = 110;
 /** Harrison's effects on the card run on these random numbers. */
 const FX_SEED = 31;
@@ -65,7 +65,8 @@ export function createVsScene(ctx: GameContext, match: CareerMatch, back: () => 
   const change = match.opponent === 'biscuit' ? null : changeKitFor(outfit.kit, match.opponent);
   const lines = vsLines(match, ctx.profile);
   const boss = match.kind === 'boss';
-  if (boss) ctx.audio.play('bossSting');
+  // Goalie Gus has his own sting; the other bosses share one.
+  if (boss) ctx.audio.play(match.opponent === 'gus' ? 'gusSting' : 'bossSting');
   let t = 0;
   const kickOff = () => createMatchScene(ctx, newSeed(), match);
   return {
@@ -102,6 +103,10 @@ export function createVsScene(ctx: GameContext, match: CareerMatch, back: () => 
         // He faces Harrison: left, so the anchor column mirrors.
         const dog = art.biscuit.idle.left[0]!;
         g.drawImage(dog, AWAY_X - (dog.width - 1 - BISCUIT_ANCHOR.x), PITCH_Y - BISCUIT_ANCHOR.y);
+      } else if (match.opponent === 'gus') {
+        // Goalie Gus himself, in his ready crouch, not the partner who plays the outfield.
+        const gus = art.keepers.gus;
+        g.drawImage(gus.poses.ready.left[0]!, AWAY_X - gus.anchor.x, PITCH_Y - gus.anchor.y);
       } else {
         const sprites = change ? art.opponentIn(match.opponent, change) : art.opponents[match.opponent].sprites;
         g.drawImage(sprites.left.idle[0]!, AWAY_X - ANCHOR.x, PITCH_Y - ANCHOR.y);

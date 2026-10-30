@@ -1,4 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { C } from '../art/colors';
+import { GLYPH_H, measureText } from '../art/font';
+import { GUS_BODY, GUS_EXTRAS, GUS_HEADS } from '../art/keepers/gus';
+import { bakeKeeperPoses } from '../art/keepers/poses';
+import { frameOf } from '../art/body/pose';
+import { BASE_W } from '../engine/viewport';
 import { BOSS_ID, PARK_BOSS_ID, SCHOOL_BOSS_ID, matchById } from '../meta/career';
 import { newProfile } from '../meta/profile';
 import { createHubScene } from './hubScene';
@@ -6,7 +12,7 @@ import type { MatchScene } from './matchScene';
 import { fakeArt, recordingContext } from './testDraw';
 import { testContext } from './testContext';
 import { frame } from './testInput';
-import { VS_AUTO_S, createVsScene, vsLines } from './vsScene';
+import { LINE_YS, PITCH_Y, VS_AUTO_S, createVsScene, vsLines } from './vsScene';
 
 const STEP = 1 / 60;
 const CHARSET = /^[A-Z0-9 '\-:!?.,/+<>]+$/;
@@ -119,13 +125,43 @@ describe('the School Field on the VS card', () => {
     }
   });
 
-  it("Gus's card is THE SCHOOL BOSS with the sting, and no tip even after a loss", () => {
-    const ctx = testContext({ art: fakeArt() });
-    createVsScene(ctx, matchById(SCHOOL_BOSS_ID)!, back);
-    expect(ctx.audio.played).toContain('bossSting');
+  /** A profile that has lost to Gus once. */
+  const lostToGus = () => ({ ...newProfile(), career: { ...newProfile().career, lossStreaks: { [SCHOOL_BOSS_ID]: 1 } } });
+
+  it("Gus's card is THE SCHOOL BOSS, with his tip once he has beaten Harrison", () => {
     expect(vsLines(matchById(SCHOOL_BOSS_ID)!, newProfile())).toEqual(['THE SCHOOL BOSS', 'HARRISON VS GOALIE GUS', 'BONUS: PUT 3 PAST GUS']);
-    const lost = { ...newProfile(), career: { ...newProfile().career, lossStreaks: { [SCHOOL_BOSS_ID]: 2 } } };
-    expect(vsLines(matchById(SCHOOL_BOSS_ID)!, lost)).toHaveLength(3);
+    const lines = vsLines(matchById(SCHOOL_BOSS_ID)!, lostToGus());
+    expect(lines.at(-1)).toBe('TIP: KEEP IT LOW. MAKE HIM DIVE.');
+    expect(measureText(lines.at(-1)!) + 2).toBeLessThanOrEqual(BASE_W);
+  });
+
+  it("Gus's card plays his own sting; Sam's and Biscuit's play the boss sting", () => {
+    const gus = testContext({ art: fakeArt() });
+    createVsScene(gus, matchById(SCHOOL_BOSS_ID)!, back);
+    expect(gus.audio.played).toContain('gusSting');
+    expect(gus.audio.played).not.toContain('bossSting');
+    for (const id of [PARK_BOSS_ID, BOSS_ID]) {
+      const ctx = testContext({ art: fakeArt() });
+      createVsScene(ctx, matchById(id)!, back);
+      expect(ctx.audio.played, id).toContain('bossSting');
+      expect(ctx.audio.played, id).not.toContain('gusSting');
+    }
+  });
+
+  it("Gus's card draws Gus himself, from his keeper sprites, not his partner", () => {
+    const { g, drawn } = recordingContext();
+    createVsScene(testContext({ art: fakeArt() }), matchById(SCHOOL_BOSS_ID)!, back).draw(g, 0);
+    expect(drawn).toContain('art.keepers.gus.poses.ready.left.0');
+    expect(drawn.some(d => d?.startsWith('art.opponents.'))).toBe(false);
+  });
+
+  it('with his tip up, the top of Gus is below the tip line (Review Focus 4)', () => {
+    const ready = bakeKeeperPoses(GUS_BODY, GUS_HEADS, GUS_EXTRAS).ready[0]!;
+    const firstRow = Array.from({ length: ready.height }, (_, y) => y).find(y => Array.from({ length: ready.width }, (_, x) => ready.get(x, y)).some(c => c !== C.None))!;
+    const top = PITCH_Y - frameOf(GUS_BODY).anchor.y + firstRow;
+    expect(vsLines(matchById(SCHOOL_BOSS_ID)!, lostToGus())).toHaveLength(4);
+    // The tip's text is GLYPH_H + 2 rows tall with its outline: Gus's first row is the one after its last.
+    expect(top).toBeGreaterThanOrEqual(LINE_YS[3] + GLYPH_H + 2);
   });
 
   it("the Park's and the Backyard's cards read as before", () => {

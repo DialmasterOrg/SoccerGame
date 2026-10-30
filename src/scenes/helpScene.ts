@@ -1,5 +1,6 @@
 import type { ButtonName } from '../art/glyphs';
 import { MASTER } from '../art/colors';
+import { GLYPH_H } from '../art/font';
 import { BASE_H, BASE_W } from '../engine/viewport';
 import { drawBackdrop } from './backdrop';
 import type { GameContext } from './context';
@@ -41,6 +42,7 @@ export const HELP_PAGES: readonly { title: string; lines: readonly string[] }[] 
       'FROM THE SCHOOL FIELD ON, A KEEPER GUARDS EACH GOAL.',
       "BISCUIT CAN'T SHOOT: BLOCK HIS WAY TO YOUR GOAL.",
       "SPEEDY SAM CAN'T STOP: TURN AND LET HIM FLY PAST.",
+      'GOALIE GUS FILLS THE GOAL. HE CAN EVEN STOP THE WAVE.',
     ],
   },
   {
@@ -101,6 +103,19 @@ const BUTTON_GAP = 4;
 const BUTTON_RAISE = 2;
 const FOOTER_Y = BASE_H - 18;
 const BUTTON_LINE = /^(A|B|X|Y|LB|RS|RT|START): (.*)$/;
+/** A line of text's height at scale 1, with its outline. */
+const TEXT_H = GLYPH_H + 2;
+
+/** Each line's top row on its page, and the bottom of the last line's text: the rows draw uses, so a test can see a page fit. */
+export function helpLineYs(lines: readonly string[]): { ys: number[]; bottom: number } {
+  const ys: number[] = [];
+  let y = FIRST_LINE_Y;
+  for (const line of lines) {
+    ys.push(y);
+    y += BUTTON_LINE.test(line) ? BUTTON_LINE_H : LINE_H;
+  }
+  return { ys, bottom: (ys.at(-1) ?? FIRST_LINE_Y) + TEXT_H };
+}
 
 /** CONTROLS, THE MATCH, MOVES: left/right flip the pages (wrapping); B, Backspace, C, Esc or Start goes back. */
 export function createHelpScene(ctx: GameContext, back: () => Scene): HelpScene {
@@ -133,19 +148,18 @@ export function createHelpScene(ctx: GameContext, back: () => Scene): HelpScene 
       const { title, lines } = HELP_PAGES[page]!;
       const heading = art.text(title, 2, 'energyGold', 'outline');
       g.drawImage(heading, Math.round(BASE_W / 2 - heading.width / 2), TITLE_Y);
-      let y = FIRST_LINE_Y;
-      for (const line of lines) {
+      const { ys } = helpLineYs(lines);
+      lines.forEach((line, i) => {
+        const y = ys[i]!;
         const button = BUTTON_LINE.exec(line);
         if (button) {
           const pic = art.buttons[button[1] as ButtonName];
           g.drawImage(pic, TEXT_X, y - BUTTON_RAISE);
           g.drawImage(art.text(button[2]!, 1, 'white', 'outline'), TEXT_X + pic.width + BUTTON_GAP, y);
-          y += BUTTON_LINE_H;
         } else {
           g.drawImage(art.text(line, 1, 'white', 'outline'), TEXT_X, y);
-          y += LINE_H;
         }
-      }
+      });
 
       g.drawImage(art.text('LEFT/RIGHT: MORE', 1, 'silver', 'outline'), TEXT_X, FOOTER_Y);
       const b = art.buttons.B;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { glyph, measureText } from '../art/font';
-import { HELP_PAGES, createHelpScene, type HelpScene } from './helpScene';
+import { BASE_H } from '../engine/viewport';
+import { HELP_PAGES, createHelpScene, helpLineYs, type HelpScene } from './helpScene';
 import type { Scene } from './scene';
 import { testContext } from './testContext';
 import { fakeArt, recordingContext } from './testDraw';
@@ -81,17 +82,27 @@ describe('Help about Biscuit', () => {
 describe('Help about Sam', () => {
   it("THE MATCH page tells him how to beat Speedy Sam, after Biscuit's line", () => {
     const lines = HELP_PAGES[1]!.lines;
-    expect(lines.at(-2)).toBe("BISCUIT CAN'T SHOOT: BLOCK HIS WAY TO YOUR GOAL.");
-    expect(lines.at(-1)).toBe("SPEEDY SAM CAN'T STOP: TURN AND LET HIM FLY PAST.");
+    expect(lines.at(-3)).toBe("BISCUIT CAN'T SHOOT: BLOCK HIS WAY TO YOUR GOAL.");
+    expect(lines.at(-2)).toBe("SPEEDY SAM CAN'T STOP: TURN AND LET HIM FLY PAST.");
+  });
+
+  it("THE MATCH page says what Goalie Gus does, right after Sam's line", () => {
+    const lines = HELP_PAGES[1]!.lines;
+    expect(lines.at(-2)).toBe("SPEEDY SAM CAN'T STOP: TURN AND LET HIM FLY PAST.");
+    expect(lines.at(-1)).toBe('GOALIE GUS FILLS THE GOAL. HE CAN EVEN STOP THE WAVE.');
+  });
+
+  it("every page's lines end at least 2 rows above the footer", () => {
+    for (const page of HELP_PAGES) expect(helpLineYs(page.lines).bottom, page.title).toBeLessThanOrEqual(BASE_H - 18 - 2);
   });
 });
 
 describe('Help about the keepers', () => {
-  it("THE MATCH page says keepers guard the goals from the School Field on, before Biscuit's and Sam's lines", () => {
+  it("THE MATCH page says keepers guard the goals from the School Field on, before Biscuit's, Sam's and Gus's lines", () => {
     const lines = HELP_PAGES[1]!.lines;
-    expect(lines.at(-3)).toBe('FROM THE SCHOOL FIELD ON, A KEEPER GUARDS EACH GOAL.');
-    expect(lines.at(-2)).toBe("BISCUIT CAN'T SHOOT: BLOCK HIS WAY TO YOUR GOAL.");
-    expect(lines.at(-1)).toBe("SPEEDY SAM CAN'T STOP: TURN AND LET HIM FLY PAST.");
+    expect(lines.at(-4)).toBe('FROM THE SCHOOL FIELD ON, A KEEPER GUARDS EACH GOAL.');
+    expect(lines.at(-3)).toBe("BISCUIT CAN'T SHOOT: BLOCK HIS WAY TO YOUR GOAL.");
+    expect(lines.at(-2)).toBe("SPEEDY SAM CAN'T STOP: TURN AND LET HIM FLY PAST.");
   });
 });
 

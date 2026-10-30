@@ -55,7 +55,9 @@ describe('the catalog', () => {
     ]);
     // Max and Tia come back at tryouts 1 and 5; Goalie Gus is the boss.
     expect(SCHOOL.matches.map(m => m.opponent)).toEqual(['max', 'hank', 'lola', 'finn', 'tia', 'priya', 'niko', 'paige', 'gus']);
-    expect(SCHOOL.matches.every(m => m.blurb !== null && m.tip === null)).toBe(true);
+    expect(SCHOOL.matches.every(m => m.blurb !== null)).toBe(true);
+    // Only Gus has a tip, shown on his card once he has beaten Harrison.
+    expect(SCHOOL.matches.map(m => m.tip)).toEqual([...Array(8).fill(null), 'TIP: KEEP IT LOW. MAKE HIM DIVE.']);
     expect(VENUES.map(v => v.id)).toEqual(['backyard', 'park', 'school', 'state', 'stadium', 'worldCup']);
     expect([venueMaxStars('school'), venueMaxStars('state'), TOTAL_STARS]).toEqual([27, 0, 156]);
     expect(MATCH_IDS).toHaveLength(25);

@@ -124,7 +124,7 @@ export const SCHOOL: Venue = {
     tryout(8, 'PINPOINT PAIGE', 'PAIGE', 'paige', 'THE TOP SCORER. SHE PICKS A CORNER.', 'noPaigeGoals'),
     {
       id: SCHOOL_BOSS_ID, venue: 'school', kind: 'boss', rung: 0, name: 'GOALIE GUS', hudName: 'GUS', opponent: 'gus',
-      blurb: 'THE CAPTAIN. HE FILLS THE WHOLE GOAL.', tip: null, bonus: 'threePastGus',
+      blurb: 'THE CAPTAIN. HE FILLS THE WHOLE GOAL.', tip: 'TIP: KEEP IT LOW. MAKE HIM DIVE.', bonus: 'threePastGus',
     },
   ],
 };

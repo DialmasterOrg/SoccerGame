@@ -29,13 +29,13 @@ const NODE = { w: 20, h: 16, x0: 16, step: 24, y: 44 };
 const NODE_SPAN = NODE.step * (LADDER_MATCHES - 1);
 const NEXT_Y = 35;
 const NODE_STARS_Y = 63;
-const BOSS_NODE = { x: 268, y: 38, size: 28 };
+export const BOSS_NODE = { x: 268, y: 38, size: 28 };
 const BOSS_LABEL_Y = 69;
 /** His face fills the boss node at twice its size. */
-const BOSS_FACE_SCALE = 2;
+export const BOSS_FACE_SCALE = 2;
 const PANEL = { x: 8, y: 96, w: 304, h: 74 };
-const FACE_AT = { x: 14, y: 100 };
-const PANEL_TEXT_X = 32;
+export const FACE_AT = { x: 14, y: 100 };
+export const PANEL_TEXT_X = 32;
 const PANEL_LINE_YS = [100, 118, 132] as const;
 const PANEL_FOOT_Y = 146;
 const HINT_RIGHT = 306;
