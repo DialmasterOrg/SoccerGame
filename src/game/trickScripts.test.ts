@@ -74,10 +74,12 @@ describe('the spammer', () => {
 });
 
 describe('the plain script', () => {
-  it('records how far past a defender fooled at speed ends up, and nobody else', () => {
+  it('records how far a fooled defender slides on his own, those fooled at speed apart, and nobody else', () => {
     const m = trickMatch('sam', 'normal', 100, 'trickster');
-    expect(m.trickStats.pastAtSpeedPx.length).toBeLessThanOrEqual(m.trickStats.pastPx.length);
-    expect(trickMatch('max', 'normal', 100, 'trickster').trickStats.pastAtSpeedPx).toEqual([]);
+    expect(m.trickStats.skidAtSpeedPx.length).toBeGreaterThan(0);
+    expect(m.trickStats.skidAtSpeedPx.length).toBeLessThanOrEqual(m.trickStats.skidPx.length);
+    expect(m.trickStats.skidAtSpeedPx.every(px => px > 0)).toBe(true);
+    expect(trickMatch('max', 'normal', 100, 'trickster').trickStats.skidAtSpeedPx).toEqual([]);
   });
 
   it('never presses RB', () => {
